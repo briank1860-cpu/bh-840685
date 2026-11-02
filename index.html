@@ -473,12 +473,10 @@ function applyState(){const st=getState();
  if(st.days)$('days').value=st.days;if(st.exit)$('exit').value=st.exit;if(st.work)$('work').value=st.work;
  if(st.weekend!=null)$('weekend').checked=st.weekend;if(st.incPaid!=null)$('incPaid').checked=st.incPaid;
  (st.off||[]).forEach(r=>{const x=[...document.querySelectorAll('#regions input')].find(i=>i.value===r);if(x)x.checked=false});}
-function restoreView(){const st=getState(),d=st.dlg;if(!d){if(st.alarm&&SITES.some(x=>x.id===st.alarm))startAlarm(st.alarm);return}
+function restoreView(){const st=getState(),d=st.dlg;if(!d)return;
  if(d.t==='s'&&SITES.some(x=>x.id===d.id)){siteDetail(d.id);if(st.geo&&$('geoBtn'))toggleGeo(d.id)}
  else if(d.t==='d'&&d.n>=kDay(Date.now()))dayDetail(d.n);
- else if(d.t==='t')targetDetail(d.id);
- if(st.alarm&&SITES.some(x=>x.id===st.alarm))startAlarm(st.alarm);
- if(st.y)setTimeout(()=>{$('dBody').parentElement.scrollTop=st.y;$('dlg').scrollTop=st.y},400);}
+ else if(d.t==='t')targetDetail(d.id); if(st.y)setTimeout(()=>{$('dBody').parentElement.scrollTop=st.y;$('dlg').scrollTop=st.y},400);}
 function siteDetail(id){saveState({dlg:{t:'s',id}});
  const s=SITES.find(x=>x.id===id),d=DETAIL[id]||{};
  const next=RESULT?RESULT.rows.filter(r=>r.site.id===id).sort((a,b)=>b.score-a.score).slice(0,3).sort((a,b)=>a.n-b.n):[];
@@ -825,7 +823,7 @@ function renderAlarmBar(){
  const s=SITES.find(x=>x.id===alarmSite),l=upcomingLow(alarmSite);
  const mins=l?Math.round((l.e-Date.now())/60e3):null;
  bar.innerHTML=`<span><b>간조 알람</b> · ${esc(s.name)} · ${l?`철수 ${fmtT(l.e)} (${mins>0?mins+'분 남음':'지남'}) · 간조 ${fmtT(l.t)}`:'간조 정보 없음'}<br><span id="alarmMsg" style="font-size:12px;opacity:.9">철수 30분 전·10분 전·철수·간조 때 울림</span></span>
-  <span style="display:flex;gap:6px">${l&&/Android/i.test(navigator.userAgent)?`<a href="${clockAlarmLink(l)}" style="background:#fff;color:#0f6d74;padding:5px 8px;border-radius:6px;text-decoration:none;font-size:13px">시계 알람</a>`:''}${l?`<button onclick="outNow()" style="background:#fff;color:#0f6d74;padding:5px 10px">나왔음</button>`:''}<button onclick="stopAlarm()" style="background:#fff;color:#0f6d74;padding:5px 10px">끄기</button></span>`;
+  <span style="display:flex;gap:6px">${l?`<button onclick="outNow()" style="background:#fff;color:#0f6d74;padding:5px 10px">나왔음</button>`:''}<button onclick="stopAlarm()" style="background:#fff;color:#0f6d74;padding:5px 10px">끄기</button></span>`;
  const b=$('alarmBtn');if(b)b.textContent='간조 알람 끄기';
 }
 function checkAlarm(){
@@ -839,7 +837,7 @@ function startAlarm(id,auto){
  alarmSite=id;alarmFired={};
  try{if('Notification' in window&&Notification.permission==='default')Notification.requestPermission()}catch(e){}
  keepAwake();clearInterval(alarmTimer);alarmTimer=setInterval(checkAlarm,15000);
- const l=upcomingLow(id);if(l)[[l.e-30*60e3],[l.e-10*60e3],[l.e],[l.t]].forEach(([t])=>{if(Date.now()>=t+10*60e3)alarmFired[id+t]=1});
+ const l=upcomingLow(id);if(l)[[l.e-30*60e3],[l.e-10*60e3],[l.e],[l.t]].forEach(([t])=>{if(Date.now()>=t)alarmFired[id+t]=1}); // 앱이 꺼져 있던 동안 지난 알람은 다시 열어도 울리지 않음
  checkAlarm();saveState({alarm:id});
  if(auto)alarmNotify('현장 근처 도착 — 간조 알람을 켰습니다');
 }
