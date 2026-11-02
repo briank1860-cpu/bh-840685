@@ -106,7 +106,7 @@ input[type=date]{font:inherit;padding:4px 6px;border:1px solid var(--line);borde
 </div>
 
 <h2>날짜 보기</h2>
-<div class="card dayctl"><input type="date" id="dayPick"><button id="dayGo">보기</button><span class="sub">체크된 지역의 간조·날씨·대상</span></div>
+<div class="card dayctl"><input type="date" id="dayPick"><select id="dayT"><option value="">대상 전체</option></select><button id="dayGo">보기</button><span class="sub">체크된 지역의 간조·날씨·대상</span></div>
 
 <h2>추천 날짜</h2>
 <div class="card tw"><table id="top"></table></div>
@@ -504,6 +504,30 @@ function targetDetail(id){saveState({dlg:{t:'t',id}});
  if(t.sources&&t.sources.length)h+=`<h4>출처</h4><ul>${t.sources.map(([a,u])=>`<li><a href="${esc(u)}" target="_blank" rel="noopener">${esc(a)}</a></li>`).join('')}</ul>`;
  openDlg(`<h3>${esc(t.name)}</h3>`,h);
 }
+// 대상별 점수: 대상마다 물 빠짐·낮 시간 비중을 다르게(조개류는 물 빠짐 중시, 꽃게·낙지는 밤 간조도 가능)
+const TPROF=id=>/^(kkotge|nakji|jukkumi)$/.test(id)?{wt:30,wd:10,night:1}:id==='bakhaji'?{wt:30,wd:25}:/^(keunguseul|pippul|haesam|gul|garibi)$/.test(id)?{wt:35,wd:25}:{wt:45,wd:20};
+const siteHas=(sid,t)=>(DETAIL[sid]?.targets||[]).some(x=>findTarget(x.name)===t);
+function rankTarget(n,m,t,rows){
+ const ms=mStat(t.id,m);if(ms==='x')return null;
+ const P=TPROF(t.id),seas=ms==='g'?15:ms==='o'?8:3,out=[];
+ rows.forEach(({s,r})=>{if(!siteHas(s.id,t))return;const d=DATA[s.id]||{};let best=null;
+  (r.all||[]).forEach(l=>{const w=weatherScore(d.wx,d.sea,l.b,l.e);const dd=P.night?Math.max(l.day,0.6):l.day;let sc=l.F*P.wt+dd*P.wd+seas+w.score;if(w.danger)sc=Math.min(sc,25);if(!best||sc>best.sc)best={sc:Math.round(sc),l,w}});
+  if(best)out.push({s,...best})});
+ return out.sort((a,b)=>b.sc-a.sc);
+}
+function targetRankHtml(n,m,rows){
+ const sel=$('dayT')?$('dayT').value:'';
+ const ts=TARGETS.filter(t=>rows.some(({s})=>siteHas(s.id,t)));
+ const line=(t,k)=>{const rk=rankTarget(n,m,t,rows);
+  if(rk===null)return `<dt><span class="chip cx" data-t="${t.id}">${esc(t.name)}</span></dt><dd class="sub">${esc(MONTHS[t.id]?.xn||'금어기')}</dd>`;
+  if(!rk.length)return '';
+  return `<dt><span class="chip ${mStat(t.id,m)==='g'?'cg':''}" data-t="${t.id}">${esc(t.name)}</span></dt><dd>${rk.slice(0,k).map((x,i)=>`<div>${i+1}. <span class="link" data-s="${x.s.id}">${esc(x.s.name)}</span> <b>${x.sc}</b> <span class="sub">간조 ${fmtT(x.l.t)} · 작업 ${fmtT(x.l.b)}~${fmtT(x.l.e)}${x.l.day<0.5?' · 야간':''}${x.w.danger?' · 위험':''}</span></div>`).join('')}</dd>`};
+ let h='';
+ if(sel){const t=TARGETS.find(x=>x.id===sel);
+  h+=`<h4>${esc(t.name)} 좋은 장소</h4>`+(ts.includes(t)?`<div class="dl">${line(t,6)}</div>`:`<p class="sub">체크된 지역에 ${esc(t.name)}가 나온다는 근거가 있는 장소가 없습니다.</p>`);}
+ h+=`<h4>대상별 좋은 장소 <span class="sub">상위 3곳</span></h4><div class="dl">${ts.filter(t=>t.id!==sel).map(t=>line(t,3)).join('')}</div>`;
+ return h;
+}
 function renderTargets(){
  $('targets').innerHTML=TARGETS.map(t=>`<button class="chip" data-t="${esc(t.id)}">${esc(t.name)}<small>${esc(t.season||'')}</small></button>`).join('')
   +(TARGET_COMMON.length?`<div class="card" style="grid-column:1/-1"><b>공통 규정</b>${ul(TARGET_COMMON)}</div>`:'');
@@ -564,6 +588,7 @@ function dayDetail(n){saveState({dlg:{t:'d',n}});
  const good=TARGETS.filter(t=>mStat(t.id,m)==='g'),okT=TARGETS.filter(t=>mStat(t.id,m)==='o'),closed=TARGETS.filter(t=>mStat(t.id,m)==='x');
  const tchip=(t,cls)=>`<span class="chip ${cls||''}" data-t="${t.id}">${esc(t.name)}</span>`;
  let h=`<div class="dl"><dt>물때</dt><dd>${mulName(ld)} <span class="sub">(음력 ${ld}일)</span></dd>${st?`<dt>해</dt><dd>일출 ${fmtT(st.rise)} · 일몰 ${fmtT(st.set)}</dd>`:''}<dt>날씨 기준</dt><dd>${WX_AT?fmtT(WX_AT)+' 받은 실시간 예보 · <a href="https://www.weather.go.kr/w/special-report/overall.do" target="_blank" rel="noopener">기상특보</a>':'<span style="color:var(--bad)">날씨 못 받음 — 새로고침</span>'}</dd><dt>${m}월 제철</dt><dd><div class="chips">${good.map(t=>tchip(t)).join('')||'<span class="sub">없음</span>'}</div></dd>${okT.length?`<dt>${m}월 나옴</dt><dd><div class="chips">${okT.map(t=>tchip(t)).join('')}</div></dd>`:''}${closed.length?`<dt>금어기</dt><dd><div class="chips">${closed.map(t=>tchip(t,'cx')+`<span class="sub">${esc(MONTHS[t.id].xn)}</span>`).join(' ')}</div></dd>`:''}</div>`;
+ h+=targetRankHtml(n,m,rows);
  h+=`<h4>장소별 (체크된 지역 ${sites.length}곳, 점수순)</h4>`;
  h+=rows.map(({s,r})=>{
   const w=dayWeather(s,n);
@@ -768,6 +793,7 @@ function init(){
  $('dlg').addEventListener('click',e=>{if(e.target===$('dlg'))$('dlg').close()});
  $('pickDetail').onclick=()=>siteDetail($('sitePick').value);
  renderTargets();
+ $('dayT').innerHTML='<option value="">대상 전체</option>'+TARGETS.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
  renderMonths();
  const td=new Date(Date.now()+KST).toISOString().slice(0,10);$('dayPick').value=td;$('dayPick').min=td;
  $('dayGo').onclick=()=>{const v=$('dayPick').value;if(v)dayDetail(Math.floor(Date.parse(v+'T00:00:00Z')/DAY))};
