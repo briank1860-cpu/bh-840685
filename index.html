@@ -526,7 +526,7 @@ function siteDetail(id){saveState({dlg:{t:'s',id}});
  const next=RESULT?RESULT.rows.filter(r=>r.site.id===id).sort((a,b)=>b.score-a.score).slice(0,3).sort((a,b)=>a.n-b.n):[];
  const q=encodeURIComponent(s.name.replace(' 체험장','').replace('·',' '));
  let h=`<p>${tagH([{t:s.reg},payTag(id)||{t:s.kind},{t:'모래 '+'●'.repeat(s.sand)+'○'.repeat(3-s.sand),c:'c'},{t:'백합 근거 '+['','약함','보통','확실'][s.ev],c:'c'}])}</p>
-  <p>${esc(s.memo)}</p>${s.warn?`<p style="color:var(--bad)">${esc(s.warn)}</p>`:''}`+(NIGHT[id]?`<p style="color:var(--bad)"><b>${nightTag(id).t}</b> — ${esc(NIGHT[id].t)}</p>`:'')+(hasBoat(id)?`<h4>배편 <span class="tag" style="background:#e8a317;color:#fff">배 필요</span></h4><p>${esc(BOAT[id])}</p><p class="sub">배 시간이 간조와 맞는지, 막배 시간을 먼저 확인하세요.</p>`:'')+nowWx(id)+accessBlock(id)+eojangBlock(id);
+  <p>${esc(s.memo)}</p>${s.warn?`<p style="color:var(--bad)">${esc(s.warn)}</p>`:''}`+(NIGHT[id]?`<p style="color:${NIGHT[id].law?'var(--bad)':'#b7791f'}"><b>${nightTag(id).t}</b> — ${esc(NIGHT[id].t)}</p>`:'')+(hasBoat(id)?`<h4>배편 <span class="tag" style="background:#e8a317;color:#fff">배 필요</span></h4><p>${esc(BOAT[id])}</p><p class="sub">배 시간이 간조와 맞는지, 막배 시간을 먼저 확인하세요.</p>`:'')+nowWx(id)+accessBlock(id)+eojangBlock(id);
  if(next.length)h+=`<h4>추천 날짜</h4><div class="dl">${next.map(r=>`<dt>${fmtD(r.n)}</dt><dd>${mulName(lunarDay(r.n))} · ${lowLine(r)} · 작업 ${fmtT(r.b)}~${fmtT(r.e)} · ${r.score}점</dd>`).join('')}</div>`;
  h+=`<h4>주차</h4>${ul(d.parking)}<h4>가는 길·진입</h4>${ul(d.access)}<h4>잘 나오는 구역</h4>${ul(d.spots)}<h4>지형</h4>${ul(d.terrain)}`;
  const tg=d.targets||[];
@@ -746,17 +746,18 @@ const NIGHT={
  ic_naeri:{full:1,law:1,t:'해경 출입통제: 일몰 30분 뒤~일출 30분 전·기상특보 때 출입금지(과태료 100만원 이하)'},
  gg_mechuri:{full:1,law:1,t:'해경 출입통제: 일몰 30분 뒤~일출 30분 전·기상특보 때 출입금지(과태료 100만원 이하)'},
  gg_bangamori:{full:1,law:1,t:'해경 출입통제(방아머리·서위 해변): 일몰 30분 뒤~일출 30분 전·기상특보 때 출입금지(과태료 100만원 이하)'},
- ic_mokseom:{full:1,t:'밤 해루질 실종 사고(2026-08 새벽) — 낮에만'},
- ic_cheukdo:{full:1,t:'밤 해루질 고립 사고(2026-06 자정) — 낮에만'},
- ic_geojampo:{full:1,t:'깊은 갯골·갇힘 후기 — 밤엔 방향을 잃기 쉬움, 낮에만'},
- gg_jjokbak:{full:1,t:'깊은 뻘 — 밤엔 위험, 낮에만(2~3명 함께)'},
- ic_soya:{full:1,t:'바다갈라짐 복귀 시간 — 밤엔 위험, 낮에만'},
- gg_ippado:{full:1,t:'퇴로가 끊길 수 있는 섬 지형 — 밤엔 위험, 낮에만'},
+ ic_mokseom:{full:1,t:'밤 해루질 실종 사고(2026-08-03 새벽, 경향신문) — 밤엔 특히 조심'},
+ ic_cheukdo:{full:1,t:'밤 해루질 고립 사고(2026-06-01 자정) — 진입로 물 차는 시각 확인'},
+ ic_geojampo:{full:1,t:'깊은 갯골(매도랑)·갇힐 뻔한 후기 — 밤엔 방향을 잃기 쉬움'},
+ gg_jjokbak:{full:1,t:'깊은 뻘 — 2~3명이 함께, 밤엔 특히 조심'},
+ ic_soya:{full:1,t:'바다갈라짐 복귀 시간 확인 — 밤엔 특히 조심'},
+ gg_ippado:{full:1,t:'퇴로가 끊길 수 있는 지형 — 밤엔 특히 조심'},
  ic_hanagae:{part:1,law:1,t:'갯벌 일부 구역 해경 야간 출입통제(일몰 30분 뒤~일출 30분 전)'},
  gg_gukhwado:{part:1,law:1,t:'부속섬 매박섬·인근 해상 해경 야간 출입통제'}
 };
-const nightTag=id=>{const n=NIGHT[id];return n?{t:n.full?(n.law?'밤 금지·과태료':'밤 금지'):'밤 일부 금지',c:'w'}:null};
-const dayOK=(id,b,e,st)=>!(NIGHT[id]&&NIGHT[id].full)||(b>=st.rise-30*60e3&&e<=st.set+30*60e3);
+// 금지는 해경 공고(law)가 있을 때만. 사고 이력만 있으면 '밤 주의'(밤 간조도 계산)
+const nightTag=id=>{const n=NIGHT[id];if(!n)return null;if(!n.law)return {t:'밤 주의',c:'c'};return {t:n.full?'밤 금지·과태료':'밤 일부 금지',c:'w'}};
+const dayOK=(id,b,e,st)=>!(NIGHT[id]&&NIGHT[id].full&&NIGHT[id].law)||(b>=st.rise-30*60e3&&e<=st.set+30*60e3);
 // 배를 타야 가는 곳(다리 연결 섬은 제외: 영흥·선재·무의·신도·시도·석모)
 const BOAT={
  ic_jangbong:'삼목선착장 → 장봉도(세종해운 032-884-4155, 매시 정각 출항, 차량 선적 가능)',
@@ -867,7 +868,7 @@ function onPos(id,la,lo,acc){
   if(inPoly(la,lo,g)){if(v)inV=p;else inF=inF||p}
   if(v){const d=distPoly(la,lo,g);if(!near||d<near.d)near={d,p}}});
  const s=SITES.find(x=>x.id===id),ds=kmD(la,lo,s.lat,s.lon);
- const nst=sunTimes(kDay(Date.now()),s.lat,s.lon),nowBan=NIGHT[id]&&NIGHT[id].full&&(Date.now()<nst.rise-30*60e3||Date.now()>nst.set+30*60e3);
+ const nst=sunTimes(kDay(Date.now()),s.lat,s.lon),nowBan=NIGHT[id]&&NIGHT[id].full&&NIGHT[id].law&&(Date.now()<nst.rise-30*60e3||Date.now()>nst.set+30*60e3);
  if(ds<=3&&alarmSite!==id)startAlarm(id,true);
  meLand=onLand(id,la,lo);meAt=Date.now();
  let h='';
