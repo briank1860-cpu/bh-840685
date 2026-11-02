@@ -497,7 +497,7 @@ function renderWeekend(){
  if(wkIdx>=wk.length)wkIdx=0;
  $('wkTabs').innerHTML=wk.slice(0,4).map((w,i)=>`<button onclick="wkIdx=${i};renderWeekend()" style="${i===wkIdx?'':'background:var(--card);color:var(--ink);border:1px solid var(--line)'}">${i===0?'이번 주말':i===1?'다음 주말':fmtD(w.fri).replace(/\(.*\)/,'')+' 주말'}</button>`).join('');
  $('weekend').innerHTML=wk[wkIdx].days.map(n=>{
-  const top=byDay[n].filter(r=>r.score>0).sort((a,b)=>b.adj-a.adj).slice(0,5);
+  const top=byDay[n].filter(r=>r.score>0).sort((a,b)=>b.score-a.score||b.adj-a.adj).slice(0,5);
   return `<h4 style="margin:10px 0 4px"><span class="link" data-d="${n}">${fmtD(n)}</span> <span class="sub">${mulName(lunarDay(n))}</span></h4>`+
    (top.length?`<ol style="margin:0;padding-left:22px">${top.map(r=>`<li style="margin:5px 0"><span class="link" data-s="${r.site.id}"><b>${esc(r.site.name)}</b></span> <b>${r.score}점</b><br><span class="sub">작업 ${fmtT(r.b)}~${fmtT(r.e)} · ${lowLine(r)}</span> ${tagH(r.tags)}</li>`).join('')}</ol>`:'<p class="sub">갈 만한 곳 없음</p>')}).join('');
 }
