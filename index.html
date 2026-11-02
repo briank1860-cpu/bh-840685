@@ -96,7 +96,7 @@ input[type=date]{font:inherit;padding:4px 6px;border:1px solid var(--line);borde
     <label>철수 <input type="number" id="exit" value="60" min="0" step="10">분 (간조 전)</label>
     <label>작업 <input type="number" id="work" value="120" min="30" step="30">분</label>
     <label><input type="checkbox" id="weekend"> 주말만</label>
-    <label><input type="checkbox" id="incPaid"> 유료 체험장 포함</label>
+    <label><input type="checkbox" id="noPaid"> 유료 빼기</label>
     <label><input type="checkbox" id="noBoat"> 배 타는 곳 빼기</label>
   </div>
   <div class="ctl" style="margin-top:10px">
@@ -454,8 +454,9 @@ function evalSite(s,days0,nDays,opt){
   tags.push(...w.tags);
   if(best.l.src==='calc')tags.push({t:'간조 추정',c:'c'});
   if(hasBoat(s.id))tags.push({t:'배 필요',c:'w'});
+  if(ACCESS[s.id]&&ACCESS[s.id].pay==='유료')tags.push({t:'어촌계 관리(유료)',c:'w'});else if(ACCESS[s.id]&&ACCESS[s.id].pay==='혼합')tags.push({t:'일부 유료',c:'c'});
   if(nightTag(s.id))tags.push(best.k<0?{t:'밤 간조뿐 — 출입 금지',c:'w'}:nightTag(s.id));
-  out.push({n,all,site:s,low:best.l,b:best.b,e:best.e,F:best.F,day:best.day,score:Math.round(score),adj:score*(0.85+0.04*(s.sand-1)+0.04*(s.ev-1)+(REVIEW[s.id]&&REVIEW[s.id].rating?0.03*(REVIEW[s.id].rating-3):0)),tags});
+  out.push({n,all,site:s,low:best.l,b:best.b,e:best.e,F:best.F,day:best.day,score:Math.round(score),adj:score*(0.85+0.04*(s.sand-1)+0.02*(s.ev-1)+(catchScore(s.id)?0.04*(catchScore(s.id)-3):0)),tags});
  }
  return out;
 }
@@ -486,7 +487,7 @@ function renderCal(){
 
 async function run(){
  const regs=[...document.querySelectorAll('#regions input:checked')].map(x=>x.value);
- const sites=SITES.filter(s=>regs.includes(s.reg)&&($('incPaid').checked||!ACCESS[s.id]||ACCESS[s.id].pay!=='유료')&&!($('noBoat').checked&&hasBoat(s.id)));
+ const sites=SITES.filter(s=>regs.includes(s.reg)&&!($('noPaid').checked&&ACCESS[s.id]&&ACCESS[s.id].pay==='유료')&&!($('noBoat').checked&&hasBoat(s.id)));
  if(!sites.length){$('status').textContent='지역을 고르세요.';return}
  saveState();
  const opt={days:+$('days').value,exit:+$('exit').value,work:+$('work').value,weekend:$('weekend').checked};
@@ -514,10 +515,10 @@ function findTarget(name){const n=name.replace(/\(.*?\)/g,'').trim();return TARG
 // 보던 상태를 휴대폰에 기억(브라우저가 페이지를 다시 불러와도 그대로 복원). 날씨 값은 저장하지 않음
 const SKEY='bh_state_v1';
 function getState(){try{return JSON.parse(localStorage.getItem(SKEY)||'{}')}catch(e){return {}}}
-function saveState(extra){try{const st=getState();if($('days'))Object.assign(st,{days:$('days').value,exit:$('exit').value,work:$('work').value,weekend:$('weekend').checked,incPaid:$('incPaid').checked,noBoat:$('noBoat').checked,off:[...document.querySelectorAll('#regions input')].filter(x=>!x.checked).map(x=>x.value)});Object.assign(st,extra||{});localStorage.setItem(SKEY,JSON.stringify(st))}catch(e){}}
+function saveState(extra){try{const st=getState();if($('days'))Object.assign(st,{days:$('days').value,exit:$('exit').value,work:$('work').value,weekend:$('weekend').checked,noPaid:$('noPaid').checked,noBoat:$('noBoat').checked,off:[...document.querySelectorAll('#regions input')].filter(x=>!x.checked).map(x=>x.value)});Object.assign(st,extra||{});localStorage.setItem(SKEY,JSON.stringify(st))}catch(e){}}
 function applyState(){const st=getState();
  if(st.days)$('days').value=st.days;if(st.exit)$('exit').value=st.exit;if(st.work)$('work').value=st.work;
- if(st.weekend!=null)$('weekend').checked=st.weekend;if(st.incPaid!=null)$('incPaid').checked=st.incPaid;if(st.noBoat!=null)$('noBoat').checked=st.noBoat;
+ if(st.weekend!=null)$('weekend').checked=st.weekend;if(st.noPaid!=null)$('noPaid').checked=st.noPaid;if(st.noBoat!=null)$('noBoat').checked=st.noBoat;
  (st.off||[]).forEach(r=>{const x=[...document.querySelectorAll('#regions input')].find(i=>i.value===r);if(x)x.checked=false});}
 function restoreView(){const st=getState(),d=st.dlg;if(!d)return;
  if(d.t==='s'&&SITES.some(x=>x.id===d.id)){siteDetail(d.id);if(st.geo&&$('geoBtn'))toggleGeo(d.id)}
@@ -534,6 +535,7 @@ function siteMonth(sid,t,m){
  if(ms.includes(m===1?12:m-1)||ms.includes(m===12?1:m+1))return 'o';
  return g==='g'?'o':g;
 }
+const catchScore=id=>{const r=REVIEW[id];if(!r||!r.tbm)return 0;let n=0;r.tbm.forEach(v=>(v.evidence||[]).forEach(e=>{if(!/\(20\d\d 자료\)/.test(e[0]||''))n++}));const m=new Set(r.tbm.flatMap(v=>v.months||[])).size;const k=n+m*0.5;return k>=14?5:k>=9?4:k>=5?3:k>=2?2:k>0?1:0};
 const stars=n=>n?'★'.repeat(n)+'☆'.repeat(5-n):'';
 function reviewBlock(id){
  const r=REVIEW[id];if(!r)return '';
@@ -541,7 +543,7 @@ function reviewBlock(id){
  const cur=new Date(Date.now()+KST).getUTCMonth()+1;
  const rows=tg.map(t=>{const ms=tbmOf(id,t)||[];return `<tr><td><span class="link" data-t="${t.id}">${esc(t.name)}</span></td>${[...Array(12)].map((_,i)=>{const m=i+1,x=mStat(t.id,m)==='x';return `<td class="${x?'mx':ms.includes(m)?'mg':''}"${m===cur?' style="outline:2px solid var(--acc);outline-offset:-2px"':''}>${x?'금':ms.includes(m)?'●':''}</td>`}).join('')}</tr>`}).join('');
  const ev=(r.tbm||[]).flatMap(v=>(v.evidence||[]).map(e=>({n:v.name,e}))).slice(0,8);
- return `${r.rating?`<p style="font-size:15px"><b style="color:#e8a317">${stars(r.rating)}</b> <span class="sub">무료 해루질 추천도 · ${esc(r.ratingWhy||'')}</span></p>`:''}
+ const cs=catchScore(id);return `${cs?`<p style="font-size:15px"><b>조과</b> <b style="color:#e8a317">${stars(cs)}</b> <span class="sub">최근 1년 실제 조과 후기 기준</span></p>`:''}${r.ratingWhy?`<p class="sub">평가: ${esc(r.ratingWhy)}</p>`:''}
   ${r.review?`<p>${esc(r.review)}</p>`:''}
   ${(r.best||[]).length?`<p><b>잘 나오는 대상</b> ${r.best.map(b=>{const t=findTarget(b);return t?`<span class="chip cg" data-t="${t.id}">${esc(b)}</span>`:`<span class="chip">${esc(b)}</span>`}).join(' ')}</p>`:''}
   ${rows?`<h4>이 장소 월별 대상 <span class="sub">● 실제 후기가 있는 달 · 금 금어기</span></h4><div class="tw"><table class="mt"><tr><th>대상</th>${[...Array(12)].map((_,i)=>`<th class="${i+1===cur?'mc':''}">${i+1}</th>`).join('')}</tr>${rows}</table></div>`:''}
@@ -807,7 +809,7 @@ const BOAT={
  gg_ippado:'궁평항 서해도선(국화도 경유, 왕복 24,000원) 또는 전곡항 → 입파도'
 };
 const hasBoat=id=>!!BOAT[id];
-const PAYTAG={무료:{t:'무료',c:''},유료:{t:'유료 체험장',c:'w'},혼합:{t:'무료+체험장',c:''},확인:{t:'어장 확인',c:'c'}};
+const PAYTAG={무료:{t:'무료',c:''},유료:{t:'어촌계 관리(유료)',c:'w'},혼합:{t:'무료+어촌계 체험장',c:''},확인:{t:'어장 확인',c:'c'}};
 const payTag=id=>{const a=ACCESS[id];return a?PAYTAG[a.pay]:null};
 function accessBlock(id){
  const a=ACCESS[id];if(!a)return '';
@@ -1105,7 +1107,7 @@ function init(){
  $('regions').innerHTML=regs.map(r=>`<label><input type="checkbox" value="${r}" checked> ${r}</label>`).join('');
  applyState();
  $('siteCards').innerHTML=SITES.map(s=>`<div class="card" data-s="${s.id}"><h3>${s.name}</h3>
-  <span class="tag">${s.reg}</span>${NIGHT[s.id]?`<span class="tag w">${nightTag(s.id).t}</span>`:''}${hasBoat(s.id)?'<span class="tag" style="background:#e8a317;color:#fff">배 필요</span>':''}${(t=>t?`<span class="tag ${t.c}">${t.t}</span>`:'')(payTag(s.id))}<span class="tag c">모래 ${'●'.repeat(s.sand)}${'○'.repeat(3-s.sand)}</span><span class="tag c">백합 근거 ${['','약함','보통','확실'][s.ev]}</span>
+  <span class="tag">${s.reg}</span>${NIGHT[s.id]?`<span class="tag w">${nightTag(s.id).t}</span>`:''}${hasBoat(s.id)?'<span class="tag" style="background:#e8a317;color:#fff">배 필요</span>':''}${(t=>t?`<span class="tag ${t.c}">${t.t}</span>`:'')(payTag(s.id))}<span class="tag c">모래 ${'●'.repeat(s.sand)}${'○'.repeat(3-s.sand)}</span>${catchScore(s.id)?`<span class="tag">조과 ${stars(catchScore(s.id))}</span>`:''}<span class="tag c">백합 근거 ${['','약함','보통','확실'][s.ev]}</span>
   <p>${s.memo}</p>${s.warn?`<p class="warn">${s.warn}</p>`:''}
   <p>${s.src.map(([t,u])=>`<a href="${u}" target="_blank" rel="noopener">${t}</a>`).concat(`<a href="https://www.badatime.com/${s.bt}.html" target="_blank" rel="noopener">물때표</a>`).join(' · ')}</p></div>`).join('')
   +`<div class="card"><h3>뺀 곳</h3>${EXCLUDED.map(([k,v])=>`<p><b>${k}</b>: ${v}</p>`).join('')}</div>`;
