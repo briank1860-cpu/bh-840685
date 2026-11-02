@@ -113,6 +113,9 @@ input[type=date]{font:inherit;padding:4px 6px;border:1px solid var(--line);borde
 <h2>날짜 보기</h2>
 <div class="card dayctl"><input type="date" id="dayPick"><select id="dayT"><option value="">대상 전체</option></select><button id="dayGo">보기</button><span class="sub">체크된 지역의 간조·날씨·대상</span></div>
 
+<h2>주말 베스트 5 <span class="sub">— 금·토·일, 위에서 체크한 지역</span></h2>
+<div class="card"><div id="wkTabs" style="display:flex;gap:6px;margin-bottom:8px"></div><div id="weekend"></div></div>
+
 <h2>추천 날짜</h2>
 <div class="card tw"><table id="top"></table></div>
 
@@ -480,7 +483,23 @@ function render(){
   best.map(g=>{const r=g[0],ld=lunarDay(r.n);return `<tr class="${[0,6].includes(dow(r.n))?'we':''}"><td><span class="link" data-d="${r.n}">${fmtD(r.n)}</span></td><td>${mulName(ld)}</td>
    <td><span class="link" data-s="${r.site.id}">${r.site.name}</span><div class="alt">${g.slice(1,3).map(x=>`<span class="link" data-s="${x.site.id}">${x.site.name}</span> ${x.score}`).join(' · ')}</div></td>
    <td>${fmtT(r.b)}~${fmtT(r.e)}</td><td>${lowLine(r)}</td><td>${scoreCell(r.score)}</td><td>${tagH(r.tags)}</td></tr>`}).join('');
+ renderWeekend();
  renderCal();
+}
+let wkIdx=0;
+function renderWeekend(){
+ if(!RESULT)return;
+ const byDay={};RESULT.rows.forEach(r=>{(byDay[r.n]=byDay[r.n]||[]).push(r)});
+ const n0=kDay(Date.now()),wk=[];
+ Object.keys(byDay).map(Number).filter(n=>n>=n0&&[5,6,0].includes(dow(n))).sort((a,b)=>a-b).forEach(n=>{
+  const fri=n-((dow(n)+2)%7),g=wk.find(w=>w.fri===fri);if(g)g.days.push(n);else wk.push({fri,days:[n]})});
+ if(!wk.length){$('wkTabs').innerHTML='';$('weekend').innerHTML='<p class="sub">계산 기간 안에 주말이 없습니다.</p>';return}
+ if(wkIdx>=wk.length)wkIdx=0;
+ $('wkTabs').innerHTML=wk.slice(0,4).map((w,i)=>`<button onclick="wkIdx=${i};renderWeekend()" style="${i===wkIdx?'':'background:var(--card);color:var(--ink);border:1px solid var(--line)'}">${i===0?'이번 주말':i===1?'다음 주말':fmtD(w.fri).replace(/\(.*\)/,'')+' 주말'}</button>`).join('');
+ $('weekend').innerHTML=wk[wkIdx].days.map(n=>{
+  const top=byDay[n].filter(r=>r.score>0).sort((a,b)=>b.adj-a.adj).slice(0,5);
+  return `<h4 style="margin:10px 0 4px"><span class="link" data-d="${n}">${fmtD(n)}</span> <span class="sub">${mulName(lunarDay(n))}</span></h4>`+
+   (top.length?`<ol style="margin:0;padding-left:22px">${top.map(r=>`<li style="margin:5px 0"><span class="link" data-s="${r.site.id}"><b>${esc(r.site.name)}</b></span> <b>${r.score}점</b><br><span class="sub">작업 ${fmtT(r.b)}~${fmtT(r.e)} · ${lowLine(r)}</span> ${tagH(r.tags)}</li>`).join('')}</ol>`:'<p class="sub">갈 만한 곳 없음</p>')}).join('');
 }
 function renderCal(){
  if(!RESULT)return;
