@@ -628,12 +628,18 @@ function targetDetail(id){saveState({dlg:{t:'t',id}});
 }
 // 대상별 점수: 대상마다 물 빠짐·낮 시간 비중을 다르게(조개류는 물 빠짐 중시, 꽃게·낙지는 밤 간조도 가능)
 const TPROF=id=>/^(kkotge|nakji|jukkumi)$/.test(id)?{wt:30,wd:10,night:1}:id==='bakhaji'?{wt:30,wd:25}:/^(keunguseul|pippul|haesam|gul|garibi)$/.test(id)?{wt:35,wd:25}:{wt:45,wd:20};
+const SIGHT=/^(kkotge|bakhaji|nakji|jukkumi)$/;
+function murk(d,b,e){ // 작업 6시간 전~철수까지 최대 바람·파도로 물 흐림 판단
+ const hs=(d.wx||[]).filter(x=>x.t>=b-6*H&&x.t<=e&&x.ws!=null);if(!hs.length)return null;
+ const ws=Math.max(...hs.map(x=>x.ws)),wv=(d.sea||[]).filter(x=>x.t>=b-6*H&&x.t<=e&&x.wave!=null).map(x=>x.wave),wave=wv.length?Math.max(...wv):0;
+ const lv=ws>=7||wave>=0.8?2:ws>=5||wave>=0.5?1:0;
+ return {lv,ws:Math.round(ws),wave,f:[1,0.75,0.4][lv],t:lv===2?`바람 ${Math.round(ws)}m/s — 물 흐려 안 보임`:lv===1?`바람 ${Math.round(ws)}m/s — 물 흐릴 수 있음`:''}}
 const siteHas=(sid,t)=>(DETAIL[sid]?.targets||[]).some(x=>findTarget(x.name)===t);
 function rankTarget(n,m,t,rows){
  if(mStat(t.id,m)==='x')return null;
  const P=TPROF(t.id),out=[];
  rows.forEach(({s,r})=>{if(!siteHas(s.id,t))return;const d=DATA[s.id]||{};let best=null;
-  (r.all||[]).filter(l=>!l.ban).forEach(l=>{const w=weatherScore(d.wx,d.sea,l.b,l.e);const dd=P.night?Math.max(l.day,0.6):l.day;let sc=l.F*P.wt+dd*P.wd+w.score;if(w.danger)sc=Math.min(sc,25);if(!best||sc>best.sc)best={sc:Math.round(sc),l,w}});
+  (r.all||[]).filter(l=>!l.ban).forEach(l=>{const w=weatherScore(d.wx,d.sea,l.b,l.e);const dd=P.night?Math.max(l.day,0.6):l.day;let sc=l.F*P.wt+dd*P.wd+w.score;const mk=SIGHT.test(t.id)?murk(d,l.b,l.e):null;if(mk)sc*=mk.f;if(w.danger)sc=Math.min(sc,25);if(!best||sc>best.sc)best={sc:Math.round(sc),l,w,mk}});
   if(best){const sm=siteMonth(s.id,t,m),sea=sm==='g'?15:sm==='o'?8:3;best.sc=Math.round(best.sc+sea);out.push({s,...best})}});
  return out.sort((a,b)=>b.sc-a.sc);
 }
@@ -643,7 +649,7 @@ function targetRankHtml(n,m,rows){
  const line=(t,k)=>{const rk=rankTarget(n,m,t,rows);
   if(rk===null)return `<dt><span class="chip cx" data-t="${t.id}">${esc(t.name)}</span></dt><dd class="sub">${esc(MONTHS[t.id]?.xn||'금어기')}</dd>`;
   if(!rk.length)return '';
-  return `<dt><span class="chip ${mStat(t.id,m)==='g'?'cg':''}" data-t="${t.id}">${esc(t.name)}</span></dt><dd>${rk.slice(0,k).map((x,i)=>`<div>${i+1}. <span class="link" data-s="${x.s.id}">${esc(x.s.name)}</span> <b>${x.sc}</b> <span class="sub">간조 ${fmtT(x.l.t)} · 작업 ${fmtT(x.l.b)}~${fmtT(x.l.e)}${x.l.day<0.5?' · 야간':''}${x.w.danger?' · 위험':''}</span></div>`).join('')}</dd>`};
+  return `<dt><span class="chip ${mStat(t.id,m)==='g'?'cg':''}" data-t="${t.id}">${esc(t.name)}</span></dt><dd>${rk.slice(0,k).map((x,i)=>`<div>${i+1}. <span class="link" data-s="${x.s.id}">${esc(x.s.name)}</span> <b>${x.sc}</b> <span class="sub">간조 ${fmtT(x.l.t)} · 작업 ${fmtT(x.l.b)}~${fmtT(x.l.e)}${x.l.day<0.5?' · 야간':''}${x.w.danger?' · 위험':''}</span>${x.mk&&x.mk.lv?` <span class="tag ${x.mk.lv===2?'w':'c'}">${x.mk.t}</span>`:''}</div>`).join('')}</dd>`};
  let h='';
  if(sel){const t=TARGETS.find(x=>x.id===sel);
   h+=`<h4>${esc(t.name)} 좋은 장소</h4>`+(ts.includes(t)?`<div class="dl">${line(t,6)}</div>`:`<p class="sub">체크된 지역에 ${esc(t.name)}가 나온다는 근거가 있는 장소가 없습니다.</p>`);}
@@ -720,7 +726,7 @@ function dayDetail(n){saveState({dlg:{t:'d',n}});
   return `<div class="card" style="margin:8px 0"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b><span class="link" data-s="${s.id}">${esc(s.name)}</span></b>${scoreCell(r.score)}</div>
    <div class="dl" style="margin-top:6px"><dt>오전 간조</dt><dd>${lowTxt(am,r,1)}</dd><dt>오후 간조</dt><dd>${lowTxt(pm,r,1)}</dd>
    <dt>날씨</dt><dd>${w?`${w.sky} · ${w.tmin.toFixed(0)}~${w.tmax.toFixed(0)}°C · 바람 최대 ${w.ws.toFixed(0)}m/s(돌풍 ${w.wg.toFixed(0)}) · 비 ${w.pr.toFixed(0)}mm${w.wave!=null?` · 파고 ${w.wave.toFixed(1)}m`:''}`:(WX_AT?'<span class="sub">예보 전(16일 이후)</span>':'<span class="sub">날씨 못 받음</span>')}</dd>
-   <dt>대상</dt><dd>${/chip cg/.test(tgH)?'<div class="sub" style="margin-bottom:3px">굵은 테두리 = 이 장소 이번 달 제철</div>':''}<div class="chips">${tgH||'<span class="sub">조사된 정보 없음</span>'}</div></dd>
+   <dt>대상</dt><dd>${/chip cg/.test(tgH)?'<div class="sub" style="margin-bottom:3px">굵은 테두리 = 이 장소 이번 달 제철</div>':''}<div class="chips">${tgH||'<span class="sub">조사된 정보 없음</span>'}</div>${(()=>{const sg=tg.filter(t=>SIGHT.test(t.id)&&siteMonth(s.id,t,m)!=='x');if(!sg.length)return '';const mk=murk(DATA[s.id]||{},r.b,r.e);return mk&&mk.lv?`<div style="color:${mk.lv===2?'var(--bad)':'#8a5a00'};font-size:13px;margin-top:3px">${sg.map(t=>t.name).join('·')}: ${mk.t}</div>`:''})()}</dd>
    ${s.warn?`<dt>주의</dt><dd style="color:var(--bad)">${esc(s.warn)}</dd>`:''}<dt>메모</dt><dd>${tagH(r.tags)}</dd></div>${gearHtml(gearList(s,r,n,w))}</div>`}).join('');
  h+=`<p class="sub">굵은 간조 = 점수 계산에 쓴 간조(작업 시간은 간조 전 철수 기준). 진한 테두리 = 제철, 빨간 줄 = 금어기. 간조 시각은 공식 물때표로 다시 확인.</p>`;
  openDlg(`<h3>${fmtD(n)} · ${mulName(ld)}</h3>`,h);
