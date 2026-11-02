@@ -754,6 +754,7 @@ function onPos(id,la,lo,acc){
   if(v){const d=distPoly(la,lo,g);if(!near||d<near.d)near={d,p}}});
  const s=SITES.find(x=>x.id===id),ds=kmD(la,lo,s.lat,s.lon);
  if(ds<=3&&alarmSite!==id)startAlarm(id,true);
+ meLand=onLand(id,la,lo);meAt=Date.now();
  let h='';
  if(inV)h+=`<div style="color:#fff;background:#d9480f;padding:6px 8px;border-radius:6px;margin:4px 0"><b>지금 마을어장 안입니다 — 채취 금지</b><br>${esc(inV.farm_knd||'')} · ${esc(inV.addr)} · ${esc(inV.lcns_no)}</div>`;
  else if(inF)h+=`<div style="background:#e8a317;padding:6px 8px;border-radius:6px;margin:4px 0"><b>지금 양식장 안입니다 — 채취 금지</b><br>${esc(inF.farm_knd||inF.fids_knd)} · ${esc(inF.lcns_no)}</div>`;
@@ -824,14 +825,15 @@ function renderAlarmBar(){
  const s=SITES.find(x=>x.id===alarmSite),l=upcomingLow(alarmSite);
  const mins=l?Math.round((l.e-Date.now())/60e3):null;
  bar.innerHTML=`<span><b>간조 알람</b> · ${esc(s.name)} · ${l?`철수 ${fmtT(l.e)} (${mins>0?mins+'분 남음':'지남'}) · 간조 ${fmtT(l.t)}`:'간조 정보 없음'}<br><span id="alarmMsg" style="font-size:12px;opacity:.9">철수 30분 전·10분 전·철수·간조 때 울림</span></span>
-  <span style="display:flex;gap:6px">${l&&/Android/i.test(navigator.userAgent)?`<a href="${clockAlarmLink(l)}" style="background:#fff;color:#0f6d74;padding:5px 8px;border-radius:6px;text-decoration:none;font-size:13px">시계 알람</a>`:''}<button onclick="stopAlarm()" style="background:#fff;color:#0f6d74;padding:5px 10px">끄기</button></span>`;
+  <span style="display:flex;gap:6px">${l&&/Android/i.test(navigator.userAgent)?`<a href="${clockAlarmLink(l)}" style="background:#fff;color:#0f6d74;padding:5px 8px;border-radius:6px;text-decoration:none;font-size:13px">시계 알람</a>`:''}${l?`<button onclick="outNow()" style="background:#fff;color:#0f6d74;padding:5px 10px">나왔음</button>`:''}<button onclick="stopAlarm()" style="background:#fff;color:#0f6d74;padding:5px 10px">끄기</button></span>`;
  const b=$('alarmBtn');if(b)b.textContent='간조 알람 끄기';
 }
 function checkAlarm(){
  if(!alarmSite)return;const l=upcomingLow(alarmSite);renderAlarmBar();if(!l)return;
  const now=Date.now();
  [[l.e-30*60e3,`철수 30분 전 (철수 ${fmtT(l.e)})`],[l.e-10*60e3,`철수 10분 전 (철수 ${fmtT(l.e)})`],[l.e,`철수 시각 ${fmtT(l.e)} — 지금 나오세요`],[l.t,`간조 ${fmtT(l.t)} — 이제 물이 들어옵니다. 바로 철수`]]
-  .forEach(([t,msg])=>{const k=alarmSite+t;if(now>=t&&now<t+10*60e3&&!alarmFired[k]){alarmFired[k]=1;beep();alarmNotify(msg)}});
+  .forEach(([t,msg])=>{const k=alarmSite+t;if(now>=t&&now<t+10*60e3&&!alarmFired[k]){alarmFired[k]=1;
+   if(isOut())alarmNotify('도로·주차장 근처(육지)라 알람 쉼 — '+msg);else{beep();alarmNotify(msg)}}});
 }
 function startAlarm(id,auto){
  alarmSite=id;alarmFired={};
@@ -841,6 +843,14 @@ function startAlarm(id,auto){
  checkAlarm();saveState({alarm:id});
  if(auto)alarmNotify('현장 근처 도착 — 간조 알람을 켰습니다');
 }
+// 이미 나왔는지: 내 위치가 켜져 있고 2분 안 위치가 도로·주차장 80m 안이면 육지로 봄. 애매하면 울림
+let meLand=false,meAt=0;
+function onLand(id,la,lo){
+ const ids=(typeof OSMBASE!=='undefined'&&OSMBASE.n[id])||[];
+ return ids.some(f=>{const x=OSMBASE.f[f];if(x.k==='P')return kmD(la,lo,x.c[0],x.c[1])<0.08;if(/^R/.test(x.k))return distPoly(la,lo,x.g)<0.08;return false});
+}
+const isOut=()=>geoWatch!=null&&meLand&&Date.now()-meAt<2*60e3;
+function outNow(){const l=upcomingLow(alarmSite);if(!l)return;[l.e-30*60e3,l.e-10*60e3,l.e,l.t].forEach(t=>alarmFired[alarmSite+t]=1);alarmNotify(`이번 간조(${fmtT(l.t)}) 알람 끔 — 다음 간조는 다시 울림`)}
 function stopAlarm(){alarmSite=null;clearInterval(alarmTimer);alarmTimer=null;try{wakeLock&&wakeLock.release()}catch(e){}wakeLock=null;saveState({alarm:null});renderAlarmBar()}
 function toggleAlarm(id){if(alarmSite===id)stopAlarm();else startAlarm(id)}
 
