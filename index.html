@@ -841,7 +841,7 @@ let ejMap=null;
 function drawMap(id){
  const el=$('ejMap');if(!el)return;
  if(typeof L==='undefined'){el.innerHTML='<p class="sub" style="padding:10px">지도를 불러오지 못했습니다.</p>';return}
- stopGeo();meMk=meCirc=meTrail=meBtn=null;geoSite=null;
+ stopGeo();meMk=meCirc=meTrail=meBtn=null;meTrailT=[];geoSite=null;
  if(ejMap){ejMap.remove();ejMap=null}
  const s=SITES.find(x=>x.id===id);
  ejMap=L.map(el,{scrollWheelZoom:false}).setView([s.lat,s.lon],13);
@@ -869,7 +869,7 @@ function nowWx(id){
  return `<h4>지금 날씨 <span class="sub">${fmtT(c.t)} 관측·예보값 · ${fmtT(WX_AT)} 받음</span></h4><p>${WC(c.wc)} · ${c.tp.toFixed(0)}°C · 바람 ${c.ws.toFixed(0)}m/s(돌풍 ${c.wg.toFixed(0)}) · 비 ${c.pr.toFixed(1)}mm · <a href="https://www.weather.go.kr/w/special-report/overall.do" target="_blank" rel="noopener">기상특보</a></p>`;
 }
 // 내 위치(휴대폰 GPS) — 지도에 표시하고 마을어장 안 여부·철수까지 남은 시간 안내
-let geoWatch=null,meMk=null,meCirc=null,meFollow=true,geoSite=null,meTrail=null,meBtn=null;
+let geoWatch=null,meMk=null,meCirc=null,meFollow=true,geoSite=null,meTrail=null,meBtn=null,meTrailT=[];
 const kmD=(a1,o1,a2,o2)=>Math.hypot((a1-a2)*111.0,(o1-o2)*111.0*Math.cos(a1*D2R));
 function inRing(la,lo,r){let c=false;for(let i=0,j=r.length-1;i<r.length;j=i++){const [ai,oi]=r[i],[aj,oj]=r[j];if((ai>la)!==(aj>la)&&lo<(oj-oi)*(la-ai)/(aj-ai)+oi)c=!c}return c}
 function inPoly(la,lo,g){let c=false;g.forEach(r=>{if(inRing(la,lo,r))c=!c});return c}
@@ -943,10 +943,11 @@ function pointCheck(id,la,lo){ // 포인트(물 빠진 갯벌)에 제대로 들�
 function onPos(id,la,lo,acc){
  if(!ejMap||geoSite!==id)return;
  if(!meMk){meTrail=L.polyline([],{color:'#1c7ed6',weight:3,opacity:0.6,dashArray:'2 6'}).addTo(ejMap);meCirc=L.circle([la,lo],{radius:acc,color:'#1c7ed6',weight:1,fillOpacity:0.08}).addTo(ejMap);meMk=L.circleMarker([la,lo],{radius:8,color:'#fff',weight:3,fillColor:'#1c7ed6',fillOpacity:1}).bindTooltip('내 위치').addTo(ejMap);
-  const C=L.Control.extend({onAdd(){const b=L.DomUtil.create('a','');b.textContent='◎ 내 위치로';b.href='#';b.style.cssText='display:block;background:#fff;padding:5px 8px;border-radius:4px;box-shadow:0 1px 4px #0005;font:700 13px sans-serif;color:#1c7ed6;text-decoration:none';L.DomEvent.on(b,'click',e=>{L.DomEvent.preventDefault(e);L.DomEvent.stopPropagation(e);meFollow=true;if(meMk)ejMap.setView(meMk.getLatLng(),Math.max(ejMap.getZoom(),16))});return b}});
+  const C=L.Control.extend({onAdd(){const b=L.DomUtil.create('a','');b.textContent='◎ 내 위치로';const c=L.DomUtil.create('a','');c.textContent='길 지우기';c.href='#';c.style.cssText='display:block;margin-top:6px;background:#fff;padding:5px 8px;border-radius:4px;box-shadow:0 1px 4px #0005;font:700 13px sans-serif;color:#555;text-decoration:none';L.DomEvent.on(c,'click',e=>{L.DomEvent.preventDefault(e);L.DomEvent.stopPropagation(e);meTrailT=[];meTrail&&meTrail.setLatLngs([])});const w=L.DomUtil.create('div','');w.appendChild(b);w.appendChild(c);b.href='#';b.style.cssText='display:block;background:#fff;padding:5px 8px;border-radius:4px;box-shadow:0 1px 4px #0005;font:700 13px sans-serif;color:#1c7ed6;text-decoration:none';L.DomEvent.on(b,'click',e=>{L.DomEvent.preventDefault(e);L.DomEvent.stopPropagation(e);meFollow=true;if(meMk)ejMap.setView(meMk.getLatLng(),Math.max(ejMap.getZoom(),16))});return w}});
   meBtn=new C({position:'bottomleft'}).addTo(ejMap)}
  else{meMk.setLatLng([la,lo]);meCirc.setLatLng([la,lo]).setRadius(acc)}
- if(acc<50){const tl=meTrail.getLatLngs(),last=tl[tl.length-1];if(!last||kmD(la,lo,last.lat,last.lng)>0.005)meTrail.addLatLng([la,lo])}
+ if(acc<50){const now=Date.now(),last=meTrailT[meTrailT.length-1];if(!last||kmD(la,lo,last[0],last[1])>0.01)meTrailT.push([la,lo,now]);
+  meTrailT=meTrailT.filter(x=>now-x[2]<20*60e3);meTrail.setLatLngs(meTrailT.map(x=>[x[0],x[1]]))}
  const far=kmD(la,lo,SITES.find(x=>x.id===id).lat,SITES.find(x=>x.id===id).lon)>8;
  if(meFollow&&!far)ejMap.setView([la,lo],Math.max(ejMap.getZoom(),15));
  let inV=null,inF=null,near=null;
@@ -964,7 +965,7 @@ function onPos(id,la,lo,acc){
  h=zoneCheck(id,la,lo)+(ds<=8?pointCheck(id,la,lo):'')+h;
  if(nowBan&&ds<=8)h=`<div style="color:#fff;background:#b42318;padding:6px 8px;border-radius:6px;margin:4px 0"><b>지금은 출입 금지 시간입니다</b> — ${esc(NIGHT[id].t)}</div>`+h;
  if(ds>8)h=`<div><b>지금 이 장소에서 ${ds.toFixed(0)}km 떨어져 있습니다.</b> 현장 근처에 가면 마을어장 안/밖과 거리가 나옵니다. 지도는 내 위치로 옮기지 않았습니다.</div>`;
- h+=`<div>${exitInfo(id)}</div><div class="sub">정확도 ±${Math.round(acc)}m · ${fmtT(Date.now())} 갱신 · 파란 점선은 걸어온 길 · ${meFollow?'지도가 나를 따라감':'따라가기 멈춤 — 지도 왼쪽 아래 ◎ 내 위치로'}</div>`;
+ h+=`<div>${exitInfo(id)}</div><div class="sub">정확도 ±${Math.round(acc)}m · ${fmtT(Date.now())} 갱신 · 파란 점선은 최근 20분 걸어온 길 · ${meFollow?'지도가 나를 따라감':'따라가기 멈춤 — 지도 왼쪽 아래 ◎ 내 위치로'}</div>`;
  $('geoBox').innerHTML=h;
 }
 
