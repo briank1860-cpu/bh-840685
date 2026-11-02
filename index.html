@@ -84,6 +84,7 @@ input[type=date]{font:inherit;padding:4px 6px;border:1px solid var(--line);borde
 .leaflet-control-layers-toggle{background-image:none!important;width:auto!important;height:auto!important;padding:5px 8px;font:700 13px sans-serif;color:#1c7ed6;text-decoration:none}.leaflet-control-layers-toggle::after{content:'위성/지도'}
 .park{margin:4px 0 8px;padding-left:18px}.park li{margin:4px 0}button.cp{padding:2px 8px;font-size:12px;margin-left:4px}
 .slist .grp{margin:10px 0 4px;font-weight:700;color:var(--acc)}.slist .row{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:6px 0;cursor:pointer;background:var(--card)}.slist .row .chips{margin-top:4px}
+.chip.cd{opacity:.5}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 </head>
@@ -634,12 +635,27 @@ function murk(d,b,e){ // 작업 6시간 전~철수까지 최대 바람·파도�
  const ws=Math.max(...hs.map(x=>x.ws)),wv=(d.sea||[]).filter(x=>x.t>=b-6*H&&x.t<=e&&x.wave!=null).map(x=>x.wave),wave=wv.length?Math.max(...wv):0;
  const lv=ws>=7||wave>=0.8?2:ws>=5||wave>=0.5?1:0;
  return {lv,ws:Math.round(ws),wave,f:[1,0.75,0.4][lv],t:lv===2?`바람 ${Math.round(ws)}m/s — 물 흐려 안 보임`:lv===1?`바람 ${Math.round(ws)}m/s — 물 흐릴 수 있음`:''}}
+const CLAM=/^(baekhap|dongjuk|bajirak|manjo|gaeryang|tteokjogae|miljogae|gamurak|gaejogae|gul|garibi|gaebul)$/;
+function cond(tid,d,b,e){ // 작업 6시간 전~철수까지 날씨로 이 대상이 잘 되는지: f(점수 배율), why(이유)
+ const hs=(d.wx||[]).filter(x=>x.t>=b-6*H&&x.t<=e&&x.ws!=null);if(!hs.length)return null;
+ const ws=Math.max(...hs.map(x=>x.ws)),tmax=Math.max(...hs.map(x=>x.tp)),tmin=Math.min(...hs.map(x=>x.tp)),pr=hs.reduce((a,x)=>a+(x.pr||0),0);
+ const wv=(d.sea||[]).filter(x=>x.t>=b-6*H&&x.t<=e&&x.wave!=null).map(x=>x.wave),wave=wv.length?Math.max(...wv):0;
+ let f=1;const why=[];const k=(v,t)=>{f*=v;why.push(t)};
+ if(SIGHT.test(tid)){
+  if(ws>=7||wave>=0.8)k(0.4,`바람 ${Math.round(ws)}m/s — 물 흐려 안 보임`);else if(ws>=5||wave>=0.5)k(0.75,`바람 ${Math.round(ws)}m/s — 물 흐릴 수 있음`);
+  if(pr>=5)k(0.8,`비 ${Math.round(pr)}mm — 물 흐림`);
+  if(tmax<=5)k(0.6,`${Math.round(tmax)}°C — 추우면 게·낙지 활동 줄어듦`);else if(tmax<=10)k(0.85,`${Math.round(tmax)}°C — 쌀쌀해 활동 적음`);
+ }
+ if(tid==='manjo'&&tmax>=28)k(0.6,`${Math.round(tmax)}°C — 더우면 맛조개 잘 안 올라옴`);
+ if(CLAM.test(tid)&&tmin<=-3)k(0.85,`${Math.round(tmin)}°C — 갯벌 얼면 캐기 힘듦`);
+ return {f,why,lv:f<=0.5?2:f<1?1:0,t:why.join(' · ')};
+}
 const siteHas=(sid,t)=>(DETAIL[sid]?.targets||[]).some(x=>findTarget(x.name)===t);
 function rankTarget(n,m,t,rows){
  if(mStat(t.id,m)==='x')return null;
  const P=TPROF(t.id),out=[];
  rows.forEach(({s,r})=>{if(!siteHas(s.id,t))return;const d=DATA[s.id]||{};let best=null;
-  (r.all||[]).filter(l=>!l.ban).forEach(l=>{const w=weatherScore(d.wx,d.sea,l.b,l.e);const dd=P.night?Math.max(l.day,0.6):l.day;let sc=l.F*P.wt+dd*P.wd+w.score;const mk=SIGHT.test(t.id)?murk(d,l.b,l.e):null;if(mk)sc*=mk.f;if(w.danger)sc=Math.min(sc,25);if(!best||sc>best.sc)best={sc:Math.round(sc),l,w,mk}});
+  (r.all||[]).filter(l=>!l.ban).forEach(l=>{const w=weatherScore(d.wx,d.sea,l.b,l.e);const dd=P.night?Math.max(l.day,0.6):l.day;let sc=l.F*P.wt+dd*P.wd+w.score;const mk=cond(t.id,d,l.b,l.e);if(mk)sc*=mk.f;if(w.danger)sc=Math.min(sc,25);if(!best||sc>best.sc)best={sc:Math.round(sc),l,w,mk}});
   if(best){const sm=siteMonth(s.id,t,m),sea=sm==='g'?15:sm==='o'?8:3;best.sc=Math.round(best.sc+sea);out.push({s,...best})}});
  return out.sort((a,b)=>b.sc-a.sc);
 }
@@ -721,12 +737,15 @@ function dayDetail(n){saveState({dlg:{t:'d',n}});
  h+=rows.map(({s,r})=>{
   const w=dayWeather(s,n);
   const tg=(DETAIL[s.id]?.targets||[]).map(x=>findTarget(x.name)).filter(Boolean).filter((t,i,a)=>a.indexOf(t)===i);
-  const tgH=tg.map(t=>{const k=siteMonth(s.id,t,m);return k==='x'?tchip(t,'cx'):k==='g'?tchip(t,'cg'):tchip(t)}).join('');
+  const cd=Object.fromEntries(tg.map(t=>[t.id,cond(t.id,DATA[s.id]||{},r.b,r.e)]));
+  const fo=t=>siteMonth(s.id,t,m)==='x'?-1:(cd[t.id]?cd[t.id].f:1)*(siteMonth(s.id,t,m)==='g'?1.2:1);
+  tg.sort((a,b)=>fo(b)-fo(a));
+  const tgH=tg.map(t=>{const k=siteMonth(s.id,t,m),c=cd[t.id];return k==='x'?tchip(t,'cx'):c&&c.lv?tchip(t,'cd'+(k==='g'?' cg':'')):k==='g'?tchip(t,'cg'):tchip(t)}).join('');
   const [am,pm]=halves(r);
   return `<div class="card" style="margin:8px 0"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b><span class="link" data-s="${s.id}">${esc(s.name)}</span></b>${scoreCell(r.score)}</div>
    <div class="dl" style="margin-top:6px"><dt>오전 간조</dt><dd>${lowTxt(am,r,1)}</dd><dt>오후 간조</dt><dd>${lowTxt(pm,r,1)}</dd>
    <dt>날씨</dt><dd>${w?`${w.sky} · ${w.tmin.toFixed(0)}~${w.tmax.toFixed(0)}°C · 바람 최대 ${w.ws.toFixed(0)}m/s(돌풍 ${w.wg.toFixed(0)}) · 비 ${w.pr.toFixed(0)}mm${w.wave!=null?` · 파고 ${w.wave.toFixed(1)}m`:''}`:(WX_AT?'<span class="sub">예보 전(16일 이후)</span>':'<span class="sub">날씨 못 받음</span>')}</dd>
-   <dt>대상</dt><dd>${/chip cg/.test(tgH)?'<div class="sub" style="margin-bottom:3px">굵은 테두리 = 이 장소 이번 달 제철</div>':''}<div class="chips">${tgH||'<span class="sub">조사된 정보 없음</span>'}</div>${(()=>{const sg=tg.filter(t=>SIGHT.test(t.id)&&siteMonth(s.id,t,m)!=='x');if(!sg.length)return '';const mk=murk(DATA[s.id]||{},r.b,r.e);return mk&&mk.lv?`<div style="color:${mk.lv===2?'var(--bad)':'#8a5a00'};font-size:13px;margin-top:3px">${sg.map(t=>t.name).join('·')}: ${mk.t}</div>`:''})()}</dd>
+   <dt>대상</dt><dd>${/chip cg/.test(tgH)?'<div class="sub" style="margin-bottom:3px">굵은 테두리 = 이 장소 이번 달 제철</div>':''}${/chip cd/.test(tgH)?'<div class="sub" style="margin-bottom:3px">흐린 글씨 = 그날 날씨에 안 맞음(아래 이유)</div>':''}<div class="chips">${tgH||'<span class="sub">조사된 정보 없음</span>'}</div>${tg.filter(t=>siteMonth(s.id,t,m)!=='x'&&cd[t.id]&&cd[t.id].lv).map(t=>`<div style="color:${cd[t.id].lv===2?'var(--bad)':'#8a5a00'};font-size:13px;margin-top:3px">${esc(t.name)}: ${cd[t.id].t}</div>`).join('')}</dd>
    ${s.warn?`<dt>주의</dt><dd style="color:var(--bad)">${esc(s.warn)}</dd>`:''}<dt>메모</dt><dd>${tagH(r.tags)}</dd></div>${gearHtml(gearList(s,r,n,w))}</div>`}).join('');
  h+=`<p class="sub">굵은 간조 = 점수 계산에 쓴 간조(작업 시간은 간조 전 철수 기준). 진한 테두리 = 제철, 빨간 줄 = 금어기. 간조 시각은 공식 물때표로 다시 확인.</p>`;
  openDlg(`<h3>${fmtD(n)} · ${mulName(ld)}</h3>`,h);
