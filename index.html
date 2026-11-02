@@ -636,14 +636,27 @@ function murk(d,b,e){ // 작업 6시간 전~철수까지 최대 바람·파도�
  const lv=ws>=7||wave>=0.8?2:ws>=5||wave>=0.5?1:0;
  return {lv,ws:Math.round(ws),wave,f:[1,0.75,0.4][lv],t:lv===2?`바람 ${Math.round(ws)}m/s — 물 흐려 안 보임`:lv===1?`바람 ${Math.round(ws)}m/s — 물 흐릴 수 있음`:''}}
 const CLAM=/^(baekhap|dongjuk|bajirak|manjo|gaeryang|tteokjogae|miljogae|gamurak|gaejogae|gul|garibi|gaebul)$/;
-function cond(tid,d,b,e){ // 작업 6시간 전~철수까지 날씨로 이 대상이 잘 되는지: f(점수 배율), why(이유)
+// 잡는 방식: water=물속(물골·물라인·뜰채·랜턴) — 바람에 물 뒤집히면 안 보임 / rock=돌·바위 뒤집기 / dig=갯벌 구멍 파기
+function catchMode(sid,tid){
+ const D=DETAIL[sid]||{},x=(D.targets||[]).find(v=>findTarget(v.name)&&findTarget(v.name).id===tid),n=(x&&x.note)||'';
+ if(/물골|물라인|물속|뜰채|무릎|허리|랜턴|헤드랜턴/.test(n))return 'water';
+ if(/돌|바위|암반|갯바위|틈|자갈/.test(n))return 'rock';
+ if(/삽|구멍|부럿|가래/.test(n))return 'dig';
+ if(tid==='kkotge'||tid==='jukkumi')return 'water';
+ if(tid==='bakhaji')return /돌|바위|암반|자갈/.test((D.terrain||[]).join(' '))?'rock':'water';
+ if(tid==='nakji')return /야간/.test(n)?'water':'dig';
+ return 'dig';
+}
+const MODE_T={water:'물속',rock:'돌 뒤집기',dig:'갯벌 파기'};
+function cond(tid,d,b,e,sid){ // 작업 6시간 전~철수까지 날씨로 이 대상이 잘 되는지: f(점수 배율), why(이유)
  const hs=(d.wx||[]).filter(x=>x.t>=b-6*H&&x.t<=e&&x.ws!=null);if(!hs.length)return null;
  const ws=Math.max(...hs.map(x=>x.ws)),tmax=Math.max(...hs.map(x=>x.tp)),tmin=Math.min(...hs.map(x=>x.tp)),pr=hs.reduce((a,x)=>a+(x.pr||0),0);
  const wv=(d.sea||[]).filter(x=>x.t>=b-6*H&&x.t<=e&&x.wave!=null).map(x=>x.wave),wave=wv.length?Math.max(...wv):0;
  let f=1;const why=[];const k=(v,t)=>{f*=v;why.push(t)};
  if(SIGHT.test(tid)){
-  if(ws>=7||wave>=0.8)k(0.4,`바람 ${Math.round(ws)}m/s — 물 흐려 안 보임`);else if(ws>=5||wave>=0.5)k(0.75,`바람 ${Math.round(ws)}m/s — 물 흐릴 수 있음`);
-  if(pr>=5)k(0.8,`비 ${Math.round(pr)}mm — 물 흐림`);
+  if(!sid||catchMode(sid,tid)==='water'){
+   if(ws>=7||wave>=0.8)k(0.4,`물속에서 잡는 곳 — 바람 ${Math.round(ws)}m/s, 물 흐려 안 보임`);else if(ws>=5||wave>=0.5)k(0.75,`물속에서 잡는 곳 — 바람 ${Math.round(ws)}m/s, 물 흐릴 수 있음`);
+   if(pr>=5)k(0.8,`비 ${Math.round(pr)}mm — 물 흐림`)}
   if(tmax<=5)k(0.6,`${Math.round(tmax)}°C — 추우면 게·낙지 활동 줄어듦`);else if(tmax<=10)k(0.85,`${Math.round(tmax)}°C — 쌀쌀해 활동 적음`);
  }
  if(tid==='manjo'&&tmax>=28)k(0.6,`${Math.round(tmax)}°C — 더우면 맛조개 잘 안 올라옴`);
@@ -655,7 +668,7 @@ function rankTarget(n,m,t,rows){
  if(mStat(t.id,m)==='x')return null;
  const P=TPROF(t.id),out=[];
  rows.forEach(({s,r})=>{if(!siteHas(s.id,t))return;const d=DATA[s.id]||{};let best=null;
-  (r.all||[]).filter(l=>!l.ban).forEach(l=>{const w=weatherScore(d.wx,d.sea,l.b,l.e);const dd=P.night?Math.max(l.day,0.6):l.day;let sc=l.F*P.wt+dd*P.wd+w.score;const mk=cond(t.id,d,l.b,l.e);if(mk)sc*=mk.f;if(w.danger)sc=Math.min(sc,25);if(!best||sc>best.sc)best={sc:Math.round(sc),l,w,mk}});
+  (r.all||[]).filter(l=>!l.ban).forEach(l=>{const w=weatherScore(d.wx,d.sea,l.b,l.e);const dd=P.night?Math.max(l.day,0.6):l.day;let sc=l.F*P.wt+dd*P.wd+w.score;const mk=cond(t.id,d,l.b,l.e,s.id);if(mk)sc*=mk.f;if(w.danger)sc=Math.min(sc,25);if(!best||sc>best.sc)best={sc:Math.round(sc),l,w,mk}});
   if(best){const sm=siteMonth(s.id,t,m),sea=sm==='g'?15:sm==='o'?8:3;best.sc=Math.round(best.sc+sea);out.push({s,...best})}});
  return out.sort((a,b)=>b.sc-a.sc);
 }
@@ -737,7 +750,7 @@ function dayDetail(n){saveState({dlg:{t:'d',n}});
  h+=rows.map(({s,r})=>{
   const w=dayWeather(s,n);
   const tg=(DETAIL[s.id]?.targets||[]).map(x=>findTarget(x.name)).filter(Boolean).filter((t,i,a)=>a.indexOf(t)===i);
-  const cd=Object.fromEntries(tg.map(t=>[t.id,cond(t.id,DATA[s.id]||{},r.b,r.e)]));
+  const cd=Object.fromEntries(tg.map(t=>[t.id,cond(t.id,DATA[s.id]||{},r.b,r.e,s.id)]));
   const fo=t=>siteMonth(s.id,t,m)==='x'?-1:(cd[t.id]?cd[t.id].f:1)*(siteMonth(s.id,t,m)==='g'?1.2:1);
   tg.sort((a,b)=>fo(b)-fo(a));
   const tgH=tg.map(t=>{const k=siteMonth(s.id,t,m),c=cd[t.id];return k==='x'?tchip(t,'cx'):c&&c.lv?tchip(t,'cd'+(k==='g'?' cg':'')):k==='g'?tchip(t,'cg'):tchip(t)}).join('');
