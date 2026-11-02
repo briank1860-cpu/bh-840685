@@ -14,7 +14,7 @@
 :root[data-theme="dark"]{--bg:#15181b;--card:#1d2226;--ink:#e8eaed;--sub:#9aa3ad;--line:#2d343a;--acc:#5cc3c9;--acc2:#1f3436;--good:#6fcf73;--mid:#e0b04f;--bad:#ff7b6e;--bar:#24474a}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Pretendard","Malgun Gothic",system-ui,sans-serif}
-main{max-width:1080px;margin:0 auto;padding:20px 16px 60px}
+main{max-width:1080px;margin:0 auto;padding:20px 16px 90px}
 h1{font-size:22px;margin:0 0 4px}
 h2{font-size:17px;margin:28px 0 10px}
 .sub{color:var(--sub);font-size:13px}
@@ -473,10 +473,11 @@ function applyState(){const st=getState();
  if(st.days)$('days').value=st.days;if(st.exit)$('exit').value=st.exit;if(st.work)$('work').value=st.work;
  if(st.weekend!=null)$('weekend').checked=st.weekend;if(st.incPaid!=null)$('incPaid').checked=st.incPaid;
  (st.off||[]).forEach(r=>{const x=[...document.querySelectorAll('#regions input')].find(i=>i.value===r);if(x)x.checked=false});}
-function restoreView(){const st=getState(),d=st.dlg;if(!d)return;
+function restoreView(){const st=getState(),d=st.dlg;if(!d){if(st.alarm&&SITES.some(x=>x.id===st.alarm))startAlarm(st.alarm);return}
  if(d.t==='s'&&SITES.some(x=>x.id===d.id)){siteDetail(d.id);if(st.geo&&$('geoBtn'))toggleGeo(d.id)}
  else if(d.t==='d'&&d.n>=kDay(Date.now()))dayDetail(d.n);
  else if(d.t==='t')targetDetail(d.id);
+ if(st.alarm&&SITES.some(x=>x.id===st.alarm))startAlarm(st.alarm);
  if(st.y)setTimeout(()=>{$('dBody').parentElement.scrollTop=st.y;$('dlg').scrollTop=st.y},400);}
 function siteDetail(id){saveState({dlg:{t:'s',id}});
  const s=SITES.find(x=>x.id===id),d=DETAIL[id]||{};
@@ -487,7 +488,7 @@ function siteDetail(id){saveState({dlg:{t:'s',id}});
  if(next.length)h+=`<h4>추천 날짜</h4><div class="dl">${next.map(r=>`<dt>${fmtD(r.n)}</dt><dd>${mulName(lunarDay(r.n))} · ${lowLine(r)} · 작업 ${fmtT(r.b)}~${fmtT(r.e)} · ${r.score}점</dd>`).join('')}</div>`;
  h+=`<h4>주차</h4>${ul(d.parking)}<h4>가는 길·진입</h4>${ul(d.access)}<h4>잘 나오는 구역</h4>${ul(d.spots)}<h4>지형</h4>${ul(d.terrain)}`;
  const tg=d.targets||[];
- h+=`<h4>잡히는 대상</h4>`+(tg.length?`<div class="dl">${tg.map(t=>{const f=findTarget(t.name);return `<dt>${f?`<span class="link" data-t="${esc(f.id)}">${esc(t.name)}</span>`:esc(t.name)}</dt><dd>${esc(t.note)}${t.season?` <span class="sub">· ${esc(t.season)}</span>`:''}</dd>`}).join('')}</div>`:'<p class="sub">조사된 정보 없음</p>');
+ h+=`<h4>잡히는 대상</h4>`+(tg.length?`<div class="dl">${tg.map(t=>{const f=findTarget(t.name);return `<dt>${f?`<span class="link" data-t="${esc(f.id)}">${esc(t.name)}</span>`:esc(t.name)}</dt><dd>${esc(t.note)}${t.season?` <span class="sub">· ${esc(t.season)}</span>`:''}${f?siteHowHtml(id,f):''}</dd>`}).join('')}</div>`:'<p class="sub">조사된 정보 없음</p>');
  h+=`<h4>시설</h4>${ul(d.facilities)}<h4>규정·운영</h4>${ul(d.rules)}<h4>안전</h4>${ul(d.safety)}<h4>현지 팁</h4>${ul(d.tips)}`;
  const src=(d.sources||[]).map(([t,u,dt])=>`<li><a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a>${dt?` <span class="sub">${esc(dt)}</span>`:''}</li>`);
  s.src.forEach(([t,u])=>{if(!(d.sources||[]).some(x=>x[1]===u))src.push(`<li><a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a></li>`)});
@@ -678,7 +679,7 @@ function eojangBlock(id){
  const vil=list.filter(([f])=>/마을/.test(ejProp(f).fids_se)),farm=list.length-vil.length;
  const near=list.slice(0,6).map(([f,d])=>{const p=ejProp(f);return `<li><span style="color:${EJ_COLOR(p.fids_se)}">■</span> ${d}km · <b>${esc(p.fids_se)}</b> ${esc(p.farm_knd||p.fids_knd)} <span class="sub">${esc(p.addr)} · ${esc(p.lcns_no)} · 면허 ${ymd(p.lcns_bgng_)}~${ymd(p.lcns_end_y)} · ${esc(p.rel_dept)}</span></li>`}).join('');
  return `<h4>주변 어장 <span class="sub">반경 4km · 마을어업 ${vil.length} · 양식 등 ${farm}</span></h4>
- <div style="margin:4px 0"><button id="geoBtn" onclick="toggleGeo('${id}')">내 위치 보기</button></div><div id="geoBox" style="font-size:14px;margin-bottom:6px"></div>
+ <div style="margin:4px 0"><button id="geoBtn" onclick="toggleGeo('${id}')">내 위치 보기</button> <button id="alarmBtn" onclick="toggleAlarm('${id}')">${alarmSite===id?'간조 알람 끄기':'간조 알람 켜기'}</button></div><div id="geoBox" style="font-size:14px;margin-bottom:6px"></div>
  <div id="ejMap" style="height:300px;border:1px solid var(--line);border-radius:8px"></div>
  <p class="sub"><span style="color:#d9480f">■</span> 마을어업(채취 금지) <span style="color:#e8a317">■</span> 양식어업 <span style="color:#7048e8">■</span> 정치망 · <span style="color:#3d5a73">━</span> 해안선 <span style="color:#c9b48a">■</span> 갯벌 <span style="color:#e0c873">■</span> 모래사장 <b style="color:#1c64d6">P</b> 주차장 · <b style="background:#555;color:#fff;padding:0 3px;border-radius:2px;font-size:11px">계산 기준점</b> 물때 계산용 대략 위치(내 위치 아님) · <span style="color:#1c7ed6">●</span> 내 위치(버튼 누를 때만). 구역을 누르면 내용이 나옵니다.</p>
  <ul style="font-size:13px">${near}</ul>
@@ -751,6 +752,7 @@ function onPos(id,la,lo,acc){
   if(inPoly(la,lo,g)){if(v)inV=p;else inF=inF||p}
   if(v){const d=distPoly(la,lo,g);if(!near||d<near.d)near={d,p}}});
  const s=SITES.find(x=>x.id===id),ds=kmD(la,lo,s.lat,s.lon);
+ if(ds<=3&&alarmSite!==id)startAlarm(id,true);
  let h='';
  if(inV)h+=`<div style="color:#fff;background:#d9480f;padding:6px 8px;border-radius:6px;margin:4px 0"><b>지금 마을어장 안입니다 — 채취 금지</b><br>${esc(inV.farm_knd||'')} · ${esc(inV.addr)} · ${esc(inV.lcns_no)}</div>`;
  else if(inF)h+=`<div style="background:#e8a317;padding:6px 8px;border-radius:6px;margin:4px 0"><b>지금 양식장 안입니다 — 채취 금지</b><br>${esc(inF.farm_knd||inF.fids_knd)} · ${esc(inF.lcns_no)}</div>`;
@@ -776,6 +778,70 @@ function drawBase(id){
   L.marker(x.c,{icon:L.divIcon({className:'',html:'<div style="background:#1c64d6;color:#fff;font:700 11px/16px sans-serif;width:16px;height:16px;text-align:center;border-radius:3px;border:1px solid #fff">P</div>',iconSize:[16,16]})})
    .bindPopup(`<b>주차장</b>${x.n?'<br>'+esc(x.n):''}${fee?'<br>'+fee:''}${x.cap?'<br>약 '+esc(x.cap)+'대':''}<br><span style="color:#888">OpenStreetMap 자료</span>`).addTo(ejMap)});
 }
+
+// 이 장소에서 잡는 법: 도감 요령 + 그 장소 후기·구역·지형·팁 중 그 대상이 나오는 내용
+function siteHowHtml(sid,t){
+ const d=DETAIL[sid]||{},names=[t.name,...(t.alias||'').split(/[,·\/ ]+/)].filter(x=>x&&x.length>1);
+ const hit=x=>names.some(n=>String(x).includes(n));
+ const loc=[...(d.spots||[]),...(d.tips||[]),...(d.terrain||[])].filter(hit);
+ const note=(d.targets||[]).filter(x=>findTarget(x.name)===t).map(x=>x.note).filter(Boolean);
+ if(!(t.how||[]).length&&!loc.length&&!note.length)return '';
+ return `<details style="margin-top:4px"><summary class="sub">이 장소에서 잡는 법</summary>
+  ${(t.how||[]).length?`<ol style="margin:4px 0">${t.how.map(x=>`<li>${esc(x)}</li>`).join('')}</ol>`:''}
+  ${t.signs?`<div class="sub">흔적: ${esc(t.signs)}</div>`:''}${t.tools?`<div class="sub">도구: ${esc(t.tools)}</div>`:''}
+  ${note.length||loc.length?`<div style="margin-top:4px"><b>이 장소 기록</b><ul style="margin:2px 0">${[...note,...loc].map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
+  ${t.legal?`<div class="sub">규정: ${esc(t.legal)}</div>`:''}</details>`;
+}
+// 간조 알람: 철수 30분 전·10분 전·철수 시각·간조 시각에 소리·진동·알림. 화면 켜둠(Wake Lock)
+let alarmSite=null,alarmTimer=null,alarmFired={},wakeLock=null;
+function upcomingLow(id){
+ const now=Date.now(),s=SITES.find(x=>x.id===id),n=kDay(now);if(!RESULT||!s)return null;
+ const rows=[n,n+1].map(k=>RESULT.rows.find(x=>x.site.id===id&&x.n===k)||evalSite(s,k,1,RESULT.opt)[0]).filter(Boolean);
+ return rows.flatMap(r=>r.all||[]).filter(l=>l.t>now-20*60e3).sort((a,b)=>a.t-b.t)[0]||null;
+}
+function beep(){
+ try{const a=new(window.AudioContext||window.webkitAudioContext)();[0,0.45,0.9,1.35].forEach(t=>{const o=a.createOscillator(),g=a.createGain();o.frequency.value=t%0.9?660:880;o.connect(g);g.connect(a.destination);g.gain.setValueAtTime(0.5,a.currentTime+t);o.start(a.currentTime+t);o.stop(a.currentTime+t+0.3)})}catch(e){}
+ if(navigator.vibrate)navigator.vibrate([500,200,500,200,900]);
+}
+function alarmNotify(msg){
+ const bar=$('alarmBar');if(bar){bar.style.background='#b42318';setTimeout(()=>{if($('alarmBar'))$('alarmBar').style.background='#0f6d74'},60000)}
+ $('alarmMsg')&&($('alarmMsg').textContent=msg);
+ try{if('Notification' in window&&Notification.permission==='granted'){
+  const opt={body:msg,vibrate:[500,200,500],requireInteraction:true,tag:'bh-alarm'};
+  if(navigator.serviceWorker&&navigator.serviceWorker.controller)navigator.serviceWorker.ready.then(r=>r.showNotification('해루질 알람',opt));else new Notification('해루질 알람',opt)}}catch(e){}
+}
+function keepAwake(){if(alarmSite&&navigator.wakeLock&&document.visibilityState==='visible')navigator.wakeLock.request('screen').then(w=>wakeLock=w).catch(()=>{})}
+document.addEventListener('visibilitychange',keepAwake);
+function clockAlarmLink(l){ // 안드로이드 시계 앱 알람 맞추기
+ const d=new Date(l.e-10*60e3+KST),hh=d.getUTCHours(),mm=d.getUTCMinutes();
+ return `intent:#Intent;action=android.intent.action.SET_ALARM;i.android.intent.extra.alarm.HOUR=${hh};i.android.intent.extra.alarm.MINUTES=${mm};S.android.intent.extra.alarm.MESSAGE=${encodeURIComponent('해루질 철수 10분 전')};end`;
+}
+function renderAlarmBar(){
+ let bar=$('alarmBar');
+ if(!alarmSite){if(bar)bar.remove();const b=$('alarmBtn');if(b)b.textContent='간조 알람 켜기';return}
+ if(!bar){bar=document.createElement('div');bar.id='alarmBar';bar.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:1000;background:#0f6d74;color:#fff;padding:10px 16px;font-size:14px;display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap';document.body.appendChild(bar)}
+ const s=SITES.find(x=>x.id===alarmSite),l=upcomingLow(alarmSite);
+ const mins=l?Math.round((l.e-Date.now())/60e3):null;
+ bar.innerHTML=`<span><b>간조 알람</b> · ${esc(s.name)} · ${l?`철수 ${fmtT(l.e)} (${mins>0?mins+'분 남음':'지남'}) · 간조 ${fmtT(l.t)}`:'간조 정보 없음'}<br><span id="alarmMsg" style="font-size:12px;opacity:.9">철수 30분 전·10분 전·철수·간조 때 울림</span></span>
+  <span style="display:flex;gap:6px">${l&&/Android/i.test(navigator.userAgent)?`<a href="${clockAlarmLink(l)}" style="background:#fff;color:#0f6d74;padding:5px 8px;border-radius:6px;text-decoration:none;font-size:13px">시계 알람</a>`:''}<button onclick="stopAlarm()" style="background:#fff;color:#0f6d74;padding:5px 10px">끄기</button></span>`;
+ const b=$('alarmBtn');if(b)b.textContent='간조 알람 끄기';
+}
+function checkAlarm(){
+ if(!alarmSite)return;const l=upcomingLow(alarmSite);renderAlarmBar();if(!l)return;
+ const now=Date.now();
+ [[l.e-30*60e3,`철수 30분 전 (철수 ${fmtT(l.e)})`],[l.e-10*60e3,`철수 10분 전 (철수 ${fmtT(l.e)})`],[l.e,`철수 시각 ${fmtT(l.e)} — 지금 나오세요`],[l.t,`간조 ${fmtT(l.t)} — 이제 물이 들어옵니다. 바로 철수`]]
+  .forEach(([t,msg])=>{const k=alarmSite+t;if(now>=t&&now<t+10*60e3&&!alarmFired[k]){alarmFired[k]=1;beep();alarmNotify(msg)}});
+}
+function startAlarm(id,auto){
+ alarmSite=id;alarmFired={};
+ try{if('Notification' in window&&Notification.permission==='default')Notification.requestPermission()}catch(e){}
+ keepAwake();clearInterval(alarmTimer);alarmTimer=setInterval(checkAlarm,15000);
+ const l=upcomingLow(id);if(l)[[l.e-30*60e3],[l.e-10*60e3],[l.e],[l.t]].forEach(([t])=>{if(Date.now()>=t+10*60e3)alarmFired[id+t]=1});
+ checkAlarm();saveState({alarm:id});
+ if(auto)alarmNotify('현장 근처 도착 — 간조 알람을 켰습니다');
+}
+function stopAlarm(){alarmSite=null;clearInterval(alarmTimer);alarmTimer=null;try{wakeLock&&wakeLock.release()}catch(e){}wakeLock=null;saveState({alarm:null});renderAlarmBar()}
+function toggleAlarm(id){if(alarmSite===id)stopAlarm();else startAlarm(id)}
 
 function init(){
  const regs=[...new Set(SITES.map(s=>s.reg))];
