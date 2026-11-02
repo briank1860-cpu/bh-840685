@@ -565,7 +565,7 @@ function siteDetail(id){saveState({dlg:{t:'s',id}});
  h+=`<h4>시설</h4>${ul(d.facilities)}<h4>규정·운영</h4>${ul(d.rules)}<h4>안전</h4>${ul(d.safety)}<h4>현지 팁</h4>${ul(d.tips)}`;
  const src=(d.sources||[]).map(([t,u,dt])=>`<li><a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a>${dt?` <span class="sub">${esc(dt)}</span>`:''}</li>`);
  s.src.forEach(([t,u])=>{if(!(d.sources||[]).some(x=>x[1]===u))src.push(`<li><a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a></li>`)});
- h+=`<h4>지도·물때·출처</h4><p><a href="https://map.kakao.com/?q=${q}" target="_blank" rel="noopener">카카오맵</a> · <a href="https://map.naver.com/p/search/${q}" target="_blank" rel="noopener">네이버지도</a> · <a href="https://www.badatime.com/${s.bt}.html" target="_blank" rel="noopener">물때표</a></p><ul>${src.join('')}</ul>`;
+ h+=`<h4>지도·물때·출처</h4><p><a href="https://map.kakao.com/?q=${q}" target="_blank" rel="noopener">카카오맵</a> (<a href="https://map.kakao.com/link/to/${encodeURIComponent(s.name)},${s.lat},${s.lon}" target="_blank" rel="noopener">길찾기</a>) · <a href="https://map.naver.com/p/search/${q}" target="_blank" rel="noopener">네이버지도</a> · <a href="https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}" target="_blank" rel="noopener">구글 길찾기</a> · <a href="https://www.badatime.com/${s.bt}.html" target="_blank" rel="noopener">물때표</a></p><ul>${src.join('')}</ul>`;
  openDlg(`<h3>${esc(s.name)}</h3>`,h);drawMap(id);
 }
 function targetDetail(id){saveState({dlg:{t:'t',id}});
@@ -844,7 +844,9 @@ function drawMap(id){
  if(ejMap){ejMap.remove();ejMap=null}
  const s=SITES.find(x=>x.id===id);
  ejMap=L.map(el,{scrollWheelZoom:false}).setView([s.lat,s.lon],13);
- L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap 기여자'}).addTo(ejMap);
+ const osmT=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap 기여자'}).addTo(ejMap);
+ const satT=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:18,attribution:'위성 © Esri'});
+ L.control.layers({'일반 지도':osmT,'위성 사진':satT},null,{position:'topright'}).addTo(ejMap);
  drawBase(id);
  drawFree(id);
  drawZones(id);
