@@ -637,7 +637,7 @@ function eojangBlock(id){
  return `<h4>주변 어장 <span class="sub">반경 4km · 마을어업 ${vil.length} · 양식 등 ${farm}</span></h4>
  <div style="margin:4px 0"><button id="geoBtn" onclick="toggleGeo('${id}')">내 위치 보기</button></div><div id="geoBox" style="font-size:14px;margin-bottom:6px"></div>
  <div id="ejMap" style="height:300px;border:1px solid var(--line);border-radius:8px"></div>
- <p class="sub"><span style="color:#d9480f">■</span> 마을어업(채취 금지) <span style="color:#e8a317">■</span> 양식어업 <span style="color:#7048e8">■</span> 정치망 · <span style="color:#1c7ed6">●</span> 계산용 대략 위치. 구역을 누르면 내용이 나옵니다.</p>
+ <p class="sub"><span style="color:#d9480f">■</span> 마을어업(채취 금지) <span style="color:#e8a317">■</span> 양식어업 <span style="color:#7048e8">■</span> 정치망 · <b style="background:#555;color:#fff;padding:0 3px;border-radius:2px;font-size:11px">계산 기준점</b> 물때 계산용 대략 위치(내 위치 아님) · <span style="color:#1c7ed6">●</span> 내 위치(버튼 누를 때만). 구역을 누르면 내용이 나옵니다.</p>
  <ul style="font-size:13px">${near}</ul>
  <p class="sub">국립해양조사원 어장정보(공공데이터포털, 2025-08 공개). 면허기간이 지났어도 갱신됐을 수 있고, 이후 새로 생긴 어장은 빠져 있을 수 있습니다. 색칠된 구역 밖이어도 현장 안내판·시·군 해양수산과로 확인하세요.</p>`;
 }
@@ -657,7 +657,7 @@ function drawMap(id){
   poly.bindPopup(`<b>${esc(p.fids_se)}</b> · ${esc(p.farm_knd||p.fids_knd)}<br>${esc(p.addr)}<br>${esc(p.lcns_no)} · 면적 ${(+p.area).toFixed(0)}ha<br>면허 ${ymd(p.lcns_bgng_)}~${ymd(p.lcns_end_y)}<br>${esc(p.rel_dept)}`);
   poly.addTo(ejMap);grp.push(poly);
  });
- L.circleMarker([s.lat,s.lon],{radius:7,color:'#1c7ed6',fillColor:'#1c7ed6',fillOpacity:0.9}).bindTooltip(s.name).addTo(ejMap);
+ L.marker([s.lat,s.lon],{icon:L.divIcon({className:'',html:'<div style="background:#555;color:#fff;font:600 10px/14px sans-serif;padding:1px 4px;border-radius:3px;white-space:nowrap;transform:translate(-50%,-50%);display:inline-block">계산 기준점</div>',iconSize:[0,0]})}).bindTooltip(s.name+' 물때 계산용 대략 위치').addTo(ejMap);
  ejMap.on('dragstart',()=>{meFollow=false});
  setTimeout(()=>ejMap&&ejMap.invalidateSize(),200);
 }
@@ -700,7 +700,8 @@ function onPos(id,la,lo,acc){
  if(!ejMap||geoSite!==id)return;
  if(!meMk){meCirc=L.circle([la,lo],{radius:acc,color:'#1c7ed6',weight:1,fillOpacity:0.08}).addTo(ejMap);meMk=L.circleMarker([la,lo],{radius:8,color:'#fff',weight:3,fillColor:'#1c7ed6',fillOpacity:1}).bindTooltip('내 위치').addTo(ejMap)}
  else{meMk.setLatLng([la,lo]);meCirc.setLatLng([la,lo]).setRadius(acc)}
- if(meFollow)ejMap.setView([la,lo],Math.max(ejMap.getZoom(),15));
+ const far=kmD(la,lo,SITES.find(x=>x.id===id).lat,SITES.find(x=>x.id===id).lon)>8;
+ if(meFollow&&!far)ejMap.setView([la,lo],Math.max(ejMap.getZoom(),15));
  let inV=null,inF=null,near=null;
  (EOJANG.n[id]||[]).forEach(([f])=>{const p=ejProp(f),g=EOJANG.f[f].g,v=/마을/.test(p.fids_se);
   if(inPoly(la,lo,g)){if(v)inV=p;else inF=inF||p}
@@ -710,7 +711,7 @@ function onPos(id,la,lo,acc){
  if(inV)h+=`<div style="color:#fff;background:#d9480f;padding:6px 8px;border-radius:6px;margin:4px 0"><b>지금 마을어장 안입니다 — 채취 금지</b><br>${esc(inV.farm_knd||'')} · ${esc(inV.addr)} · ${esc(inV.lcns_no)}</div>`;
  else if(inF)h+=`<div style="background:#e8a317;padding:6px 8px;border-radius:6px;margin:4px 0"><b>지금 양식장 안입니다 — 채취 금지</b><br>${esc(inF.farm_knd||inF.fids_knd)} · ${esc(inF.lcns_no)}</div>`;
  else if(near)h+=`<div>마을어장 밖 · 가장 가까운 마을어장까지 <b>${near.d<1?Math.round(near.d*1000)+'m':near.d.toFixed(1)+'km'}</b> <span class="sub">(${esc(near.p.farm_knd||'')})</span></div>`;
- if(ds>8)h+=`<div class="sub">이 장소에서 ${ds.toFixed(0)}km 떨어져 있어 주변 어장 데이터 범위(4km) 밖입니다.</div>`;
+ if(ds>8)h=`<div><b>지금 이 장소에서 ${ds.toFixed(0)}km 떨어져 있습니다.</b> 현장 근처에 가면 마을어장 안/밖과 거리가 나옵니다. 지도는 내 위치로 옮기지 않았습니다.</div>`;
  h+=`<div>${exitInfo(id)}</div><div class="sub">정확도 ±${Math.round(acc)}m · ${fmtT(Date.now())} 갱신 · 지도를 움직이면 따라가기 멈춤</div>`;
  $('geoBox').innerHTML=h;
 }
