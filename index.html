@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="theme-color" content="#0f6d74">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>백합 해루질 날짜</title>
 <style>
 :root{--bg:#f6f4ef;--card:#fff;--ink:#1f2328;--sub:#5f6670;--line:#e3dfd6;--acc:#0f6d74;--acc2:#e3f1f1;--good:#2f7d32;--mid:#b7791f;--bad:#b42318;--bar:#d7ebe9}
@@ -438,6 +441,7 @@ async function run(){
  const regs=[...document.querySelectorAll('#regions input:checked')].map(x=>x.value);
  const sites=SITES.filter(s=>regs.includes(s.reg)&&($('incPaid').checked||!ACCESS[s.id]||ACCESS[s.id].pay!=='유료'));
  if(!sites.length){$('status').textContent='지역을 고르세요.';return}
+ saveState();
  const opt={days:+$('days').value,exit:+$('exit').value,work:+$('work').value,weekend:$('weekend').checked};
  $('status').textContent='불러오는 중…';
  let st={marine:false,wx:false};
@@ -460,7 +464,20 @@ const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const ul=a=>a&&a.length?'<ul>'+a.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>':'<p class="sub">조사된 정보 없음</p>';
 function openDlg(title,body){$('dTitle').innerHTML=title;$('dBody').innerHTML=body;const d=$('dlg');if(!d.open)d.showModal();d.scrollTop=0}
 function findTarget(name){const n=name.replace(/\(.*?\)/g,'').trim();return TARGETS.find(t=>t.name===n||(t.alias||'').split(/[,·\/ ]+/).includes(n)||n.includes(t.name))}
-function siteDetail(id){
+// 보던 상태를 휴대폰에 기억(브라우저가 페이지를 다시 불러와도 그대로 복원). 날씨 값은 저장하지 않음
+const SKEY='bh_state_v1';
+function getState(){try{return JSON.parse(localStorage.getItem(SKEY)||'{}')}catch(e){return {}}}
+function saveState(extra){try{const st=getState();if($('days'))Object.assign(st,{days:$('days').value,exit:$('exit').value,work:$('work').value,weekend:$('weekend').checked,incPaid:$('incPaid').checked,off:[...document.querySelectorAll('#regions input')].filter(x=>!x.checked).map(x=>x.value)});Object.assign(st,extra||{});localStorage.setItem(SKEY,JSON.stringify(st))}catch(e){}}
+function applyState(){const st=getState();
+ if(st.days)$('days').value=st.days;if(st.exit)$('exit').value=st.exit;if(st.work)$('work').value=st.work;
+ if(st.weekend!=null)$('weekend').checked=st.weekend;if(st.incPaid!=null)$('incPaid').checked=st.incPaid;
+ (st.off||[]).forEach(r=>{const x=[...document.querySelectorAll('#regions input')].find(i=>i.value===r);if(x)x.checked=false});}
+function restoreView(){const st=getState(),d=st.dlg;if(!d)return;
+ if(d.t==='s'&&SITES.some(x=>x.id===d.id)){siteDetail(d.id);if(st.geo&&$('geoBtn'))toggleGeo(d.id)}
+ else if(d.t==='d'&&d.n>=kDay(Date.now()))dayDetail(d.n);
+ else if(d.t==='t')targetDetail(d.id);
+ if(st.y)setTimeout(()=>{$('dBody').parentElement.scrollTop=st.y;$('dlg').scrollTop=st.y},400);}
+function siteDetail(id){saveState({dlg:{t:'s',id}});
  const s=SITES.find(x=>x.id===id),d=DETAIL[id]||{};
  const next=RESULT?RESULT.rows.filter(r=>r.site.id===id).sort((a,b)=>b.score-a.score).slice(0,3).sort((a,b)=>a.n-b.n):[];
  const q=encodeURIComponent(s.name.replace(' 체험장','').replace('·',' '));
@@ -476,7 +493,7 @@ function siteDetail(id){
  h+=`<h4>지도·물때·출처</h4><p><a href="https://map.kakao.com/?q=${q}" target="_blank" rel="noopener">카카오맵</a> · <a href="https://map.naver.com/p/search/${q}" target="_blank" rel="noopener">네이버지도</a> · <a href="https://www.badatime.com/${s.bt}.html" target="_blank" rel="noopener">물때표</a></p><ul>${src.join('')}</ul>`;
  openDlg(`<h3>${esc(s.name)}</h3>`,h);drawMap(id);
 }
-function targetDetail(id){
+function targetDetail(id){saveState({dlg:{t:'t',id}});
  const t=TARGETS.find(x=>x.id===id);if(!t)return;
  const row=(k,v)=>v&&String(v).length?`<dt>${k}</dt><dd>${esc(Array.isArray(v)?v.join(' '):v)}</dd>`:'';
  const where=SITES.filter(s=>(DETAIL[s.id]?.targets||[]).some(x=>findTarget(x.name)===t));
@@ -537,7 +554,7 @@ function dayWeather(s,n){
  const wv=(d.sea||[]).filter(x=>x.t>=a&&x.t<=b&&x.wave!=null).map(x=>x.wave);
  return {sky:WC(worst>=51?worst:mode),tmin:Math.min(...hs.map(x=>x.tp)),tmax:Math.max(...hs.map(x=>x.tp)),ws:Math.max(...hs.map(x=>x.ws)),wg:Math.max(...hs.map(x=>x.wg??x.ws)),pr:hs.reduce((p,x)=>p+(x.pr||0),0),wave:wv.length?Math.max(...wv):null};
 }
-function dayDetail(n){
+function dayDetail(n){saveState({dlg:{t:'d',n}});
  if(!RESULT){$('status').textContent='먼저 계산을 누르세요.';return}
  const opt=RESULT.opt,ld=lunarDay(n),m=new Date(kDayStart(n)+KST).getUTCMonth()+1;
  const sites=SITES.filter(s=>CAL[s.id]);
@@ -680,11 +697,11 @@ function distPoly(la,lo,g){ // 경계선까지 최단거리(km)
 function stopGeo(){if(geoWatch!=null&&navigator.geolocation)navigator.geolocation.clearWatch(geoWatch);geoWatch=null;const b=$('geoBtn');if(b)b.textContent='내 위치 보기'}
 function geoErr(e){return e.code===1?(window.top!==window?'이 링크(claude.ai) 안에서는 위치가 막혀 있습니다. 휴대폰 설정에서 위치를 허용했는데도 이 문구가 나오면 링크 보안 제한입니다.':'위치 권한이 거부됐습니다. 휴대폰 설정에서 이 브라우저의 위치를 허용하세요.'):e.code===3?'위치를 찾는 데 시간이 오래 걸립니다. 하늘이 트인 곳에서 다시 눌러 주세요.':'위치를 가져오지 못했습니다.'}
 function toggleGeo(id){
- if(geoWatch!=null){stopGeo();$('geoBox').textContent='';return}
+ if(geoWatch!=null){stopGeo();saveState({geo:false});$('geoBox').textContent='';return}
  if(!navigator.geolocation){$('geoBox').textContent='이 브라우저는 위치를 지원하지 않습니다.';return}
  const fp=document.permissionsPolicy||document.featurePolicy;
  if(fp&&fp.allowsFeature&&!fp.allowsFeature('geolocation')){$('geoBox').innerHTML='<span style="color:var(--bad)">이 링크(claude.ai) 안에서는 휴대폰 위치를 쓸 수 없습니다. 링크 보안 제한이라 휴대폰 설정으로는 풀리지 않습니다.</span>';return}
- geoSite=id;meFollow=true;$('geoBtn').textContent='위치 끄기';$('geoBox').textContent='위치 찾는 중…';
+ geoSite=id;meFollow=true;saveState({geo:true});$('geoBtn').textContent='위치 끄기';$('geoBox').textContent='위치 찾는 중…';
  geoWatch=navigator.geolocation.watchPosition(p=>onPos(id,p.coords.latitude,p.coords.longitude,p.coords.accuracy),e=>{stopGeo();$('geoBox').innerHTML=`<span style="color:var(--bad)">${geoErr(e)}</span>`},{enableHighAccuracy:true,maximumAge:5000,timeout:20000});
 }
 function exitInfo(id){ // 오늘 이 장소의 다음 철수 시각
@@ -719,6 +736,7 @@ function onPos(id,la,lo,acc){
 function init(){
  const regs=[...new Set(SITES.map(s=>s.reg))];
  $('regions').innerHTML=regs.map(r=>`<label><input type="checkbox" value="${r}" checked> ${r}</label>`).join('');
+ applyState();
  $('siteCards').innerHTML=SITES.map(s=>`<div class="card" data-s="${s.id}"><h3>${s.name}</h3>
   <span class="tag">${s.reg}</span>${(t=>t?`<span class="tag ${t.c}">${t.t}</span>`:'')(payTag(s.id))}<span class="tag c">모래 ${'●'.repeat(s.sand)}${'○'.repeat(3-s.sand)}</span><span class="tag c">백합 근거 ${['','약함','보통','확실'][s.ev]}</span>
   <p>${s.memo}</p>${s.warn?`<p class="warn">${s.warn}</p>`:''}
@@ -726,7 +744,8 @@ function init(){
   +`<div class="card"><h3>뺀 곳</h3>${EXCLUDED.map(([k,v])=>`<p><b>${k}</b>: ${v}</p>`).join('')}</div>`;
  $('run').onclick=run;
  $('dClose').onclick=()=>$('dlg').close();
- $('dlg').addEventListener('close',()=>{stopGeo()});
+ $('dlg').addEventListener('close',()=>{stopGeo();saveState({dlg:null,geo:false,y:0})});
+ $('dlg').addEventListener('scroll',()=>saveState({y:$('dlg').scrollTop}),{passive:true});
  $('dlg').addEventListener('click',e=>{if(e.target===$('dlg'))$('dlg').close()});
  $('pickDetail').onclick=()=>siteDetail($('sitePick').value);
  renderTargets();
@@ -735,12 +754,15 @@ function init(){
  $('dayGo').onclick=()=>{const v=$('dayPick').value;if(v)dayDetail(Math.floor(Date.parse(v+'T00:00:00Z')/DAY))};
  $('sitePick').onchange=renderCal;
  $('weekend').onchange=()=>{if(RESULT){RESULT.opt.weekend=$('weekend').checked;render()}};
- run();
+ run().then(restoreView);
  const stale=()=>RESULT&&(!WX_AT||Date.now()-WX_AT>30*60e3);
  setInterval(()=>{if(stale())run()},5*60e3);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&stale())run()});
 }
 if(typeof document!=='undefined')init();
+// 카카오톡 안 브라우저는 앱을 나가면 닫힘 → 기본 브라우저로 열기 안내
+if(/KAKAOTALK/i.test(navigator.userAgent)&&/^https:/.test(location.href)){const b=document.createElement('div');b.style.cssText='position:sticky;top:0;z-index:50;background:#fee500;color:#191919;padding:10px 16px;font-size:14px;display:flex;gap:10px;align-items:center;justify-content:space-between';b.innerHTML='<span>카카오톡 안에서는 화면을 나가면 닫혀요.</span><a style="background:#191919;color:#fee500;padding:6px 10px;border-radius:6px;text-decoration:none;white-space:nowrap" href="kakaotalk://web/openExternal?url='+encodeURIComponent(location.href)+'">크롬으로 열기</a>';document.body.prepend(b)}
+if('serviceWorker' in navigator&&location.protocol==='https:'&&/github\.io$/.test(location.hostname))navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
 </html>
