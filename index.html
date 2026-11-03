@@ -450,19 +450,19 @@ function evalSite(s,days0,nDays,opt){
  const lows=[...fLows,...predictLows(Math.max(t0,fEnd),t1,s.lon,p).filter(l=>l.t>fEnd)].map(l=>({...l,t:l.t+(s.tfix||0)*60e3})); // 모델→공식 조석표 시각 보정
  const out=[];
  for(let n=days0;n<days0+nDays;n++){
-  const st=sunTimes(n,s.lat,s.lon);
+  const st=sunTimes(n,s.lat,s.lon),mo=new Date(kDayStart(n)+KST).getUTCMonth()+1;
   let best=null;const all=[];
   lows.filter(l=>kDay(l.t)===n).forEach(l=>{
    const e=l.t-opt.exit*60e3,b=e-opt.work*60e3;
    const day=Math.max(0,Math.min(e,st.set)-Math.max(b,st.rise))/(e-b);
    const F=Math.max(0,Math.min(1,(-l.v-rg.lo)/(rg.hi-rg.lo)));
-   const ok=dayOK(s.id,b,e,st);const k=ok?F*40+day*25:-1;all.push({t:l.t,F,b,e,day,ban:!ok});
-   if(!best||k>best.k)best={l,b,e,day,F,k};
+   const fit=siteFit(s.id,day,mo),ok=dayOK(s.id,b,e,st);const k=ok?F*40+fit*25:-1;all.push({t:l.t,F,b,e,day,fit,ban:!ok});
+   if(!best||k>best.k)best={l,b,e,day,fit,F,k};
   });
   if(!best)continue;
   const w=weatherScore(d.wx,d.sea,best.b,best.e);
   const season=SEASON[new Date(kDayStart(n)+KST).getUTCMonth()];
-  let score=best.F*40+best.day*25+season+w.score;
+  let score=best.F*40+best.fit*25+season+w.score;
   if(w.danger)score=Math.min(score,25);
   if(best.k<0)score=0;
   const tags=[];
@@ -533,7 +533,7 @@ function wkTargetDay(n,Ts,dayRows){
  return head+notes+`<ol style="margin:0;padding-left:22px">${list.map(o=>{const x=o.best;
   const chips=o.ts.sort((a,b)=>b.x.sc-a.x.sc).map(({T,x})=>`<span class="chip${siteMonth(o.s.id,T,m)==='g'?' cg':''}${x.mk&&x.mk.lv?' cd':''}" data-t="${T.id}">${esc(T.name)} ${x.sc} · ${MODE_T[catchMode(o.s.id,T.id)]}</span>`).join('');
   const why=o.ts.filter(({x})=>x.mk&&x.mk.lv).map(({T,x})=>esc(T.name)+': '+x.mk.t);
-  return `<li style="margin:5px 0"><span class="link" data-s="${o.s.id}"><b>${esc(o.s.name)}</b></span> <b>${x.sc}점</b>${fieldSum(o.s.id)}<br><span class="sub">간조 ${fmtT(x.l.t)} · 작업 ${fmtT(x.l.b)}~${fmtT(x.l.e)}${x.l.day<0.5?' · 야간':''}${x.w.danger?' · 위험':''}</span><div class="chips" style="margin-top:3px">${chips}</div>${why.length?`<div style="color:#8a5a00;font-size:12px">${why.join('<br>')}</div>`:''}</li>`}).join('')}</ol>`;
+  return `<li style="margin:5px 0"><span class="link" data-s="${o.s.id}"><b>${esc(o.s.name)}</b></span> <b>${x.sc}점</b>${fieldSum(o.s.id)}<br><span class="sub">간조 ${fmtT(x.l.t)} · 작업 ${fmtT(x.l.b)}~${fmtT(x.l.e)}${x.l.day<0.5?' · 야간'+(o.ts.some(({T})=>timePref(o.s.id,T.id)==='n')?'(밤에 잘 되는 곳)':''):''}${x.w.danger?' · 위험':''}</span><div class="chips" style="margin-top:3px">${chips}</div>${why.length?`<div style="color:#8a5a00;font-size:12px">${why.join('<br>')}</div>`:''}</li>`}).join('')}</ol>`;
 }
 // 주말 베스트: 그 장소에서 그 시기 잘 나오는 대상(날씨 안 맞으면 흐리게, 이유 한 줄)
 function wkTargets(s,r,n){
@@ -741,7 +741,7 @@ function targetDetail(id){saveState({dlg:{t:'t',id}});
  openDlg(`<h3>${esc(t.name)}</h3>`,h);
 }
 // 대상별 점수: 대상마다 물 빠짐·낮 시간 비중을 다르게(조개류는 물 빠짐 중시, 꽃게·낙지는 밤 간조도 가능)
-const TPROF=id=>/^(kkotge|nakji|jukkumi)$/.test(id)?{wt:30,wd:10,night:1}:id==='bakhaji'?{wt:30,wd:25}:/^(keunguseul|pippul|haesam|gul|garibi)$/.test(id)?{wt:35,wd:25}:{wt:45,wd:20};
+const TPROF=id=>/^(kkotge|nakji|jukkumi)$/.test(id)?{wt:30,wd:20}:id==='bakhaji'?{wt:30,wd:25}:/^(keunguseul|pippul|haesam|gul|garibi)$/.test(id)?{wt:35,wd:25}:{wt:45,wd:20};
 const SIGHT=/^(kkotge|bakhaji|nakji|jukkumi)$/;
 function murk(d,b,e){ // 작업 6시간 전~철수까지 최대 바람·파도로 물 흐림 판단
  const hs=(d.wx||[]).filter(x=>x.t>=b-6*H&&x.t<=e&&x.ws!=null);if(!hs.length)return null;
@@ -765,6 +765,16 @@ function catchMode(sid,tid){
  return 'dig';
 }
 const MODE_T={water:'물속',rock:'돌 뒤집기',dig:'갯벌 파기'};
+// 낮·밤 선호: d=낮에 잘 됨, n=밤에 잘 됨, b=둘 다. 장소 조사(밤에 잡는다는 후기·안내)가 있으면 그걸 쓰고, 없으면 대상 기본값
+const TIMEP={"ic_seonnyeo":{"bakhaji":"n","pippul":"n"},"ic_hanagae":{"bakhaji":"n"},"ic_mokseom":{"nakji":"n"},"ic_soya":{"bakhaji":"n","pippul":"n","keunguseul":"n"},"ta_mongsan":{"kkotge":"n","baekhap":"n"},"ic_nogari":{"bakhaji":"n","kkotge":"n","baekhap":"n"},"ic_eulwangri":{"jukkumi":"n","nakji":"n"},"ic_somuuido":{"bakhaji":"n","nakji":"n","pippul":"n"},"gg_ippado":{"nakji":"n","kkotge":"n"},"ta_dalsan":{"keunguseul":"n"},"ic_naeri":{"nakji":"n","kkotge":"n"},"ic_seungbong":{"bakhaji":"n"},"ta_sambong":{"nakji":"n"},"ic_simnipo":{"nakji":"d","bakhaji":"n","pippul":"n"},"ic_janggyeongri":{"bakhaji":"n"},"gg_gukhwado":{"bakhaji":"n"},"dj_seokmun_west":{"bakhaji":"n","pippul":"n"},"ta_magumpo":{"kkotge":"n","bakhaji":"n"},"ta_baeksajang":{"kkotge":"n","jukkumi":"n"},"dj_waemok":{"bakhaji":"n"},"br_wonsando":{"bakhaji":"n","nakji":"n","jukkumi":"n"},"ba_gosapo":{"bakhaji":"n","keunguseul":"n","pippul":"n"}};
+const TIMEP_T={kkotge:'n',nakji:'b',jukkumi:'b',bakhaji:'b',pippul:'b',keunguseul:'b',haesam:'b'};
+function timePref(sid,tid){return (TIMEP[sid]&&TIMEP[sid][tid])||TIMEP_T[tid]||'d'}
+function timeFit(p,day){return p==='d'?day:p==='n'?0.5+0.5*(1-day):Math.max(day,0.85)} // day=작업 시간 중 해 있는 비율
+function siteFit(sid,day,m){ // 그 장소에서 그 달 나오는 대상 중 시간대가 가장 잘 맞는 값
+ const tg=(DETAIL[sid]?.targets||[]).map(x=>findTarget(x.name)).filter(Boolean).filter(t=>/^[go]$/.test(siteMonth(sid,t,m)));
+ return tg.length?Math.max(...tg.map(t=>timeFit(timePref(sid,t.id),day))):day;
+}
+const TIME_T={d:'낮에 잘 됨',n:'밤에 잘 됨',b:'낮·밤 다 됨'};
 function cond(tid,d,b,e,sid){ // 작업 6시간 전~철수까지 날씨로 이 대상이 잘 되는지: f(점수 배율), why(이유)
  const hs=(d.wx||[]).filter(x=>x.t>=b-6*H&&x.t<=e&&x.ws!=null);if(!hs.length)return null;
  const ws=Math.max(...hs.map(x=>x.ws)),tmax=Math.max(...hs.map(x=>x.tp)),tmin=Math.min(...hs.map(x=>x.tp)),pr=hs.reduce((a,x)=>a+(x.pr||0),0);
@@ -785,7 +795,7 @@ function rankTarget(n,m,t,rows){
  if(mStat(t.id,m)==='x')return null;
  const P=TPROF(t.id),out=[];
  rows.forEach(({s,r})=>{if(!siteHas(s.id,t))return;const d=DATA[s.id]||{};let best=null;
-  (r.all||[]).filter(l=>!l.ban).forEach(l=>{const w=weatherScore(d.wx,d.sea,l.b,l.e);const dd=P.night?Math.max(l.day,0.6):l.day;let sc=l.F*P.wt+dd*P.wd+w.score;const mk=cond(t.id,d,l.b,l.e,s.id);if(mk)sc*=mk.f;if(w.danger)sc=Math.min(sc,25);if(!best||sc>best.sc)best={sc:Math.round(sc),l,w,mk}});
+  (r.all||[]).filter(l=>!l.ban).forEach(l=>{const w=weatherScore(d.wx,d.sea,l.b,l.e);const dd=timeFit(timePref(s.id,t.id),l.day);let sc=l.F*P.wt+dd*P.wd+w.score;const mk=cond(t.id,d,l.b,l.e,s.id);if(mk)sc*=mk.f;if(w.danger)sc=Math.min(sc,25);if(!best||sc>best.sc)best={sc:Math.round(sc),l,w,mk}});
   if(best){const sm=siteMonth(s.id,t,m),sea=sm==='g'?15:sm==='o'?8:3;best.sc=Math.round(best.sc+sea);out.push({s,...best})}});
  return out.sort((a,b)=>b.sc-a.sc);
 }
