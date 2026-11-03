@@ -509,7 +509,7 @@ function renderWeekend(){
  $('wkList').innerHTML=wk[wkIdx].days.map(n=>{
   const top=byDay[n].filter(r=>r.score>0).sort((a,b)=>b.score-a.score||b.adj-a.adj).slice(0,5);
   return `<h4 style="margin:10px 0 4px"><span class="link" data-d="${n}">${fmtD(n)}</span> <span class="sub">${mulName(lunarDay(n))}</span></h4>`+
-   (top.length?`<ol style="margin:0;padding-left:22px">${top.map(r=>`<li style="margin:5px 0"><span class="link" data-s="${r.site.id}"><b>${esc(r.site.name)}</b></span> <b>${r.score}점</b><br><span class="sub">작업 ${fmtT(r.b)}~${fmtT(r.e)} · ${lowLine(r)}</span> ${tagH(r.tags)}${wkTargets(r.site,r,n)}</li>`).join('')}</ol>`:'<p class="sub">갈 만한 곳 없음</p>')}).join('')
+   (top.length?`<ol style="margin:0;padding-left:22px">${top.map(r=>`<li style="margin:5px 0"><span class="link" data-s="${r.site.id}"><b>${esc(r.site.name)}</b></span> <b>${r.score}점</b><br><span class="sub">작업 ${fmtT(r.b)}~${fmtT(r.e)} · ${lowLine(r)}</span> ${tagH(r.tags)}${fieldSum(r.site.id)}${wkTargets(r.site,r,n)}</li>`).join('')}</ol>`:'<p class="sub">갈 만한 곳 없음</p>')}).join('')
   +'<p class="sub" style="margin-top:8px">굵은 테두리 = 이 장소 이 시기 많이 나옴 · 흐린 글씨 = 그날 날씨에 안 맞음</p>';
 }
 // 주말 베스트: 그 장소에서 그 시기 잘 나오는 대상(날씨 안 맞으면 흐리게, 이유 한 줄)
@@ -616,7 +616,7 @@ function siteList(){
   const cs=catchScore(s.id),A=ACCESS[s.id];
   const tags=[A&&A.pay==='유료'?'<span class="tag w">어촌계 관리(유료)</span>':A&&A.pay==='혼합'?'<span class="tag c">일부 유료</span>':'',hasBoat(s.id)?'<span class="tag w">배 필요</span>':'',NIGHT[s.id]&&NIGHT[s.id].law?'<span class="tag w">밤 금지</span>':NIGHT[s.id]?'<span class="tag c">밤 주의</span>':''].join('');
   const best=RESULT?RESULT.rows.filter(r=>r.site.id===s.id&&r.n>=n0&&r.score>=60).sort((a,b)=>a.n-b.n)[0]:null;
-  return `<div class="row" data-s="${s.id}"><b class="link">${esc(s.name)}</b> ${cs?`<span style="color:#e8a317">${stars(cs)}</span>`:''} ${tags}
+  return `<div class="row" data-s="${s.id}"><b class="link">${esc(s.name)}</b> ${cs?`<span style="color:#e8a317">${stars(cs)}</span>`:''} ${tags}${fieldSum(s.id)}
    <div class="sub">${best?`다음 좋은 날 <b>${fmtD(best.n)}</b> ${best.score}점`:'30일 안 60점 넘는 날 없음'}</div>
    ${good.length?`<div class="chips"><span class="sub">이번 달 제철</span>${good.map(t=>`<span class="chip cg" data-t="${t.id}">${esc(t.name)}</span>`).join('')}</div>`:''}</div>`}).join('')).join('');
  saveState({dlg:{t:'l'}});
@@ -664,6 +664,13 @@ async function syncNotes(){ // 아직 못 보낸 기록·지운 기록 보내기
  lsSet('bh_del',JSON.stringify(left));
  if(ch||del.length>left.length)await loadShared(true);
 }
+function fieldSum(id){ // 최근 3주 현장 기록(공유+내 것) 요약 태그
+ const cut=new Date(Date.now()+KST-21*864e5).toISOString().slice(0,10),seen=new Set(),c={g:0,m:0,b:0};
+ (getNotes()[id]||[]).forEach(n=>{if(n.d>=cut){c[n.r]++;seen.add(String(n.t))}});
+ (SHARED||[]).forEach(x=>{if(x.sid===id&&x.d>=cut&&!seen.has(String(x.k)))c[x.r]++});
+ const t=[c.g?'좋음 '+c.g:'',c.m?'보통 '+c.m:'',c.b?'나쁨 '+c.b:''].filter(Boolean).join('·');
+ return t?` <span class="tag c" title="최근 3주 현장 기록">현장 ${t}</span>`:'';
+}
 function noteLine(n,mine,id){
  return `<li style="margin:4px 0"><b>${esc(n.d)}</b> <span style="color:${NRES[n.r][1]};font-weight:600">${NRES[n.r][0]}</span>${n.c?` · ${esc(n.c)}`:''}${!mine&&n.n?` <span class="sub">— ${esc(n.n)}</span>`:''}${n.m?`<br><span class="sub">${esc(n.m)}</span>`:''}${mine?` ${n.s?'':'<span class="sub">(보내기 대기)</span> '}<button type="button" onclick="delNote('${id}',${n.t})" style="padding:0 6px;font-size:12px;background:var(--card);color:var(--ink);border:1px solid var(--line)">지우기</button>`:''}</li>`;
 }
@@ -697,7 +704,7 @@ async function delNote(id,t){
  if(n&&n.s){const del=JSON.parse(lsGet('bh_del','[]'));del.push(String(t));lsSet('bh_del',JSON.stringify(del))}
  siteDetail(id);await syncNotes();if($('dlg').open&&$('nD'))siteDetail(id);
 }
-loadShared().then(()=>{const g=getState().dlg;if(g&&g.t==='s'&&$('dlg').open&&$('nD')&&!$('nC').value&&!$('nM').value)siteDetail(g.id);syncNotes()});
+loadShared().then(()=>{if(RESULT)renderWeekend();const g=getState().dlg;if(g&&g.t==='s'&&$('dlg').open&&$('nD')&&!$('nC').value&&!$('nM').value)siteDetail(g.id);syncNotes()});
 window.addEventListener('online',()=>syncNotes());
 function targetDetail(id){saveState({dlg:{t:'t',id}});
  const t=TARGETS.find(x=>x.id===id);if(!t)return;
