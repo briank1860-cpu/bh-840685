@@ -458,8 +458,9 @@ function evalSite(s,days0,nDays,opt){
    const F=Math.max(0,Math.min(1,(-l.v-rg.lo)/(rg.hi-rg.lo)));
    const ok=dayOK(s.id,b,e,st);all.push({t:l.t,F,b,e,day,ban:!ok});
    const c={l,b,e,day,F,ok};
-   if(day>=0.5){c.k=ok?F*40+day*25:-1;if(!bD||c.k>bD.k)bD=c} // 낮 간조
-   else{c.k=ok&&nf?F*40+(1-day)*nf*25:-1;if(!bN||c.k>bN.k)bN=c} // 밤 간조: 그 달 밤에 잘 되는 대상이 있을 때만
+   // 작업 시간 중 해 있는 비율만큼 낮 점수, 나머지만큼 밤 점수(밤은 그 달 밤에 되는 대상이 있을 때만)
+   if(day>0){const x={...c,k:ok?F*40+day*25:-1};if(!bD||x.k>bD.k)bD=x}
+   if(day<1){const x={...c,k:ok&&nf?F*40+(1-day)*nf*25:-1};if(!bN||x.k>bN.k)bN=x}
   });
   if(!bD&&!bN)continue;
   const season=SEASON[mo-1];
@@ -772,9 +773,10 @@ const MODE_T={water:'물속',rock:'돌 뒤집기',dig:'갯벌 파기'};
 const TIMEP={"ic_seonnyeo":{"bakhaji":"n","pippul":"n"},"ic_hanagae":{"bakhaji":"n"},"ic_mokseom":{"nakji":"n"},"ic_soya":{"bakhaji":"n","pippul":"n","keunguseul":"n"},"ta_mongsan":{"kkotge":"n","baekhap":"n"},"ic_nogari":{"bakhaji":"n","kkotge":"n","baekhap":"n"},"ic_eulwangri":{"jukkumi":"n","nakji":"n"},"ic_somuuido":{"bakhaji":"n","nakji":"n","pippul":"n"},"gg_ippado":{"nakji":"n","kkotge":"n"},"ta_dalsan":{"keunguseul":"n"},"ic_naeri":{"nakji":"n","kkotge":"n"},"ic_seungbong":{"bakhaji":"n"},"ta_sambong":{"nakji":"n"},"ic_simnipo":{"nakji":"d","bakhaji":"n","pippul":"n"},"ic_janggyeongri":{"bakhaji":"n"},"gg_gukhwado":{"bakhaji":"n"},"dj_seokmun_west":{"bakhaji":"n","pippul":"n"},"ta_magumpo":{"kkotge":"n","bakhaji":"n"},"ta_baeksajang":{"kkotge":"n","jukkumi":"n"},"dj_waemok":{"bakhaji":"n"},"br_wonsando":{"bakhaji":"n","nakji":"n","jukkumi":"n"},"ba_gosapo":{"bakhaji":"n","keunguseul":"n","pippul":"n"}};
 const TIMEP_T={kkotge:'n',nakji:'b',jukkumi:'b',bakhaji:'b',pippul:'b',keunguseul:'b',haesam:'b'};
 function timePref(sid,tid){return (TIMEP[sid]&&TIMEP[sid][tid])||TIMEP_T[tid]||'d'}
-function siteNightFit(sid,m){ // 그 장소에서 그 달 나오는 대상 중 밤에 되는 게 있으면: 밤에 잘 됨 1, 낮·밤 다 됨 0.85, 없으면 0
- const ps=(DETAIL[sid]?.targets||[]).map(x=>findTarget(x.name)).filter(Boolean).filter(t=>/^[go]$/.test(siteMonth(sid,t,m))).map(t=>timePref(sid,t.id));
- return ps.includes('n')?1:ps.includes('b')?0.85:0;
+function siteNightFit(sid,m){ // 그 달 밤에 되는 대상: 밤에 잘 됨 1, 낮·밤 다 됨 0.85. 그 장소 그 달 후기가 있는 대상이 아니면 0.6배. 없으면 0
+ let f=0;(DETAIL[sid]?.targets||[]).map(x=>findTarget(x.name)).filter(Boolean).forEach(t=>{const k=siteMonth(sid,t,m);if(!/^[go]$/.test(k))return;
+  const p=timePref(sid,t.id),v=(p==='n'?1:p==='b'?0.85:0)*(k==='g'?1:0.6);if(v>f)f=v});
+ return f;
 }
 function dnTxt(r){ // 낮·밤 점수 한 줄
  if(!r||r.ds===undefined)return '';
@@ -803,9 +805,10 @@ function rankTarget(n,m,t,rows){
  const P=TPROF(t.id),out=[];
  rows.forEach(({s,r})=>{if(!siteHas(s.id,t))return;const d=DATA[s.id]||{};
   const tp=timePref(s.id,t.id),nf=tp==='n'?1:tp==='b'?0.85:0,sm=siteMonth(s.id,t,m),sea=sm==='g'?15:sm==='o'?8:3;let bd=null,bn=null;
-  (r.all||[]).filter(l=>!l.ban).forEach(l=>{const night=l.day<0.5;if(night&&!nf)return; // 낮에만 되는 대상은 밤 간조 제외
-   const w=weatherScore(d.wx,d.sea,l.b,l.e);const dd=night?(1-l.day)*nf:l.day;let sc=l.F*P.wt+dd*P.wd+w.score;const mk=cond(t.id,d,l.b,l.e,s.id);if(mk)sc*=mk.f;if(w.danger)sc=Math.min(sc,25);
-   const c={sc:Math.round(sc+sea),l,w,mk};if(night){if(!bn||c.sc>bn.sc)bn=c}else if(!bd||c.sc>bd.sc)bd=c});
+  (r.all||[]).filter(l=>!l.ban).forEach(l=>{const w=weatherScore(d.wx,d.sea,l.b,l.e),mk=cond(t.id,d,l.b,l.e,s.id);
+   const one=dd=>{let sc=l.F*P.wt+dd*P.wd+w.score;if(mk)sc*=mk.f;if(w.danger)sc=Math.min(sc,25);return {sc:Math.round(sc+sea),l,w,mk}};
+   if(l.day>0){const c=one(l.day);if(!bd||c.sc>bd.sc)bd=c}
+   if(l.day<1&&nf){const c=one((1-l.day)*nf);if(!bn||c.sc>bn.sc)bn=c}}); // 낮에만 되는 대상은 밤 점수 없음
   const best=bn&&(!bd||bn.sc>bd.sc)?bn:bd;
   if(best)out.push({s,...best,ds:bd?bd.sc:null,ns:bn?bn.sc:null,nsWhy:bn?'':(r.all||[]).some(l=>l.day<0.5&&l.ban)?'금지':!nf?'대상 없음':''})});
  return out.sort((a,b)=>b.sc-a.sc);
