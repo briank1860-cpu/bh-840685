@@ -39,6 +39,7 @@
 ## 자동 수집(클라우드 루틴)
 - 이름 "해루질 매일 수집 · 백합 도구 갱신", 매일 07:07(한국시간). 관리: https://claude.ai/code/routines/trig_01A4YWcF17pAkLQQkdL8mVjd
 - 기존 장소 갱신 + 근거 2건 이상인 새 장소 하루 3곳까지 추가 + 앱 현장 기록 반영.
+- 후기에 장소 안 위치가 구체적으로 나오면(바위·다리·방조제 번호·물골 등) 카카오 장소 검색(`https://search.map.kakao.com/mapsearch/map.daum?q=...&msFlag=A&sort=0`, Referer `https://map.kakao.com/`)이나 OSM으로 좌표를 잡아 `SPOTS`에 추가한다(원문 확인 1건 또는 요약 2건 이상, 대략이면 p:'대략'). 위치가 붙은 앱 현장 기록이 한 지점에 '좋음'으로 여러 건 모이면 그 지점도 SPOTS에 넣는다.
 - 클라우드 환경 네트워크 허용: search.daum.net, v.daum.net, *.daum.net, search.naver.com, *.tistory.com, brunch.co.kr, *.youtube.com (현장 기록 읽기에 script.google.com·script.googleusercontent.com이 필요할 수 있음).
 
 ## 하지 말 것
