@@ -638,35 +638,67 @@ function siteDetail(id){saveState({dlg:{t:'s',id}});
  h+=`<h4>지도·물때·출처</h4><p><a href="https://map.kakao.com/?q=${q}" target="_blank" rel="noopener">카카오맵</a> · <a href="https://map.naver.com/p/search/${q}" target="_blank" rel="noopener">네이버지도</a> · <a href="https://www.badatime.com/${s.bt}.html" target="_blank" rel="noopener">물때표</a></p><ul>${src.join('')}</ul>`;
  openDlg(`<h3>${esc(s.name)}</h3>`,h);drawMap(id);
 }
-// 내 현장 기록: 장소별로 이 폰에만 저장(날짜·결과·잡은 것·메모)
-const NKEY='bh_notes';
+// 현장 기록: 폰에 먼저 저장하고(신호 없어도 됨), 연결되면 공용 시트로 보냄. 다른 사람 기록도 장소 화면에 보여 줌
+const NKEY='bh_notes',SHARE='https://script.google.com/macros/s/AKfycbyHPeoClz6dBFF638b1znOuZoDNsxYD7Sv0Zh1iuW8WhwZRS5J4c-p5UsF_bb8Kgh0/exec';
 function getNotes(){try{return JSON.parse(localStorage.getItem(NKEY)||'{}')}catch(e){return {}}}
 function putNotes(o){try{localStorage.setItem(NKEY,JSON.stringify(o));return true}catch(e){return false}}
+function lsGet(k,v){try{return localStorage.getItem(k)||v}catch(e){return v}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function devId(){let d=lsGet('bh_dev','');if(!d){d=Math.random().toString(36).slice(2)+Date.now().toString(36);lsSet('bh_dev',d)}return d}
 const NRES={g:['좋음','var(--good)'],m:['보통','#8a5a00'],b:['나쁨','var(--bad)']};
+let SHARED=null,SHARED_AT=0;
+async function loadShared(force){
+ if(!force&&SHARED&&Date.now()-SHARED_AT<10*60e3)return SHARED;
+ try{const r=await fetch(SHARE);const j=await r.json();SHARED=j.rows||[];SHARED_AT=Date.now()}catch(e){}
+ return SHARED;
+}
+async function postShare(b){try{const r=await fetch(SHARE,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)});const j=await r.json();return j.ok===1}catch(e){return false}}
+async function syncNotes(){ // 아직 못 보낸 기록·지운 기록 보내기
+ const o=getNotes();let ch=false;
+ for(const id of Object.keys(o))for(const n of o[id])if(!n.s){
+  const name=(SITES.find(s=>s.id===id)||{}).name||'';
+  if(await postShare({sid:id,name,d:n.d,r:n.r,c:n.c,m:n.m,n:lsGet('bh_nick',''),dev:devId(),k:String(n.t)})){n.s=1;ch=true}}
+ if(ch)putNotes(o);
+ const del=JSON.parse(lsGet('bh_del','[]')),left=[];
+ for(const k of del)if(!(await postShare({op:'del',k,dev:devId()})))left.push(k);
+ lsSet('bh_del',JSON.stringify(left));
+ if(ch||del.length>left.length)await loadShared(true);
+}
+function noteLine(n,mine,id){
+ return `<li style="margin:4px 0"><b>${esc(n.d)}</b> <span style="color:${NRES[n.r][1]};font-weight:600">${NRES[n.r][0]}</span>${n.c?` · ${esc(n.c)}`:''}${!mine&&n.n?` <span class="sub">— ${esc(n.n)}</span>`:''}${n.m?`<br><span class="sub">${esc(n.m)}</span>`:''}${mine?` ${n.s?'':'<span class="sub">(보내기 대기)</span> '}<button type="button" onclick="delNote('${id}',${n.t})" style="padding:0 6px;font-size:12px;background:var(--card);color:var(--ink);border:1px solid var(--line)">지우기</button>`:''}</li>`;
+}
 function noteBlock(id){
- const ns=(getNotes()[id]||[]).slice().sort((a,b)=>b.d<a.d?-1:b.d>a.d?1:b.t-a.t);
+ const ns=(getNotes()[id]||[]).slice().sort((a,b)=>b.d<a.d?-1:b.d>a.d?1:b.t-a.t),mineK=new Set(ns.map(n=>String(n.t)));
+ const others=(SHARED||[]).filter(x=>x.sid===id&&!mineK.has(String(x.k))).sort((a,b)=>b.d<a.d?-1:1).slice(0,15);
  const today=new Date(Date.now()+KST).toISOString().slice(0,10);
- const list=ns.map(n=>`<li style="margin:4px 0"><b>${esc(n.d)}</b> <span style="color:${NRES[n.r][1]};font-weight:600">${NRES[n.r][0]}</span>${n.c?` · ${esc(n.c)}`:''}${n.m?`<br><span class="sub">${esc(n.m)}</span>`:''} <button type="button" onclick="delNote('${id}',${n.t})" style="padding:0 6px;font-size:12px;background:var(--card);color:var(--ink);border:1px solid var(--line)">지우기</button></li>`).join('');
- return `<details class="card" style="margin:8px 0"${ns.length?' open':''}><summary><b>내 현장 기록</b> <span class="sub">${ns.length?ns.length+'건':'이 폰에만 저장'}</span></summary>
+ const cnt=(ns.length?'내 기록 '+ns.length:'')+(others.length?(ns.length?' · ':'')+'다른 사람 '+others.length:'');
+ return `<details class="card" style="margin:8px 0"${ns.length||others.length?' open':''}><summary><b>현장 기록</b> <span class="sub">${cnt||'남기면 앱 쓰는 사람 모두에게 보임(이름 없이)'}</span></summary>
   <div style="display:grid;gap:6px;margin-top:8px">
    <label>날짜 <input type="date" id="nD" value="${today}"></label>
-   <div id="nR" style="display:flex;gap:6px">${Object.entries(NRES).map(([k,[t]])=>`<label><input type="radio" name="nR" value="${k}"${k==='m'?' checked':''}> ${t}</label>`).join('')}</div>
+   <div style="display:flex;gap:10px">${Object.entries(NRES).map(([k,[t]])=>`<label><input type="radio" name="nR" value="${k}"${k==='m'?' checked':''}> ${t}</label>`).join('')}</div>
    <input id="nC" placeholder="잡은 것 (예: 박하지 20, 소라 조금)">
    <textarea id="nM" rows="2" placeholder="메모 (물 상태, 바람, 포인트 등)"></textarea>
+   <input id="nN" placeholder="별명 (안 써도 됨)" value="${esc(lsGet('bh_nick',''))}">
    <button type="button" onclick="saveNote('${id}')">저장</button><span id="nMsg" class="sub"></span>
-  </div>${list?`<ul style="margin:8px 0 0;padding-left:18px">${list}</ul>`:''}</details>`;
+  </div>${ns.length?`<div style="margin-top:8px"><b>내 기록</b><ul style="margin:4px 0 0;padding-left:18px">${ns.map(n=>noteLine(n,1,id)).join('')}</ul></div>`:''}
+  ${others.length?`<div style="margin-top:8px"><b>다른 사람 기록</b><ul style="margin:4px 0 0;padding-left:18px">${others.map(n=>noteLine(n,0,id)).join('')}</ul></div>`:''}</details>`;
 }
-function saveNote(id){
+async function saveNote(id){
  const d=$('nD').value,r=(document.querySelector('input[name=nR]:checked')||{}).value||'m',c=$('nC').value.trim(),m=$('nM').value.trim();
  if(!d){$('nMsg').textContent='날짜를 넣으세요.';return}
+ lsSet('bh_nick',$('nN').value.trim().slice(0,30));
  const o=getNotes();(o[id]=o[id]||[]).push({d,r,c,m,t:Date.now()});
  if(!putNotes(o)){$('nMsg').textContent='저장 못 함(브라우저 저장공간 막힘)';return}
- siteDetail(id);
+ siteDetail(id);await syncNotes();if($('dlg').open&&$('nD'))siteDetail(id);
 }
-function delNote(id,t){
+async function delNote(id,t){
  if(!confirm('이 기록을 지울까요?'))return;
- const o=getNotes();o[id]=(o[id]||[]).filter(n=>n.t!==t);if(!o[id].length)delete o[id];putNotes(o);siteDetail(id);
+ const o=getNotes(),n=(o[id]||[]).find(x=>x.t===t);o[id]=(o[id]||[]).filter(x=>x.t!==t);if(!o[id].length)delete o[id];putNotes(o);
+ if(n&&n.s){const del=JSON.parse(lsGet('bh_del','[]'));del.push(String(t));lsSet('bh_del',JSON.stringify(del))}
+ siteDetail(id);await syncNotes();if($('dlg').open&&$('nD'))siteDetail(id);
 }
+loadShared().then(()=>{const g=getState().dlg;if(g&&g.t==='s'&&$('dlg').open&&$('nD')&&!$('nC').value&&!$('nM').value)siteDetail(g.id);syncNotes()});
+window.addEventListener('online',()=>syncNotes());
 function targetDetail(id){saveState({dlg:{t:'t',id}});
  const t=TARGETS.find(x=>x.id===id);if(!t)return;
  const row=(k,v)=>v&&String(v).length?`<dt>${k}</dt><dd>${esc(Array.isArray(v)?v.join(' '):v)}</dd>`:'';
