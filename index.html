@@ -9,6 +9,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>백합 해루질 날짜</title>
 <style>
+.spotTip{background:rgba(255,255,255,.85);border:0;box-shadow:none;font:600 11px/1.2 sans-serif;padding:1px 4px}.spotTip:before{display:none}
 :root{--bg:#f6f4ef;--card:#fff;--ink:#1f2328;--sub:#5f6670;--line:#e3dfd6;--acc:#0f6d74;--acc2:#e3f1f1;--good:#2f7d32;--mid:#b7791f;--bad:#b42318;--bar:#d7ebe9}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181b;--card:#1d2226;--ink:#e8eaed;--sub:#9aa3ad;--line:#2d343a;--acc:#5cc3c9;--acc2:#1f3436;--good:#6fcf73;--mid:#e0b04f;--bad:#ff7b6e;--bar:#24474a}}
 :root[data-theme="dark"]{--bg:#15181b;--card:#1d2226;--ink:#e8eaed;--sub:#9aa3ad;--line:#2d343a;--acc:#5cc3c9;--acc2:#1f3436;--good:#6fcf73;--mid:#e0b04f;--bad:#ff7b6e;--bar:#24474a}
@@ -686,7 +687,7 @@ async function syncNotes(){ // 아직 못 보낸 기록·지운 기록 보내기
  const o=getNotes();let ch=false;
  for(const id of Object.keys(o))for(const n of o[id])if(!n.s){
   const name=(SITES.find(s=>s.id===id)||{}).name||'';
-  if(await postShare({sid:id,name,d:n.d,r:n.r,c:n.c,m:n.m,n:lsGet('bh_nick',''),dev:devId(),k:String(n.t)})){n.s=1;ch=true}}
+  if(await postShare({sid:id,name,d:n.d,r:n.r,c:n.c,m:(n.m||'')+(n.la?` ⌖${n.la},${n.lo}`:''),n:lsGet('bh_nick',''),dev:devId(),k:String(n.t)})){n.s=1;ch=true}}
  if(ch)putNotes(o);
  const del=JSON.parse(lsGet('bh_del','[]')),left=[];
  for(const k of del)if(!(await postShare({op:'del',k,dev:devId()})))left.push(k);
@@ -700,8 +701,15 @@ function fieldSum(id){ // 최근 3주 현장 기록(공유+내 것) 요약 태�
  const t=[c.g?'좋음 '+c.g:'',c.m?'보통 '+c.m:'',c.b?'나쁨 '+c.b:''].filter(Boolean).join('·');
  return t?` <span class="tag c" title="최근 3주 현장 기록">현장 ${t}</span>`:'';
 }
+function splitLoc(m){const x=/\s*⌖(-?\d+\.\d+),(-?\d+\.\d+)\s*$/.exec(m||'');return x?{m:m.slice(0,x.index),la:+x[1],lo:+x[2]}:{m:m||''}}
+function siteNotesLoc(id){ // 지도에 찍을 현장 기록(내 것+공유, 위치 있는 것만)
+ const mine=(getNotes()[id]||[]).filter(n=>n.la).map(n=>({...n,mine:1})),mk=new Set(mine.map(n=>String(n.t)));
+ const sh=(SHARED||[]).filter(x=>x.sid===id&&!mk.has(String(x.k))).map(x=>({...x,...splitLoc(x.m)})).filter(x=>x.la);
+ return mine.concat(sh);
+}
 function noteLine(n,mine,id){
- return `<li style="margin:4px 0"><b>${esc(n.d)}</b> <span style="color:${NRES[n.r][1]};font-weight:600">${NRES[n.r][0]}</span>${n.c?` · ${esc(n.c)}`:''}${!mine&&n.n?` <span class="sub">— ${esc(n.n)}</span>`:''}${n.m?`<br><span class="sub">${esc(n.m)}</span>`:''}${mine?` ${n.s?'':'<span class="sub">(보내기 대기)</span> '}<button type="button" onclick="delNote('${id}',${n.t})" style="padding:0 6px;font-size:12px;background:var(--card);color:var(--ink);border:1px solid var(--line)">지우기</button>`:''}</li>`;
+ if(!mine){const s=splitLoc(n.m);n={...n,m:s.m,la:s.la}}
+ return `<li style="margin:4px 0"><b>${esc(n.d)}</b> <span style="color:${NRES[n.r][1]};font-weight:600">${NRES[n.r][0]}</span>${n.c?` · ${esc(n.c)}`:''}${!mine&&n.n?` <span class="sub">— ${esc(n.n)}</span>`:''}${n.la?' <span class="sub">📍</span>':''}${n.m?`<br><span class="sub">${esc(n.m)}</span>`:''}${mine?` ${n.s?'':'<span class="sub">(보내기 대기)</span> '}<button type="button" onclick="delNote('${id}',${n.t})" style="padding:0 6px;font-size:12px;background:var(--card);color:var(--ink);border:1px solid var(--line)">지우기</button>`:''}</li>`;
 }
 function noteBlock(id){
  const ns=(getNotes()[id]||[]).slice().sort((a,b)=>b.d<a.d?-1:b.d>a.d?1:b.t-a.t),mineK=new Set(ns.map(n=>String(n.t)));
@@ -714,6 +722,7 @@ function noteBlock(id){
    <div style="display:flex;gap:10px">${Object.entries(NRES).map(([k,[t]])=>`<label><input type="radio" name="nR" value="${k}"${k==='m'?' checked':''}> ${t}</label>`).join('')}</div>
    <input id="nC" placeholder="잡은 것 (예: 박하지 20, 소라 조금)">
    <textarea id="nM" rows="2" placeholder="메모 (물 상태, 바람, 포인트 등)"></textarea>
+   <label class="sub"><input type="checkbox" id="nL"${lsGet('bh_noLoc','')?'':' checked'}> 지금 위치 같이 저장(장소 근처일 때만, 지도에 표시)</label>
    <input id="nN" placeholder="별명 (안 써도 됨)" value="${esc(lsGet('bh_nick',''))}">
    <button type="button" onclick="saveNote('${id}')">저장</button><span id="nMsg" class="sub"></span>
   </div>${ns.length?`<div style="margin-top:8px"><b>내 기록</b><ul style="margin:4px 0 0;padding-left:18px">${ns.map(n=>noteLine(n,1,id)).join('')}</ul></div>`:''}
@@ -723,7 +732,13 @@ async function saveNote(id){
  const d=$('nD').value,r=(document.querySelector('input[name=nR]:checked')||{}).value||'m',c=$('nC').value.trim(),m=$('nM').value.trim();
  if(!d){$('nMsg').textContent='날짜를 넣으세요.';return}
  lsSet('bh_nick',$('nN').value.trim().slice(0,30));
- const o=getNotes();(o[id]=o[id]||[]).push({d,r,c,m,t:Date.now()});
+ const wantLoc=$('nL')&&$('nL').checked;lsSet('bh_noLoc',wantLoc?'':'1');
+ const rec={d,r,c,m,t:Date.now()};
+ if(wantLoc&&navigator.geolocation){$('nMsg').textContent='위치 확인 중…'; // 장소 5km 안일 때만, 소수 넷째 자리(약 10m)까지
+  const p=await new Promise(res=>navigator.geolocation.getCurrentPosition(x=>res(x),()=>res(null),{enableHighAccuracy:true,timeout:10000,maximumAge:60000}));
+  const s=SITES.find(x=>x.id===id);
+  if(p&&s&&kmD(p.coords.latitude,p.coords.longitude,s.lat,s.lon)<5){rec.la=+p.coords.latitude.toFixed(4);rec.lo=+p.coords.longitude.toFixed(4)}}
+ const o=getNotes();(o[id]=o[id]||[]).push(rec);
  if(!putNotes(o)){$('nMsg').textContent='저장 못 함(브라우저 저장공간 막힘)';return}
  siteDetail(id);await syncNotes();if($('dlg').open&&$('nD'))siteDetail(id);
 }
@@ -1085,6 +1100,19 @@ ${FREEZONE[id]?`<p style="margin:4px 0"><span style="color:#2f9e44">■</span> <
  <p class="sub">국립해양조사원 어장정보(공공데이터포털, 2025-08 공개). 면허기간이 지났어도 갱신됐을 수 있고, 이후 새로 생긴 어장은 빠져 있을 수 있습니다. 색칠된 구역 밖이어도 현장 안내판·시·군 해양수산과로 확인하세요.</p>`;
 }
 let ejMap=null;
+// 장소 안 포인트(후기에서 뽑아 좌표화)와 위치가 붙은 현장 기록을 지도에 표시
+const SPOTS={};
+const TCOL={bakhaji:'#c0392b',kkotge:'#e67e22',pippul:'#8e44ad',baekhap:'#1f6feb',dongjuk:'#2f9e44',bajirak:'#0b7285',manjo:'#b8860b',nakji:'#5c3d2e',jukkumi:'#d6336c',keunguseul:'#6741d9'};
+function drawSpots(id){
+ (SPOTS[id]||[]).forEach(p=>{const t0=p.t&&p.t[0],c=TCOL[t0]||'#555';
+  const names=(p.t||[]).map(t=>(TARGETS.find(x=>x.id===t)||{}).name).filter(Boolean).join('·');
+  L.circleMarker([p.la,p.lo],{radius:9,color:'#fff',weight:2,fillColor:c,fillOpacity:.9}).addTo(ejMap)
+   .bindTooltip(names,{permanent:true,direction:'right',className:'spotTip'})
+   .bindPopup(`<b>${esc(names)}</b>${p.p==='대략'?' <span style="color:#888">(위치 대략)</span>':''}<br>${esc(p.d)}<br><span style="color:#888">${(p.src||[]).map(([a,u,dt])=>/^https?:/.test(u)?`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(a)}</a> ${esc(dt||'')}`:esc(a)).join(' · ')}</span>`)});
+ const RC={g:'#2f7d32',m:'#b7791f',b:'#b42318'};
+ siteNotesLoc(id).forEach(n=>L.circleMarker([n.la,n.lo],{radius:6,color:'#000',weight:1,fillColor:RC[n.r]||'#888',fillOpacity:.85}).addTo(ejMap)
+  .bindPopup(`<b>현장 기록 ${esc(n.d)}</b> ${NRES[n.r]?NRES[n.r][0]:''}${n.c?'<br>'+esc(n.c):''}${n.m?'<br><span style="color:#666">'+esc(n.m)+'</span>':''}${n.mine?'<br><span style="color:#888">내 기록</span>':''}`));
+}
 function drawMap(id){
  const el=$('ejMap');if(!el)return;
  if(typeof L==='undefined'){el.innerHTML='<p class="sub" style="padding:10px">지도를 불러오지 못했습니다.</p>';return}
@@ -1098,6 +1126,7 @@ function drawMap(id){
  drawBase(id);
  drawFree(id);
  drawZones(id);
+ drawSpots(id);
  const grp=[];
  (EOJANG.n[id]||[]).forEach(([f])=>{
   const p=ejProp(f),c=EJ_COLOR(p.fids_se);
