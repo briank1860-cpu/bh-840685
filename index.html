@@ -509,7 +509,20 @@ function renderWeekend(){
  $('wkList').innerHTML=wk[wkIdx].days.map(n=>{
   const top=byDay[n].filter(r=>r.score>0).sort((a,b)=>b.score-a.score||b.adj-a.adj).slice(0,5);
   return `<h4 style="margin:10px 0 4px"><span class="link" data-d="${n}">${fmtD(n)}</span> <span class="sub">${mulName(lunarDay(n))}</span></h4>`+
-   (top.length?`<ol style="margin:0;padding-left:22px">${top.map(r=>`<li style="margin:5px 0"><span class="link" data-s="${r.site.id}"><b>${esc(r.site.name)}</b></span> <b>${r.score}점</b><br><span class="sub">작업 ${fmtT(r.b)}~${fmtT(r.e)} · ${lowLine(r)}</span> ${tagH(r.tags)}</li>`).join('')}</ol>`:'<p class="sub">갈 만한 곳 없음</p>')}).join('');
+   (top.length?`<ol style="margin:0;padding-left:22px">${top.map(r=>`<li style="margin:5px 0"><span class="link" data-s="${r.site.id}"><b>${esc(r.site.name)}</b></span> <b>${r.score}점</b><br><span class="sub">작업 ${fmtT(r.b)}~${fmtT(r.e)} · ${lowLine(r)}</span> ${tagH(r.tags)}${wkTargets(r.site,r,n)}</li>`).join('')}</ol>`:'<p class="sub">갈 만한 곳 없음</p>')}).join('')
+  +'<p class="sub" style="margin-top:8px">굵은 테두리 = 이 장소 이 시기 많이 나옴 · 흐린 글씨 = 그날 날씨에 안 맞음</p>';
+}
+// 주말 베스트: 그 장소에서 그 시기 잘 나오는 대상(날씨 안 맞으면 흐리게, 이유 한 줄)
+function wkTargets(s,r,n){
+ const m=new Date(kDayStart(n)+KST).getUTCMonth()+1;
+ const tg=(DETAIL[s.id]?.targets||[]).map(x=>findTarget(x.name)).filter(Boolean).filter((t,i,a)=>a.indexOf(t)===i).filter(t=>/^[go]$/.test(siteMonth(s.id,t,m)));
+ if(!tg.length)return '<div class="sub" style="margin-top:4px">이 시기 대상 정보 없음</div>';
+ const cd=Object.fromEntries(tg.map(t=>[t.id,cond(t.id,DATA[s.id]||{},r.b,r.e,s.id)]));
+ const fo=t=>(cd[t.id]?cd[t.id].f:1)*(siteMonth(s.id,t,m)==='g'?1.2:1);
+ tg.sort((a,b)=>fo(b)-fo(a));
+ const chip=t=>{const g=siteMonth(s.id,t,m)==='g',c=cd[t.id];return `<span class="chip ${c&&c.lv?'cd':''}${g?' cg':''}" data-t="${t.id}">${esc(t.name)}</span>`};
+ const bad=tg.filter(t=>cd[t.id]&&cd[t.id].lv);
+ return `<div class="chips" style="margin-top:4px">${tg.slice(0,6).map(chip).join('')}</div>`+(bad.length?`<div style="color:#8a5a00;font-size:12px;margin-top:2px">${bad.slice(0,2).map(t=>esc(t.name)+': '+cd[t.id].t).join('<br>')}</div>`:'');
 }
 function renderCal(){
  if(!RESULT)return;
