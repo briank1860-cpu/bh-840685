@@ -507,7 +507,7 @@ function renderWeekend(){
  if(wkIdx>=wk.length)wkIdx=0;
  $('wkTabs').innerHTML=wk.slice(0,4).map((w,i)=>`<button onclick="wkIdx=${i};renderWeekend()" style="${i===wkIdx?'':'background:var(--card);color:var(--ink);border:1px solid var(--line)'}">${i===0?'이번 주말':i===1?'다음 주말':fmtD(w.fri).replace(/\(.*\)/,'')+' 주말'}</button>`).join('');
  const Ts=wkTSel().map(id=>TARGETS.find(x=>x.id===id)).filter(Boolean);
- if(Ts.length){$('wkList').innerHTML=wk[wkIdx].days.map(n=>wkTargetDay(n,Ts,byDay[n])).join('');return}
+ if(Ts.length){$('wkList').innerHTML=wk[wkIdx].days.map(n=>wkTargetDay(n,Ts,byDay[n])).join('')+'<p class="sub" style="margin-top:8px">굵은 테두리 = 이 장소 이 시기 많이 나옴 · 흐린 글씨 = 그날 날씨에 안 맞음 · 4번째를 고르면 처음 고른 것이 빠짐</p>';return}
  $('wkList').innerHTML=wk[wkIdx].days.map(n=>{
   const top=byDay[n].filter(r=>r.score>0).sort((a,b)=>b.score-a.score||b.adj-a.adj).slice(0,5);
   return `<h4 style="margin:10px 0 4px"><span class="link" data-d="${n}">${fmtD(n)}</span> <span class="sub">${mulName(lunarDay(n))}</span></h4>`+
@@ -533,7 +533,7 @@ function wkTargetDay(n,Ts,dayRows){
  return head+notes+`<ol style="margin:0;padding-left:22px">${list.map(o=>{const x=o.best;
   const chips=o.ts.sort((a,b)=>b.x.sc-a.x.sc).map(({T,x})=>`<span class="chip${siteMonth(o.s.id,T,m)==='g'?' cg':''}${x.mk&&x.mk.lv?' cd':''}" data-t="${T.id}">${esc(T.name)} ${x.sc} · ${MODE_T[catchMode(o.s.id,T.id)]}</span>`).join('');
   const why=o.ts.filter(({x})=>x.mk&&x.mk.lv).map(({T,x})=>esc(T.name)+': '+x.mk.t);
-  return `<li style="margin:5px 0"><span class="link" data-s="${o.s.id}"><b>${esc(o.s.name)}</b></span> <b>${x.sc}점</b>${fieldSum(o.s.id)}<br><span class="sub">간조 ${fmtT(x.l.t)} · 작업 ${fmtT(x.l.b)}~${fmtT(x.l.e)}${x.l.day<0.5?' · 야간':''}${x.w.danger?' · 위험':''}</span><div class="chips" style="margin-top:3px">${chips}</div>${why.length?`<div style="color:#8a5a00;font-size:12px">${why.join('<br>')}</div>`:''}</li>`}).join('')}</ol><p class="sub" style="margin-top:6px">굵은 테두리 = 이 장소 이 시기 많이 나옴 · 흐린 글씨 = 그날 날씨에 안 맞음</p>`;
+  return `<li style="margin:5px 0"><span class="link" data-s="${o.s.id}"><b>${esc(o.s.name)}</b></span> <b>${x.sc}점</b>${fieldSum(o.s.id)}<br><span class="sub">간조 ${fmtT(x.l.t)} · 작업 ${fmtT(x.l.b)}~${fmtT(x.l.e)}${x.l.day<0.5?' · 야간':''}${x.w.danger?' · 위험':''}</span><div class="chips" style="margin-top:3px">${chips}</div>${why.length?`<div style="color:#8a5a00;font-size:12px">${why.join('<br>')}</div>`:''}</li>`}).join('')}</ol>`;
 }
 // 주말 베스트: 그 장소에서 그 시기 잘 나오는 대상(날씨 안 맞으면 흐리게, 이유 한 줄)
 function wkTargets(s,r,n){
