@@ -517,7 +517,7 @@ function renderWeekend(){
  $('wkList').innerHTML=wk[wkIdx].days.map(n=>{
   const top=byDay[n].filter(r=>r.score>0).sort((a,b)=>b.score-a.score||b.adj-a.adj).slice(0,5);
   return `<h4 style="margin:10px 0 4px"><span class="link" data-d="${n}">${fmtD(n)}</span> <span class="sub">${mulName(lunarDay(n))}</span></h4>`+
-   (top.length?`<ol style="margin:0;padding-left:22px">${top.map(r=>`<li style="margin:5px 0"><span class="link" data-s="${r.site.id}"><b>${esc(r.site.name)}</b></span> <b>${r.score}점</b> ${dnTxt(r)}<br><span class="sub">작업 ${fmtT(r.b)}~${fmtT(r.e)} · ${lowLine(r)}</span> ${tagH(r.tags)}${fieldSum(r.site.id)}${wkTargets(r.site,r,n)}</li>`).join('')}</ol>`:'<p class="sub">갈 만한 곳 없음</p>')}).join('')
+   (top.length?`<ol style="margin:0;padding-left:22px">${top.map(r=>`<li style="margin:5px 0"><span class="link" data-s="${r.site.id}"><b>${esc(r.site.name)}</b></span> <b>${r.score}점</b> ${dnTxt(r)} ${shareBtn(r.site.id,n)}<br><span class="sub">작업 ${fmtT(r.b)}~${fmtT(r.e)} · ${lowLine(r)}</span> ${tagH(r.tags)}${fieldSum(r.site.id)}${wkTargets(r.site,r,n)}</li>`).join('')}</ol>`:'<p class="sub">갈 만한 곳 없음</p>')}).join('')
   +'<p class="sub" style="margin-top:8px">굵은 테두리 = 이 장소 이 시기 많이 나옴 · 흐린 글씨 = 그날 날씨에 안 맞음</p>';
 }
 // 주말 베스트 대상 고르기: 3개까지, 이 폰에 기억
@@ -539,7 +539,7 @@ function wkTargetDay(n,Ts,dayRows){
  return head+notes+`<ol style="margin:0;padding-left:22px">${list.map(o=>{const x=o.best;
   const chips=o.ts.sort((a,b)=>b.x.sc-a.x.sc).map(({T,x})=>`<span class="chip${siteMonth(o.s.id,T,m)==='g'?' cg':''}${x.mk&&x.mk.lv?' cd':''}" data-t="${T.id}">${esc(T.name)} 낮 ${x.ds??'—'}·밤 ${x.ns??'—'} · ${MODE_T[catchMode(o.s.id,T.id)]}</span>`).join('');
   const why=o.ts.filter(({x})=>x.mk&&x.mk.lv).map(({T,x})=>esc(T.name)+': '+x.mk.t);
-  return `<li style="margin:5px 0"><span class="link" data-s="${o.s.id}"><b>${esc(o.s.name)}</b></span> <b>${x.sc}점</b> ${dnTxt(x)}${fieldSum(o.s.id)}<br><span class="sub">간조 ${fmtT(x.l.t)} · 작업 ${fmtT(x.l.b)}~${fmtT(x.l.e)}${x.l.day<0.5?' · 야간'+(o.ts.some(({T})=>timePref(o.s.id,T.id)==='n')?'(밤에 잘 되는 곳)':''):''}${x.w.danger?' · 위험':''}</span><div class="chips" style="margin-top:3px">${chips}</div>${why.length?`<div style="color:#8a5a00;font-size:12px">${why.join('<br>')}</div>`:''}</li>`}).join('')}</ol>`;
+  return `<li style="margin:5px 0"><span class="link" data-s="${o.s.id}"><b>${esc(o.s.name)}</b></span> <b>${x.sc}점</b> ${dnTxt(x)} ${shareBtn(o.s.id,n)}${fieldSum(o.s.id)}<br><span class="sub">간조 ${fmtT(x.l.t)} · 작업 ${fmtT(x.l.b)}~${fmtT(x.l.e)}${x.l.day<0.5?' · 야간'+(o.ts.some(({T})=>timePref(o.s.id,T.id)==='n')?'(밤에 잘 되는 곳)':''):''}${x.w.danger?' · 위험':''}</span><div class="chips" style="margin-top:3px">${chips}</div>${why.length?`<div style="color:#8a5a00;font-size:12px">${why.join('<br>')}</div>`:''}</li>`}).join('')}</ol>`;
 }
 // 주말 베스트: 그 장소에서 그 시기 잘 나오는 대상(날씨 안 맞으면 흐리게, 이유 한 줄)
 function wkTargets(s,r,n){
@@ -630,6 +630,32 @@ function reviewBlock(id){
 
 const PARK={"ic_seonnyeo":{"p":[["선녀바위 해변 공영주차장","인천 영종구 을왕동 678-180"],["선녀바위 공영주차장","인천 영종구 을왕동 678-215"],["공영주차장","인천 영종구 을왕동 678-129"]]},"ic_masian":{"p":[],"a":["마시안어부집 주차장","인천 영종구 마시란로 77"]},"ic_jangbong":{"p":[],"a":["한들민박슈퍼","인천 옹진군 북도면 장봉로465번길 70"]},"ic_hanagae":{"p":[["하나개유원지 주차장","인천 영종구 무의동 산 189"],["하나개해수욕장 공영주차장","인천 영종구 하나개로 129"]]},"ta_mongsan":{"p":[],"a":["레인보우캐슬 주차장","충남 태안군 남면 몽대로 333-7"]},"ta_dalsan":{"p":[],"a":["달산포해수욕장","충남 태안군 남면 달산리"]},"ta_cheongpo":{"p":[],"a":["청포대민박","충남 태안군 남면 청포대길 57-90"]},"ta_sambong":{"p":[],"a":["삼봉해수욕장","충남 태안군 안면읍 창기리"]},"br_muchang":{"p":[["공용주차장","충남 보령시 웅천읍 관당리 888-57"]]},"sc_chunjang":{"p":[["춘장대해수욕장 제1주차장","충남 서천군 서면 도둔리 1370"],["춘장대해수욕장 제2주차장","충남 서천군 서면 도둔리 1263"],["홍원항 주차장","충남 서천군 서면 도둔리 1222-59"]]},"sc_seondo":{"p":[],"a":["쌍도","충남 서천군 비인면 선도리 산 33"]},"sc_wolha":{"p":[],"a":["서울시서천연수원 주차장2","충남 서천군 서면 월하성길 74-87"]},"gc_gusipo":{"p":[["구시포해수욕장 공영주차장","전북특별자치도 고창군 상하면 자룡리 529-49"]]},"gc_dongho":{"p":[["동호해수욕장 공영주차장","전북특별자치도 고창군 해리면 동호리 620-2"]]},"ic_simnipo":{"p":[["십리포해수욕장 공영주차장","인천 옹진군 영흥면 영흥북로 382"]]},"ic_janggyeongri":{"p":[],"a":["장경리토종닭","인천 옹진군 영흥면 영흥로 644-7"]},"ic_nogari":{"p":[["영흥면외1리공영주차장","인천 옹진군 영흥면 외리 467"]]},"ic_naeri":{"p":[],"a":["영흥도 내리","인천 옹진군 영흥면 내리"]},"ic_mokseom":{"p":[],"a":["세븐일레븐 선재도목섬점","인천 옹진군 영흥면 선재로34번길 23"]},"ic_cheukdo":{"p":[["뱃말항 공영주차장","인천 옹진군 영흥면 선재리 108-47"]]},"ic_ongam":{"p":[],"a":["옹암해수욕장 야영장","인천 옹진군 북도면 장봉로 205"]},"ic_sugi":{"p":[["신도선착장 공영주차장","인천 옹진군 북도면 신도리 523-61"],["모도 박주기 공영주차장","인천 옹진군 북도면 모도리 255-3"],["모도리 공영주차장","인천 옹진군 북도면 모도로 124"]]},"ic_seopori":{"p":[["서포리해수욕장 공영주차장","인천 옹진군 덕적면 덕적남로 572"],["밧지름해변 주차장","인천 옹진군 덕적면 진리 568-1"]]},"ic_soya":{"p":[["진리선착장 공영주차장","인천 옹진군 덕적면 덕적북로 31"]]},"ic_jawol":{"p":[["자월면사무소주차장","인천 옹진군 자월면 자월서로 164"],["달바위선착장주차장","인천 옹진군 자월면 자월리 306-9"],["자월도정자각주차장","인천 옹진군 자월면 자월리 산 308"]]},"ic_seungbong":{"p":[["승봉도선착장 주차장","인천 옹진군 자월면 승봉로 11"]]},"ic_ijak":{"p":[["작은풀안해변 주차장","인천 옹진군 자월면 이작리 산 241-5"]]},"gh_dongmak":{"p":[["주차장","인천 강화군 화도면 동막리 산 2-1"],["동막해변 노상공영주차장","인천 강화군 화도면 동막리 7-5"],["동막공영주차장","인천 강화군 화도면 동막리 17"]]},"gh_minmeoru":{"p":[["민머루해변 주차장","인천 강화군 삼산면 매음리 872"]]},"ic_eulwangri":{"p":[["을왕리공영주차장","인천 영종구 을왕동 714"]]},"ic_wangsan":{"p":[["왕산공영주차장","인천 영종구 을왕동 776-14"],["투썸플레이스 왕산해수욕장점 주차장","인천 영종구 을왕동 808-25"]]},"ic_jamjindo":{"p":[["무의대교 공영주차장","인천 영종구 무의동"],["무의대교 노상 민영 주차장","인천 영종구 무의동 298-3"]]},"ic_geojampo":{"p":[],"a":["거잠포선착장","인천 영종구 운서동 2855-2"]},"ic_nambuk":{"p":[],"a":["영종 남북동","인천 영종구 남북동"]},"ic_silmi":{"p":[["실미자연발생유원지 주차장","인천 영종구 무의동 729-14"],["실미도유원지 주차장","인천 영종구 무의동 729-15"],["무의대교 공영주차장","인천 영종구 무의동"]]},"ic_somuuido":{"p":[["광명항노상공영주차장","인천 영종구 무의동 9-3"],["무의광명항공영주차장","인천 영종구 무의동 50-18"]]},"ic_yeongjongjin":{"p":[],"a":["오션테라스 주차장","인천 영종구 중산동 1938-7"]},"gg_bangamori":{"p":[["대부도공원 주차장2","경기 안산시 단원구 대부황금로 1546"],["대부도공원 유료주차장","경기 안산시 단원구 대부북동 1848-2"],["방아머리해수욕장 공영주차장","경기 안산시 단원구 대부북동 1841-10"]]},"gg_gubong":{"p":[["구봉도 신 주차장","경기 안산시 단원구 대부북동 1997"],["구봉도 해솔길 공영주차장","경기 안산시 단원구 대부북동 산 24"],["공영주차장 152호","경기 안산시 단원구 대부북동 1870-201"]]},"gg_jonghyeon":{"p":[["대부도 공영 주차장","경기 안산시 단원구 대부황금로 1432"],["방아머리해수욕장 공영주차장","경기 안산시 단원구 대부북동 1841-10"]]},"gg_tando":{"p":[["안산어촌민속박물관 제1주차장","경기 안산시 단원구 선감동 산 146-107"],["안산어촌민속박물관 제3주차장","경기 안산시 단원구 대부황금로 7"]]},"gg_seongam":{"p":[["안산대부광산퇴적암층 전용주차장","경기 안산시 단원구 선감동 산 144-24"]]},"gg_heulgot":{"p":[],"a":["홀곶어촌체험휴양마을","경기 안산시 단원구 대남로 618"]},"gg_mechuri":{"p":[],"a":["메추리섬","경기 안산시 단원구 대부남동"]},"gg_jjokbak":{"p":[],"a":["쪽박섬","경기 안산시 단원구 대부남동"]},"gg_jebudo":{"p":[["제부도 5호공영주차장","경기 화성시 만세구 서신면 제부리 190-20"],["제부도 매바위 공영주차장","경기 화성시 만세구 서신면 제부리 190-109"],["제부도 4호공영주차장","경기 화성시 만세구 서신면 제부리 190-193"]]},"gg_gungpyeong":{"p":[["궁평항 주차장","경기 화성시 만세구 서신면 궁평항로 1049-24"]]},"gg_baekmiri":{"p":[["백미리어촌체험마을주차장","경기 화성시 만세구 서신면 백미리 823"]]},"gg_goon":{"p":[],"a":["고온이해변","경기 화성시 만세구 우정읍 매향리"]},"gg_gukhwado":{"p":[],"a":["국화도 팔각정","경기 화성시 만세구 우정읍 국화리 1-1"]},"gg_ippado":{"p":[],"a":["입파도매점","경기 화성시 만세구 우정읍 입파길 19"]},"gg_oido":{"p":[["나눔 기타 공영주차장","경기 시흥시 정왕동 2014-12"]]},"dj_seokmun_main":{"p":[["석문방조제 주차장","충남 당진시 송산면 가곡리 538"]]},"dj_seokmun_west":{"p":[],"a":["방조제부동산","충남 당진시 석문면 석문방조제로 1828"]},"ta_jinsan":{"p":[],"a":["진산리어촌계","충남 태안군 남면 진산2길 187-33"]},"ta_magumpo":{"p":[],"a":["마검포 해수욕장 공중화장실","충남 태안군 남면 마검포길 360"]},"ta_kkotji":{"p":[["꽃지해수욕장 주차장","충남 태안군 안면읍 꽃지해안로 400"],["꽃지해안공원 주차장3","충남 태안군 안면읍 승언리 339-586"]]},"ta_baeksajang":{"p":[["대하랑꽃게랑육교 공영주차장","충남 태안군 안면읍 백사장1길 128"]]},"ss_beolcheonpo":{"p":[],"a":["벌천포해수욕장 화장실","충남 서산시 대산읍 벌천포길 82"]},"dj_waemok":{"p":[["왜목관광지 공영주차장","충남 당진시 석문면 교로리 847-71"],["공영주차장","충남 당진시 석문면 교로리 844-26"]]},"br_wonsando":{"p":[["원산도해수욕장 주차장(무료)","충남 보령시 오천면 원산도리 1860-7"]]},"br_yongdu":{"p":[["용두해수욕장 주차장","충남 보령시 남포면 용두욕장2길 40 일대"]]},"ba_gosapo":{"p":[["고사포야영장(국립공원) 주차장","전북 부안군 변산면 변산해변로 765"]]}};
 // 주차 주소: 카카오맵 장소 검색(2026-11-02). 공영주차장 없으면 노상 + 근처 주소
+// 공유: 장소+날짜 링크와 한 줄 요약을 폰 공유 창(카톡 등)으로. 받은 사람이 누르면 그 장소·날짜로 열림
+let SHARE_FOCUS=null;
+const nStr=n=>new Date(n*DAY).toISOString().slice(0,10),strN=s=>Math.floor(Date.parse(s+'T00:00:00Z')/DAY);
+function shareRow(sid,n){return RESULT?RESULT.rows.find(r=>r.site.id===sid&&r.n===n):null}
+function shareText(sid,n){
+ const s=SITES.find(x=>x.id===sid);if(!s)return '';
+ if(n==null)return `[해루질] ${s.name}`;
+ const r=shareRow(sid,n),m=new Date(kDayStart(n)+KST).getUTCMonth()+1;
+ let t=`[해루질] ${fmtD(n)} ${mulName(lunarDay(n))} · ${s.name}`;
+ if(r){t+=`\n${r.score}점(${r.ds!=null?'낮 '+r.ds:'낮 없음'} · ${r.ns!=null?'밤 '+r.ns:r.nsWhy==='금지'?'밤 금지':'밤 없음'}) · 작업 ${fmtT(r.b)}~${fmtT(r.e)}`;
+  const tg=(DETAIL[sid]?.targets||[]).map(x=>findTarget(x.name)).filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).filter(v=>siteMonth(sid,v,m)==='g').map(v=>v.name);
+  if(tg.length)t+=`\n이 시기 많이 나옴: ${tg.slice(0,4).join('·')}`}
+ return t;
+}
+function shareFocusHtml(id){ // 공유받은 날짜 카드
+ if(!SHARE_FOCUS||SHARE_FOCUS.s!==id||SHARE_FOCUS.n==null)return '';
+ const n=SHARE_FOCUS.n,r=shareRow(id,n),s=SITES.find(x=>x.id===id);
+ return `<div class="card" style="border:2px solid var(--acc);margin:8px 0"><b>공유받은 날짜 · ${fmtD(n)} ${mulName(lunarDay(n))}</b><br>${r?`${r.score}점 ${dnTxt(r)}<br><span class="sub">작업 ${fmtT(r.b)}~${fmtT(r.e)} · ${lowLine(r)}</span> ${tagH(r.tags)}${wkTargets(s,r,n)}`:`<span class="sub">${n<kDay(Date.now())?'지난 날짜입니다.':'계산 기간 밖 날짜입니다. 위 기간을 늘리고 계산을 누르세요.'}</span>`}</div>`;
+}
+function shareUrl(sid,n){return location.origin+location.pathname+'#s='+sid+(n!=null?'&d='+nStr(n):'')}
+async function doShare(sid,n,el){
+ const text=shareText(sid,n),url=shareUrl(sid,n);
+ if(navigator.share){try{await navigator.share({title:'해루질 추천',text,url});return}catch(e){if(e&&e.name==='AbortError')return}}
+ copyTxt(text+'\n'+url,el); // 공유 창이 없는 PC 등은 복사
+}
+const shareBtn=(sid,n)=>`<button type="button" onclick="event.stopPropagation();doShare('${sid}',${n==null?'null':n},this)" style="padding:1px 8px;font-size:12px;background:var(--card);color:var(--acc);border:1px solid var(--acc);border-radius:12px">공유</button>`;
 function copyTxt(t,el){const ok=()=>{if(el){const o=el.textContent;el.textContent='복사됨';setTimeout(()=>el.textContent=o,1200)}};
  if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(t).then(ok,()=>fb());else fb();
  function fb(){const a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();try{document.execCommand('copy');ok()}catch(e){prompt('복사하세요',t)}a.remove()}}
@@ -656,8 +682,8 @@ function siteDetail(id){saveState({dlg:{t:'s',id}});
  const next=RESULT?RESULT.rows.filter(r=>r.site.id===id).sort((a,b)=>b.score-a.score).slice(0,3).sort((a,b)=>a.n-b.n):[];
  const q=encodeURIComponent(s.name.replace(' 체험장','').replace('·',' '));
  let h=`<p>${tagH([{t:s.reg},payTag(id)||{t:s.kind},{t:'모래 '+'●'.repeat(s.sand)+'○'.repeat(3-s.sand),c:'c'},{t:'백합 근거 '+['','약함','보통','확실'][s.ev],c:'c'}])}</p>
-  ${reviewBlock(id)}${noteBlock(id)}<p class="sub">${esc(s.memo)}</p>${s.warn?`<p style="color:var(--bad)">${esc(s.warn)}</p>`:''}`+(NIGHT[id]?`<p style="color:${NIGHT[id].law?'var(--bad)':'#b7791f'}"><b>${nightTag(id).t}</b> — ${esc(NIGHT[id].t)}</p>`:'')+(hasBoat(id)?`<h4>배편 <span class="tag" style="background:#e8a317;color:#fff">배 필요</span></h4><p>${esc(BOAT[id])}</p><p class="sub">배 시간이 간조와 맞는지, 막배 시간을 먼저 확인하세요.</p>`:'')+nowWx(id)+accessBlock(id)+eojangBlock(id);
- if(next.length)h+=`<h4>추천 날짜</h4><div class="dl">${next.map(r=>`<dt>${fmtD(r.n)}</dt><dd>${mulName(lunarDay(r.n))} · ${lowLine(r)} · 작업 ${fmtT(r.b)}~${fmtT(r.e)} · ${r.score}점 ${dnTxt(r)}</dd>`).join('')}</div>`;
+  ${shareFocusHtml(id)}${reviewBlock(id)}${noteBlock(id)}<p class="sub">${esc(s.memo)}</p>${s.warn?`<p style="color:var(--bad)">${esc(s.warn)}</p>`:''}`+(NIGHT[id]?`<p style="color:${NIGHT[id].law?'var(--bad)':'#b7791f'}"><b>${nightTag(id).t}</b> — ${esc(NIGHT[id].t)}</p>`:'')+(hasBoat(id)?`<h4>배편 <span class="tag" style="background:#e8a317;color:#fff">배 필요</span></h4><p>${esc(BOAT[id])}</p><p class="sub">배 시간이 간조와 맞는지, 막배 시간을 먼저 확인하세요.</p>`:'')+nowWx(id)+accessBlock(id)+eojangBlock(id);
+ if(next.length)h+=`<h4>추천 날짜</h4><div class="dl">${next.map(r=>`<dt>${fmtD(r.n)}</dt><dd>${mulName(lunarDay(r.n))} · ${lowLine(r)} · 작업 ${fmtT(r.b)}~${fmtT(r.e)} · ${r.score}점 ${dnTxt(r)} ${shareBtn(id,r.n)}</dd>`).join('')}</div>`;
  h+=`<h4>주차</h4>${parkHtml(id)}${ul(d.parking)}<h4>가는 길·진입</h4>${ul(d.access)}<h4>잘 나오는 구역</h4>${ul(d.spots)}<h4>지형</h4>${SITEF[id]?`<p>${SITEF[id].b?'<b>바닥</b> '+esc(SITEF[id].b):''}${SITEF[id].w?'<br><b>물속 구간</b> '+esc(SITEF[id].w):''}</p>`:''}${ul(d.terrain)}`;
  const tg=d.targets||[];
  h+=`<h4>잡히는 대상</h4>`+(tg.length?`<div class="dl">${tg.map(t=>{const f=findTarget(t.name);return `<dt>${f?`<span class="link" data-t="${esc(f.id)}">${esc(t.name)}</span>`:esc(t.name)}</dt><dd>${f?`<span class="tag c">${TIME_T[timePref(id,f.id)]}${TIMEW[id]?.[f.id]?'':' (일반)'}</span> `:''}${esc(t.note)}${f&&TIMEW[id]?.[f.id]?` <span class="sub">· ${esc(TIMEW[id][f.id])}</span>`:''}${t.season?` <span class="sub">· ${esc(t.season)}</span>`:''}${f?siteHowHtml(id,f):''}</dd>`}).join('')}</div>`:'<p class="sub">조사된 정보 없음</p>');
@@ -920,7 +946,7 @@ function dayDetail(n){saveState({dlg:{t:'d',n}});
   tg.sort((a,b)=>fo(b)-fo(a));
   const tgH=tg.map(t=>{const k=siteMonth(s.id,t,m),c=cd[t.id];return k==='x'?tchip(t,'cx'):c&&c.lv?tchip(t,'cd'+(k==='g'?' cg':'')):k==='g'?tchip(t,'cg'):tchip(t)}).join('');
   const [am,pm]=halves(r);
-  return `<div class="card" style="margin:8px 0"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b><span class="link" data-s="${s.id}">${esc(s.name)}</span></b><div style="text-align:right">${scoreCell(r.score)}${dnTxt(r)}</div></div>
+  return `<div class="card" style="margin:8px 0"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b><span class="link" data-s="${s.id}">${esc(s.name)}</span></b><div style="text-align:right">${scoreCell(r.score)}${dnTxt(r)} ${shareBtn(s.id,r.n)}</div></div>
    <div class="dl" style="margin-top:6px"><dt>오전 간조</dt><dd>${lowTxt(am,r,1)}</dd><dt>오후 간조</dt><dd>${lowTxt(pm,r,1)}</dd>
    <dt>날씨</dt><dd>${w?`${w.sky} · ${w.tmin.toFixed(0)}~${w.tmax.toFixed(0)}°C · 바람 최대 ${w.ws.toFixed(0)}m/s(돌풍 ${w.wg.toFixed(0)}) · 비 ${w.pr.toFixed(0)}mm${w.wave!=null?` · 파고 ${w.wave.toFixed(1)}m`:''}`:(WX_AT?'<span class="sub">예보 전(16일 이후)</span>':'<span class="sub">날씨 못 받음</span>')}</dd>
    <dt>대상</dt><dd>${/chip cg/.test(tgH)?'<div class="sub" style="margin-bottom:3px">굵은 테두리 = 이 장소 이번 달 제철</div>':''}${/chip cd/.test(tgH)?'<div class="sub" style="margin-bottom:3px">흐린 글씨 = 그날 날씨에 안 맞음(아래 이유)</div>':''}<div class="chips">${tgH||'<span class="sub">조사된 정보 없음</span>'}</div>${tg.filter(t=>siteMonth(s.id,t,m)!=='x'&&cd[t.id]&&cd[t.id].lv).map(t=>`<div style="color:${cd[t.id].lv===2?'var(--bad)':'#8a5a00'};font-size:13px;margin-top:3px">${esc(t.name)}: ${cd[t.id].t}</div>`).join('')}</dd>
@@ -1450,7 +1476,11 @@ function init(){
  $('dayGo').onclick=()=>{const v=$('dayPick').value;if(v)dayDetail(Math.floor(Date.parse(v+'T00:00:00Z')/DAY))};
  $('sitePick').onchange=renderCal;
  $('weekend').onchange=()=>{if(RESULT){RESULT.opt.weekend=$('weekend').checked;render()}};
- run().then(restoreView);
+ // 공유 링크(#s=장소&d=날짜)로 열면: 그 장소 지역을 켜고 계산한 뒤 그 장소·날짜를 바로 보여 줌
+ const HS=new URLSearchParams(location.hash.slice(1)),hs=HS.get('s'),hd=HS.get('d');
+ if(hs&&SITES.some(x=>x.id===hs)){const s=SITES.find(x=>x.id===hs),x=[...document.querySelectorAll('#regions input')].find(i=>i.value===s.reg);if(x)x.checked=true;
+  SHARE_FOCUS={s:hs,n:hd&&/^\d{4}-\d{2}-\d{2}$/.test(hd)?strN(hd):null};history.replaceState(null,'',location.pathname+location.search)}
+ run().then(()=>{if(SHARE_FOCUS)siteDetail(SHARE_FOCUS.s);else restoreView()});
  const stale=()=>RESULT&&(!WX_AT||Date.now()-WX_AT>30*60e3);
  setInterval(()=>{if(stale())run()},5*60e3);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&stale())run()});
