@@ -13,7 +13,8 @@
 - `index.html` — 앱 전체(단일 HTML, 약 3MB). GitHub Pages로 배포: https://briank1860-cpu.github.io/bh-840685/
 - `sw.js`·`manifest.webmanifest`·아이콘 — 설치형 앱(PWA). 인터넷 되면 항상 새 버전 먼저 받음. 건드릴 일 거의 없음.
 - `collect-log.md` — 매일 클라우드 자동 수집 기록(맨 위가 최신).
-- `tools/daum_search.py` — 다음 검색 최신순 결과 뽑기(WebFetch로는 결과가 비어 보임). `python tools/daum_search.py blog "해루질 후기"`
+- `tools/search.py` — 해루질 글 최신순 검색(다음 블로그·카페, 네이버 블로그·카페, 유튜브·쇼츠). `python tools/search.py all "박하지 해루질"`. 인스타·X·틱톡은 로그인 없이 막혀 있음.
+- `tools/daum_search.py` — 다음만 검색하는 옛 도구(남겨 둠).
 - `tools/sheet_script.gs` — 현장 기록 구글 시트(사용자 드라이브 "백합 해루질 현장 기록")에 붙인 Apps Script 원본.
 
 ## index.html 안의 데이터(스크립트 안 상수)
@@ -34,7 +35,7 @@
 ## 자동 수집(클라우드 루틴)
 - 이름 "해루질 매일 수집 · 백합 도구 갱신", 매일 07:07(한국시간). 관리: https://claude.ai/code/routines/trig_01A4YWcF17pAkLQQkdL8mVjd
 - 기존 장소 갱신 + 근거 2건 이상인 새 장소 하루 3곳까지 추가 + 앱 현장 기록 반영.
-- 클라우드 환경 네트워크 허용: search.daum.net, v.daum.net, *.daum.net, *.tistory.com, brunch.co.kr, *.youtube.com (현장 기록 읽기에 script.google.com·script.googleusercontent.com이 필요할 수 있음).
+- 클라우드 환경 네트워크 허용: search.daum.net, v.daum.net, *.daum.net, search.naver.com, *.tistory.com, brunch.co.kr, *.youtube.com (현장 기록 읽기에 script.google.com·script.googleusercontent.com이 필요할 수 있음).
 
 ## 하지 말 것
 - 저장소 공개 범위·이름 바꾸기.
