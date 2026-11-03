@@ -465,8 +465,8 @@ function evalSite(s,days0,nDays,opt){
   });
   if(!bD&&!bN)continue;
   const season=SEASON[mo-1];
-  const sc=c=>{if(!c||c.k<0)return null;const w=weatherScore(d.wx,d.sea,c.b,c.e);let v=c.k+season+w.score;if(w.danger)v=Math.min(v,25);c.w=w;return Math.round(v)};
-  const ds=sc(bD),ns=sc(bN);
+  const sc=(c,night)=>{if(!c||c.k<0)return null;const w=weatherScore(d.wx,d.sea,c.b,c.e);c.ez=easyAt(s.id,mo,night);let v=c.k+season+w.score+(c.ez.length?6:0);if(w.danger)v=Math.min(v,25);c.w=w;return Math.round(Math.min(100,v))};
+  const ds=sc(bD,0),ns=sc(bN,1);
   const nsWhy=nban?'금지':!bN?'':!bN.ok?'금지':!nf?'대상 없음':''; // 밤 점수가 없는 이유
   const best=ns!=null&&(ds==null||ns>ds)?bN:(bD||bN),w=best.w||weatherScore(d.wx,d.sea,best.b,best.e);
   let score=Math.max(ds??0,ns??0);
@@ -474,6 +474,7 @@ function evalSite(s,days0,nDays,opt){
   if(best.day<0.5)tags.push({t:'야간',c:'w'});
   if(w.danger)tags.push({t:'위험',c:'w'});
   tags.push(...w.tags);
+  if(best.ez&&best.ez.length)tags.push({t:'초보 대상 '+best.ez.map(t=>t.name).join('·'),c:'c'});
   if(best.l.src==='calc')tags.push({t:'간조 추정',c:'c'});
   if(hasBoat(s.id))tags.push({t:'배 필요',c:'w'});
   if(ACCESS[s.id]&&ACCESS[s.id].pay==='유료')tags.push({t:'어촌계 관리(유료)',c:'w'});else if(ACCESS[s.id]&&ACCESS[s.id].pay==='혼합')tags.push({t:'일부 유료',c:'c'});
@@ -521,7 +522,7 @@ function renderWeekend(){
 }
 // 주말 베스트 대상 고르기: 3개까지, 이 폰에 기억
 function wkTSel(){return lsGet('bh_wkT','').split(',').filter(id=>TARGETS.some(t=>t.id===id)).slice(0,3)}
-function wkTChips(){const s=wkTSel();$('wkT').innerHTML=TARGETS.map(t=>`<button type="button" style="${s.includes(t.id)?'background:var(--acc);color:#fff;border:1px solid var(--acc)':'background:var(--card);color:var(--ink);border:1px solid var(--line)'};padding:3px 10px;border-radius:14px" onclick="wkTToggle('${t.id}')">${esc(t.name)}</button>`).join('')+(s.length?` <button type="button" style="background:var(--card);color:var(--acc);border:1px solid var(--acc);padding:3px 10px;border-radius:14px" onclick="lsSet('bh_wkT','');wkTChips();renderWeekend()">선택 해제</button>`:'')}
+function wkTChips(){const s=wkTSel();$('wkT').innerHTML=[...TARGETS].sort((a,b)=>EASY.test(b.id)-EASY.test(a.id)).map(t=>`<button type="button" style="${s.includes(t.id)?'background:var(--acc);color:#fff;border:1px solid var(--acc)':'background:var(--card);color:var(--ink);border:1px solid var(--line)'};padding:3px 10px;border-radius:14px" onclick="wkTToggle('${t.id}')">${esc(t.name)}</button>`).join('')+(s.length?` <button type="button" style="background:var(--card);color:var(--acc);border:1px solid var(--acc);padding:3px 10px;border-radius:14px" onclick="lsSet('bh_wkT','');wkTChips();renderWeekend()">선택 해제</button>`:'')}
 function wkTToggle(id){let s=wkTSel();if(s.includes(id))s=s.filter(x=>x!==id);else{if(s.length>=3)s.shift();s.push(id)}lsSet('bh_wkT',s.join(','));wkTChips();renderWeekend()}
 // 주말 베스트(대상 고름): 그날 고른 대상들이 잘 나오는 장소 5곳 — 장소마다 고른 대상 중 가장 좋은 점수로 순위
 function wkTargetDay(n,Ts,dayRows){
@@ -546,7 +547,7 @@ function wkTargets(s,r,n){
  const tg=(DETAIL[s.id]?.targets||[]).map(x=>findTarget(x.name)).filter(Boolean).filter((t,i,a)=>a.indexOf(t)===i).filter(t=>/^[go]$/.test(siteMonth(s.id,t,m)));
  if(!tg.length)return '<div class="sub" style="margin-top:4px">이 시기 대상 정보 없음</div>';
  const cd=Object.fromEntries(tg.map(t=>[t.id,cond(t.id,DATA[s.id]||{},r.b,r.e,s.id)]));
- const fo=t=>(cd[t.id]?cd[t.id].f:1)*(siteMonth(s.id,t,m)==='g'?1.2:1);
+ const fo=t=>(cd[t.id]?cd[t.id].f:1)*(siteMonth(s.id,t,m)==='g'?1.2:1)*(EASY.test(t.id)?1.3:1);
  tg.sort((a,b)=>fo(b)-fo(a));
  const chip=t=>{const g=siteMonth(s.id,t,m)==='g',c=cd[t.id];return `<span class="chip ${c&&c.lv?'cd':''}${g?' cg':''}" data-t="${t.id}">${esc(t.name)}</span>`};
  const bad=tg.filter(t=>cd[t.id]&&cd[t.id].lv);
@@ -748,6 +749,10 @@ function targetDetail(id){saveState({dlg:{t:'t',id}});
 // 대상별 점수: 대상마다 물 빠짐·낮 시간 비중을 다르게(조개류는 물 빠짐 중시, 꽃게·낙지는 밤 간조도 가능)
 const TPROF=id=>/^(kkotge|nakji|jukkumi)$/.test(id)?{wt:30,wd:20}:id==='bakhaji'?{wt:30,wd:25}:/^(keunguseul|pippul|haesam|gul|garibi)$/.test(id)?{wt:35,wd:25}:{wt:45,wd:20};
 const SIGHT=/^(kkotge|bakhaji|nakji|jukkumi)$/;
+// 초보가 쉽게 잡아 먹는 대상(사용자 기준: 박하지·꽃게·소라·백합 등). 그 장소에서 그 달 후기가 있고 시간대가 맞으면 점수 +6
+const EASY=/^(baekhap|bakhaji|kkotge|pippul|dongjuk|bajirak|manjo)$/;
+function easyAt(sid,m,night){return (DETAIL[sid]?.targets||[]).map(x=>findTarget(x.name)).filter(Boolean).filter((t,i,a)=>a.indexOf(t)===i)
+ .filter(t=>EASY.test(t.id)&&siteMonth(sid,t,m)==='g'&&(night?timePref(sid,t.id)!=='d':timePref(sid,t.id)!=='n'))}
 function murk(d,b,e){ // 작업 6시간 전~철수까지 최대 바람·파도로 물 흐림 판단
  const hs=(d.wx||[]).filter(x=>x.t>=b-6*H&&x.t<=e&&x.ws!=null);if(!hs.length)return null;
  const ws=Math.max(...hs.map(x=>x.ws)),wv=(d.sea||[]).filter(x=>x.t>=b-6*H&&x.t<=e&&x.wave!=null).map(x=>x.wave),wave=wv.length?Math.max(...wv):0;
