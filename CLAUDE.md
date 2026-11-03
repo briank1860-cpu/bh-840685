@@ -14,6 +14,7 @@
 - `sw.js`·`manifest.webmanifest`·아이콘 — 설치형 앱(PWA). 인터넷 되면 항상 새 버전 먼저 받음. 건드릴 일 거의 없음.
 - `collect-log.md` — 매일 클라우드 자동 수집 기록(맨 위가 최신).
 - `tools/search.py` — 해루질 글 최신순 검색(다음 블로그·카페, 네이버 블로그·카페, 유튜브·쇼츠). `python tools/search.py all "박하지 해루질"`. 인스타·X·틱톡은 로그인 없이 막혀 있음.
+- `tools/collect.py` — 매일 수집 1단계: 정해진 검색어+오늘 차례 장소 15곳을 모든 경로로 검색해 한 파일(TSV)로. `python tools/collect.py /tmp/c.tsv`
 - `tools/daum_search.py` — 다음만 검색하는 옛 도구(남겨 둠).
 - `tools/sheet_script.gs` — 현장 기록 구글 시트(사용자 드라이브 "백합 해루질 현장 기록")에 붙인 Apps Script 원본.
 
@@ -22,6 +23,8 @@
 - 여러 줄 JS 객체: `SITES`(배열), `ACCESS`, `NIGHT`, `EXCLUDED`, `MONTHS`.
 - `/*CORE-START*/ ~ /*CORE-END*/` 계산 코드, `DEFAULTS`, `EOJANG`은 신중히.
 - 새 장소를 넣으면 SITES·DETAIL·ACCESS·REVIEW·MODE·SITEF·PARK를 모두 채운다(기존 장소 하나를 본보기로). bt = badatime.com 물때표 페이지 번호.
+- 점수: 낮 점수(ds)·밤 점수(ns)를 따로 계산. 밤은 그 달 밤에 되는 대상이 있을 때만, 해경 밤 전체 금지면 없음. `TIMEP`(장소×대상 d/n/b, 후기 근거) → 없으면 `TIMEP_T`(대상 기본값, `ECO` 생태 근거). `EASY`(초보 대상) 후기·시간대 맞으면 +6.
+- `ECO`: 대상별 공인 생태(활동 시간·바닥·수온·금어기, 출처 포함). `TIMEW`: 낮·밤 판단 근거 한 줄.
 - 현장 기록: 폰(localStorage `bh_notes`)에 먼저 저장 → 연결되면 `SHARE`(구글 Apps Script 웹앱 주소)로 전송. 다른 사람 기록도 같은 주소 GET으로 읽음.
 
 ## 작업 순서
