@@ -451,7 +451,8 @@ function evalSite(s,days0,nDays,opt){
  const out=[];
  for(let n=days0;n<days0+nDays;n++){
   const st=sunTimes(n,s.lat,s.lon),mo=new Date(kDayStart(n)+KST).getUTCMonth()+1;
-  let bD=null,bN=null;const all=[],nf=siteNightFit(s.id,mo);
+  const nban=NIGHT[s.id]&&NIGHT[s.id].law&&NIGHT[s.id].full; // 해경 공고로 밤 전체 출입 금지면 밤 점수 없음
+  let bD=null,bN=null;const all=[],nf=nban?0:siteNightFit(s.id,mo);
   lows.filter(l=>kDay(l.t)===n).forEach(l=>{
    const e=l.t-opt.exit*60e3,b=e-opt.work*60e3;
    const day=Math.max(0,Math.min(e,st.set)-Math.max(b,st.rise))/(e-b);
@@ -466,7 +467,7 @@ function evalSite(s,days0,nDays,opt){
   const season=SEASON[mo-1];
   const sc=c=>{if(!c||c.k<0)return null;const w=weatherScore(d.wx,d.sea,c.b,c.e);let v=c.k+season+w.score;if(w.danger)v=Math.min(v,25);c.w=w;return Math.round(v)};
   const ds=sc(bD),ns=sc(bN);
-  const nsWhy=!bN?'':!bN.ok?'금지':!nf?'대상 없음':''; // 밤 점수가 없는 이유
+  const nsWhy=nban?'금지':!bN?'':!bN.ok?'금지':!nf?'대상 없음':''; // 밤 점수가 없는 이유
   const best=ns!=null&&(ds==null||ns>ds)?bN:(bD||bN),w=best.w||weatherScore(d.wx,d.sea,best.b,best.e);
   let score=Math.max(ds??0,ns??0);
   const tags=[];
@@ -804,13 +805,13 @@ function rankTarget(n,m,t,rows){
  if(mStat(t.id,m)==='x')return null;
  const P=TPROF(t.id),out=[];
  rows.forEach(({s,r})=>{if(!siteHas(s.id,t))return;const d=DATA[s.id]||{};
-  const tp=timePref(s.id,t.id),nf=tp==='n'?1:tp==='b'?0.85:0,sm=siteMonth(s.id,t,m),sea=sm==='g'?15:sm==='o'?8:3;let bd=null,bn=null;
+  const nban=NIGHT[s.id]&&NIGHT[s.id].law&&NIGHT[s.id].full,tp=timePref(s.id,t.id),nf=nban?0:tp==='n'?1:tp==='b'?0.85:0,sm=siteMonth(s.id,t,m),sea=sm==='g'?15:sm==='o'?8:3;let bd=null,bn=null;
   (r.all||[]).filter(l=>!l.ban).forEach(l=>{const w=weatherScore(d.wx,d.sea,l.b,l.e),mk=cond(t.id,d,l.b,l.e,s.id);
    const one=dd=>{let sc=l.F*P.wt+dd*P.wd+w.score;if(mk)sc*=mk.f;if(w.danger)sc=Math.min(sc,25);return {sc:Math.round(sc+sea),l,w,mk}};
    if(l.day>0){const c=one(l.day);if(!bd||c.sc>bd.sc)bd=c}
    if(l.day<1&&nf){const c=one((1-l.day)*nf);if(!bn||c.sc>bn.sc)bn=c}}); // 낮에만 되는 대상은 밤 점수 없음
   const best=bn&&(!bd||bn.sc>bd.sc)?bn:bd;
-  if(best)out.push({s,...best,ds:bd?bd.sc:null,ns:bn?bn.sc:null,nsWhy:bn?'':(r.all||[]).some(l=>l.day<0.5&&l.ban)?'금지':!nf?'대상 없음':''})});
+  if(best)out.push({s,...best,ds:bd?bd.sc:null,ns:bn?bn.sc:null,nsWhy:nban?'금지':bn?'':(r.all||[]).some(l=>l.day<0.5&&l.ban)?'금지':!nf?'대상 없음':''})});
  return out.sort((a,b)=>b.sc-a.sc);
 }
 function targetRankHtml(n,m,rows){
