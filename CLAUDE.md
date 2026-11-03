@@ -24,6 +24,7 @@
 - `/*CORE-START*/ ~ /*CORE-END*/` 계산 코드, `DEFAULTS`, `EOJANG`은 신중히.
 - 새 장소를 넣으면 SITES·DETAIL·ACCESS·REVIEW·MODE·SITEF·PARK를 모두 채운다(기존 장소 하나를 본보기로). bt = badatime.com 물때표 페이지 번호.
 - 점수: 낮 점수(ds)·밤 점수(ns)를 따로 계산. 밤은 그 달 밤에 되는 대상이 있을 때만, 해경 밤 전체 금지면 없음. `TIMEP`(장소×대상 d/n/b, 후기 근거) → 없으면 `TIMEP_T`(대상 기본값, `ECO` 생태 근거). `EASY`(초보 대상) 후기·시간대 맞으면 +6.
+- `SPOTS`: 장소 안 포인트 {장소id:[{la,lo,p:'정확|대략',t:[대상id],d:설명,src}]} — 장소 지도에 대상 이름표로 표시. 현장 기록에 위치가 있으면(메모 끝 `⌖위도,경도`) 지도에 결과 색 점으로 표시.
 - `ECO`: 대상별 공인 생태(활동 시간·바닥·수온·금어기, 출처 포함). `TIMEW`: 낮·밤 판단 근거 한 줄.
 - 현장 기록: 폰(localStorage `bh_notes`)에 먼저 저장 → 연결되면 `SHARE`(구글 Apps Script 웹앱 주소)로 전송. 다른 사람 기록도 같은 주소 GET으로 읽음.
 
