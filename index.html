@@ -1358,7 +1358,7 @@ function alarmNotify(msg){
  $('alarmMsg')&&($('alarmMsg').textContent=msg);
  try{if('Notification' in window&&Notification.permission==='granted'){
   const opt={body:msg,vibrate:[500,200,500],requireInteraction:true,tag:'bh-alarm'};
-  if(navigator.serviceWorker&&navigator.serviceWorker.controller)navigator.serviceWorker.ready.then(r=>r.showNotification('해루질 알람',opt));else new Notification('해루질 알람',opt)}}catch(e){}
+  if(navigator.serviceWorker&&navigator.serviceWorker.controller)navigator.serviceWorker.ready.then(r=>r.showNotification('갯벌친구 알람',opt));else new Notification('갯벌친구 알람',opt)}}catch(e){}
 }
 function keepAwake(){if(alarmSite&&navigator.wakeLock&&document.visibilityState==='visible')navigator.wakeLock.request('screen').then(w=>wakeLock=w).catch(()=>{})}
 document.addEventListener('visibilitychange',keepAwake);
@@ -1492,7 +1492,7 @@ function init(){
 if(typeof document!=='undefined')init();
 // 카카오톡 안 브라우저는 앱을 나가면 닫힘 → 기본 브라우저로 열기 안내
 if(/KAKAOTALK/i.test(navigator.userAgent)&&/^https:/.test(location.href)){const b=document.createElement('div');b.style.cssText='position:sticky;top:0;z-index:50;background:#fee500;color:#191919;padding:10px 16px;font-size:14px;display:flex;gap:10px;align-items:center;justify-content:space-between';b.innerHTML='<span>카카오톡 안에서는 화면을 나가면 닫혀요.</span><a style="background:#191919;color:#fee500;padding:6px 10px;border-radius:6px;text-decoration:none;white-space:nowrap" href="kakaotalk://web/openExternal?url='+encodeURIComponent(location.href)+'">크롬으로 열기</a>';document.body.prepend(b)}
-if('serviceWorker' in navigator&&location.protocol==='https:'&&/github\.io$/.test(location.hostname))navigator.serviceWorker.register('sw.js').catch(()=>{});
+if('serviceWorker' in navigator&&location.protocol==='https:'&&/github\.io$/.test(location.hostname)){const hadSW=!!navigator.serviceWorker.controller;let rl=false;navigator.serviceWorker.register('sw.js').then(r=>{document.addEventListener('visibilitychange',()=>{if(!document.hidden)r.update().catch(()=>{})})}).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(hadSW&&!rl){rl=true;location.reload()}})}
 </script>
 </body>
 </html>
