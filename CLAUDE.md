@@ -16,6 +16,7 @@
 - `tools/search.py` — 해루질 글 최신순 검색(다음 블로그·카페, 네이버 블로그·카페, 유튜브·쇼츠). `python tools/search.py all "박하지 해루질"`. 인스타·X·틱톡은 로그인 없이 막혀 있음.
 - `tools/collect.py` — 매일 수집 1단계: 정해진 검색어+오늘 차례 장소 15곳을 모든 경로로 검색해 한 파일(TSV)로. `python tools/collect.py /tmp/c.tsv`
 - `tools/videos.py` — 장소별 해루질 유튜브 연결(제목·설명에 장소 이름+해루질 관련 말). `python tools/videos.py --tsv /tmp/c.tsv --search` → `VIDEOS` 갱신(장소마다 최근 2년 최신 8개). 흔한 지명은 스크립트의 `ALIAS`에 need(같이 있어야 하는 말)로 막는다.
+- `tools/check_spots.py` — SPOTS 포인트가 육지에 찍혔는지 검사(해안선·갯벌·도로 자료). `--fix`는 바다 쪽으로 옮김.
 - `tools/daum_search.py` — 다음만 검색하는 옛 도구(남겨 둠).
 - `tools/sheet_script.gs` — 현장 기록 구글 시트(사용자 드라이브 "백합 해루질 현장 기록")에 붙인 Apps Script 원본.
 
@@ -44,7 +45,7 @@
 - 이름 "해루질 매일 수집 · 백합 도구 갱신", 매일 07:07·15:07·20:07(한국시간, 하루 세 번). 관리: https://claude.ai/code/routines/trig_01A4YWcF17pAkLQQkdL8mVjd
 - 기존 장소 갱신 + 근거 2건 이상인 새 장소 하루 3곳까지 추가 + 앱 현장 기록 반영.
 - 매 실행마다 collect.py 다음에 반드시 `python3 tools/videos.py --tsv /tmp/c.tsv --search`를 돌려 장소별 유튜브(VIDEOS)를 갱신한다. 새 장소를 넣으면 videos.py의 `ALIAS`에도 그 장소 이름표를 추가한다. 잘못 붙은 영상(다른 지역·해루질 무관)을 보면 ALIAS를 고쳐 막는다.
-- 후기에 장소 안 위치가 구체적으로 나오면(바위·다리·방조제 번호·물골 등) 카카오 장소 검색(`https://search.map.kakao.com/mapsearch/map.daum?q=...&msFlag=A&sort=0`, Referer `https://map.kakao.com/`)이나 OSM으로 좌표를 잡아 `SPOTS`에 추가한다(원문 확인 1건 또는 요약 2건 이상, 대략이면 p:'대략'). 위치가 붙은 앱 현장 기록이 한 지점에 '좋음'으로 여러 건 모이면 그 지점도 SPOTS에 넣는다.
+- 후기에 장소 안 위치가 구체적으로 나오면(바위·다리·방조제 번호·물골 등) 카카오 장소 검색(`https://search.map.kakao.com/mapsearch/map.daum?q=...&msFlag=A&sort=0`, Referer `https://map.kakao.com/`)이나 OSM으로 좌표를 잡아 `SPOTS`에 추가한다(원문 확인 1건 또는 요약 2건 이상, 대략이면 p:'대략'). 좌표를 넣은 뒤엔 반드시 `python3 tools/check_spots.py`를 돌려 육지(건물·밭·도로·섬 안쪽)에 찍힌 포인트가 없는지 확인한다(문제 있으면 `--fix`로 바다 쪽 갯벌로 옮기거나 좌표를 다시 잡는다). 장소 이름 좌표·주소 검색 결과는 대개 육지(마을·주차장)라 그대로 쓰지 말고, 설명에 맞는 바위·갯벌·물골 쪽으로 옮긴다. 위치가 붙은 앱 현장 기록이 한 지점에 '좋음'으로 여러 건 모이면 그 지점도 SPOTS에 넣는다.
 - 클라우드 환경 네트워크 허용: search.daum.net, v.daum.net, *.daum.net, search.naver.com, *.tistory.com, brunch.co.kr, *.youtube.com (현장 기록 읽기에 script.google.com·script.googleusercontent.com이 필요할 수 있음).
 
 ## 하지 말 것
