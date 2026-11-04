@@ -8,8 +8,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>갯벌친구</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
 .spotTip{background:rgba(255,255,255,.85);border:0;box-shadow:none;font:600 11px/1.2 sans-serif;padding:1px 4px}.spotTip:before{display:none}
 :root{--bg:#f6f4ef;--card:#fff;--ink:#1f2328;--sub:#5f6670;--line:#e3dfd6;--acc:#0f6d74;--acc2:#e3f1f1;--good:#2f7d32;--mid:#b7791f;--bad:#b42318;--bar:#d7ebe9}
@@ -20,7 +20,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Pretendard","
 main{max-width:1080px;margin:0 auto;padding:20px 16px 90px}
 h1{font-size:22px;margin:0 0 4px}
 h2{font-size:17px;margin:28px 0 10px}
-.sub{color:var(--sub);font-size:13px}
+.sub{color:var(--sub);font-size:13.5px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
 .ctl{display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center}
 .ctl label{display:flex;gap:6px;align-items:center;font-size:14px}
@@ -89,20 +89,20 @@ input[type=date]{font:inherit;padding:4px 6px;border:1px solid var(--line);borde
 .slist .grp{margin:10px 0 4px;font-weight:700;color:var(--acc)}.slist .row{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:6px 0;cursor:pointer;background:var(--card)}.slist .row .chips{margin-top:4px}
 .chip.cd{opacity:.5}
 /* 갯벌친구 디자인 */
-:root{--bg:#fbf3e6;--card:#fffaf3;--ink:#3a2a1e;--sub:#7a6553;--line:#eedfca;--acc:#c0602a;--acc2:#fbe3cc;--deep:#7a4a2c;--sun:#f5b13d;--mud:#8a6a50;--bar:#f3d3b2;--good:#5d8a2e;--mid:#c58a1a;--bad:#c2412d}
+:root{--bg:#fbf3e6;--card:#fffaf3;--ink:#2b1d12;--sub:#5f4a39;--line:#eedfca;--acc:#c0602a;--acc2:#fbe3cc;--deep:#7a4a2c;--sun:#f5b13d;--mud:#8a6a50;--bar:#f3d3b2;--good:#5d8a2e;--mid:#c58a1a;--bad:#c2412d}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1612;--card:#281e18;--ink:#f3e7da;--sub:#bfa892;--line:#3d2f25;--acc:#f0a064;--acc2:#3b2a1f;--deep:#a85a30;--sun:#f5b13d;--mud:#b08f72;--bar:#5a3c28;--good:#9cc96b;--mid:#e6b45a;--bad:#ff8a73}}
 :root[data-theme="dark"]{--bg:#1d1612;--card:#281e18;--ink:#f3e7da;--sub:#bfa892;--line:#3d2f25;--acc:#f0a064;--acc2:#3b2a1f;--deep:#a85a30;--sun:#f5b13d;--mud:#b08f72;--bar:#5a3c28;--good:#9cc96b;--mid:#e6b45a;--bad:#ff8a73}
-body{font-family:"Gowun Dodum","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;font-size:15px;line-height:1.6}
-h1,h2,.sites .card h3,.dhead h3,#wkList h4{font-family:"Jua","Gowun Dodum",sans-serif;font-weight:400}
+body{font-family:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;word-break:keep-all}
+h1,h2,.sites .card h3,.dhead h3,#wkList h4{font-family:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;font-weight:800;letter-spacing:-.02em}
 .hero{position:relative;color:#fff;background:#7a4a2c url(img/hero.jpg) center 60%/cover no-repeat;padding:44px 20px 70px;overflow:hidden}
 .hero:before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(120,60,20,.15) 0%,rgba(110,55,25,.5) 55%,rgba(70,38,20,.85) 100%)}
 .hero-in{position:relative;max-width:1080px;margin:0 auto}
 .hero .logo{border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,.25);display:block;margin-bottom:14px}
 .hero h1{font-size:clamp(44px,12vw,72px);line-height:1;margin:0;letter-spacing:-1px;text-shadow:0 2px 12px rgba(0,0,0,.25)}
-.hero .tagline{font-family:"Jua",sans-serif;font-size:clamp(18px,5vw,24px);margin:10px 0 0;color:var(--sun)}
+.hero .tagline{font-family:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;font-weight:800;font-size:clamp(18px,5vw,24px);margin:10px 0 0;color:var(--sun)}
 .hero .lede{max-width:34em;margin:12px 0 0;font-size:14px;line-height:1.7;color:rgba(255,255,255,.9)}
 .hero-cta{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
-.btn{display:inline-block;font:500 15px/1 "Gowun Dodum",sans-serif;padding:13px 18px;border-radius:999px;text-decoration:none;cursor:pointer;border:0}
+.btn{display:inline-block;font:500 15px/1 "Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;padding:13px 18px;border-radius:999px;text-decoration:none;cursor:pointer;border:0}
 .btn.sun{background:var(--sun);color:#3a2410}
 .btn.ghost{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.55);backdrop-filter:blur(4px)}
 .hero .tide{position:absolute;left:0;right:0;bottom:-1px;width:100%;height:34px}
@@ -114,7 +114,7 @@ h1,h2,.sites .card h3,.dhead h3,#wkList h4{font-family:"Jua","Gowun Dodum",sans-
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .jump a{color:var(--ink)}}
 main{padding-top:4px}
 h2{font-size:24px;margin:34px 0 10px;color:var(--ink);scroll-margin-top:56px;line-height:1.2}
-h2 .sub{display:block;font-family:"Gowun Dodum",sans-serif;font-size:12.5px;margin-top:4px;font-weight:400}
+h2 .sub{display:block;font-family:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;font-size:12.5px;margin-top:4px;font-weight:400}
 .card{border:0;border-radius:18px;padding:16px;box-shadow:0 1px 0 var(--line),0 6px 20px rgba(120,70,30,.06)}
 button{border-radius:999px;padding:8px 18px;font-weight:500}
 button.x{border-radius:8px}
@@ -130,10 +130,10 @@ select,input[type=number],input[type=date]{border-radius:10px;padding:6px 8px}
 #wkList h4 .link{text-decoration:none;color:inherit}
 #wkList ol{list-style:none;padding:0!important;counter-reset:rk}
 #wkList li{counter-increment:rk;position:relative;background:var(--bg);border-radius:14px;padding:12px 12px 12px 56px!important;margin:8px 0!important}
-#wkList li:before{content:counter(rk);position:absolute;left:12px;top:12px;width:32px;height:32px;border-radius:50%;background:var(--sun);color:#3b2a10;font:20px/32px "Jua",sans-serif;text-align:center}
+#wkList li:before{content:counter(rk);position:absolute;left:12px;top:12px;width:32px;height:32px;border-radius:50%;background:var(--sun);color:#3b2a10;font:800 17px/32px "Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;text-align:center}
 #wkList li:nth-child(n+2):before{background:var(--card);color:var(--sub);box-shadow:inset 0 0 0 1.5px var(--line)}
-#wkList li>.link b{font-family:"Jua",sans-serif;font-weight:400;font-size:18px}
-#wkList li>b{font:400 18px "Jua",sans-serif;color:var(--acc);margin-left:4px}
+#wkList li>.link b{font-family:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;font-weight:800;font-weight:400;font-size:18px}
+#wkList li>b{font:800 18px "Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;color:var(--acc);margin-left:4px}
 /* 장소 카드 */
 .sites{gap:14px}
 .sites .card{padding:0 14px;overflow:hidden}
@@ -145,27 +145,28 @@ select,input[type=number],input[type=date]{border-radius:10px;padding:6px 8px}
 .sites .card:hover{box-shadow:0 0 0 2px var(--acc),0 6px 20px rgba(120,70,30,.08)}
 /* 대상 카드 */
 .tg{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
-.tg .chip{padding:0 12px 10px;border:0;border-radius:16px;overflow:hidden;background:var(--card);box-shadow:0 1px 0 var(--line),0 6px 16px rgba(120,70,30,.06);font:400 18px "Jua",sans-serif;text-align:left}
+.tg .chip{padding:0 12px 10px;border:0;border-radius:16px;overflow:hidden;background:var(--card);box-shadow:0 1px 0 var(--line),0 6px 16px rgba(120,70,30,.06);font:800 18px "Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;text-align:left}
 .tg .chip img,.tg .chip .noph{display:block;width:calc(100% + 24px);aspect-ratio:4/3;object-fit:cover;margin:0 -12px 8px;background:linear-gradient(160deg,var(--acc2),var(--bar))}
-.tg .chip>small{font-family:"Gowun Dodum",sans-serif}
+.tg .chip>small{font-family:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif}
 .tg .chip{display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch}
 .foot{margin:40px 0 0;font-size:12px;color:var(--sub)}
 .foot summary{font-weight:500}
 @media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+input[type=checkbox],input[type=radio]{accent-color:var(--acc);width:17px;height:17px}
 /* 잡는 법·손질 코너 */
 .gpick{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 10px;scrollbar-width:thin}
-.gpick button{flex:none;width:72px;background:none;color:var(--ink);padding:0;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:4px;font:400 14px "Jua",sans-serif}
+.gpick button{flex:none;width:72px;background:none;color:var(--ink);padding:0;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:4px;font:600 13.5px "Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif}
 .gpick img,.gpick .noph{width:60px;height:60px;border-radius:50%;object-fit:cover;display:block;background:linear-gradient(160deg,var(--acc2),var(--bar));box-shadow:0 0 0 2px var(--card),0 0 0 3px var(--line)}
 .gpick button[aria-pressed="true"] img,.gpick button[aria-pressed="true"] .noph{box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--acc)}
 .gpick button[aria-pressed="true"] span:last-child{color:var(--acc)}
 .guide .ghead{display:flex;gap:14px;align-items:flex-start;margin-bottom:6px}
 .guide .ghead img,.guide .ghead .noph{width:112px;height:84px;border-radius:12px;object-fit:cover;flex:none;background:linear-gradient(160deg,var(--acc2),var(--bar))}
-.guide .ghead h3{font:400 26px/1.1 "Jua",sans-serif;margin:0}
+.guide .ghead h3{font:800 26px/1.1 "Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;margin:0}
 .guide .ghead .sub{margin:2px 0 6px}
-.guide h4{font:400 19px "Jua",sans-serif;color:var(--acc);margin:20px 0 6px}
+.guide h4{font:800 19px "Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;color:var(--acc);margin:20px 0 6px}
 .steps{list-style:none;counter-reset:st;padding:0;margin:0}
 .steps li{counter-increment:st;position:relative;padding:2px 0 8px 34px;margin:0;line-height:1.65}
-.steps li:before{content:counter(st);position:absolute;left:0;top:2px;width:24px;height:24px;border-radius:50%;background:var(--acc2);color:var(--deep);font:15px/24px "Jua",sans-serif;text-align:center}
+.steps li:before{content:counter(st);position:absolute;left:0;top:2px;width:24px;height:24px;border-radius:50%;background:var(--acc2);color:var(--deep);font:700 13px/24px "Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;text-align:center}
 .gnote{background:var(--acc2);border-radius:12px;padding:10px 12px;margin:6px 0;line-height:1.65}
 .gwarn{color:var(--bad);font-size:13.5px;margin:8px 0}
 </style>
@@ -1209,9 +1210,8 @@ const ejProp=(id)=>{const f=EOJANG.f[id];const o={};EOJANG.k.forEach((k,i)=>o[k]
 const ymd=s=>s&&s.length===8?s.slice(0,4)+'.'+s.slice(4,6)+'.'+s.slice(6):s;
 function eojangBlock(id){
  const list=(EOJANG.n[id]||[]).slice().sort((a,b)=>a[1]-b[1]);
- if(!list.length)return '';
  const vil=list.filter(([f])=>/마을/.test(ejProp(f).fids_se)),farm=list.length-vil.length;
- const near=list.slice(0,6).map(([f,d])=>{const p=ejProp(f);return `<li><span style="color:${EJ_COLOR(p.fids_se)}">■</span> ${d}km · <b>${esc(p.fids_se)}</b> ${esc(p.farm_knd||p.fids_knd)} <span class="sub">${esc(p.addr)} · ${esc(p.lcns_no)} · 면허 ${ymd(p.lcns_bgng_)}~${ymd(p.lcns_end_y)} · ${esc(p.rel_dept)}</span></li>`}).join('');
+ const near=!list.length?'<li class="sub">반경 4km 안에 등록된 어장 정보가 없어요. 그래도 현장 안내판과 줄 쳐진 구역은 꼭 확인하세요.</li>':list.slice(0,6).map(([f,d])=>{const p=ejProp(f);return `<li><span style="color:${EJ_COLOR(p.fids_se)}">■</span> ${d}km · <b>${esc(p.fids_se)}</b> ${esc(p.farm_knd||p.fids_knd)} <span class="sub">${esc(p.addr)} · ${esc(p.lcns_no)} · 면허 ${ymd(p.lcns_bgng_)}~${ymd(p.lcns_end_y)} · ${esc(p.rel_dept)}</span></li>`}).join('');
  return `<h4>주변 어장 <span class="sub">반경 4km · 마을어업 ${vil.length} · 양식 등 ${farm}</span></h4>
  <div style="margin:4px 0"><button id="geoBtn" onclick="toggleGeo('${id}')">내 위치 보기</button> <button id="alarmBtn" onclick="toggleAlarm('${id}')">${alarmSite===id?'간조 알람 끄기':'간조 알람 켜기'}</button></div><div id="geoBox" style="font-size:14px;margin-bottom:6px"></div>
 ${FREEZONE[id]?`<p style="margin:4px 0"><span style="color:#2f9e44">■</span> <b>무료 해루질 가능 구역(추정) 약 ${FREEZONE[id].freeHa}ha</b> <span class="sub">— 갯벌 ${FREEZONE[id].flatHa}ha 중 어업권 구역 밖. 현장 안내판·통제구역이 우선</span></p>`:''}
