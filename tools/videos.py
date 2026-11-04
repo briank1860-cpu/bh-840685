@@ -144,7 +144,7 @@ def main():
                 continue
             lst.append({'v': vid, 't': title[:90], 'd': d.isoformat(), 's': 1 if '/shorts/' in url else 0})
             added += 1
-    for sid in list(V):  # 1년 지난 것 빼고 최신순 8개
+    for sid in list(V):  # 2년 지난 것 빼고 최신순 8개
         V[sid] = sorted([x for x in V[sid] if (today - datetime.date.fromisoformat(x['d'])).days <= MAX_DAYS],
                         key=lambda x: x['d'], reverse=True)[:KEEP]
         if not V[sid]:
