@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """장소별 해루질 유튜브 영상 연결: 제목·설명에 장소 이름과 해루질 관련 말이 같이 나오는 영상을 그 장소에 붙여
-index.html의 VIDEOS 상수를 갱신한다(장소마다 최근 1년 안 최신 8개).
+index.html의 VIDEOS 상수를 갱신한다(장소마다 최근 2년 안 최신 8개).
 사용:
   python3 tools/videos.py --tsv /tmp/c.tsv      collect.py 결과의 유튜브 줄로 갱신
   python3 tools/videos.py --search              장소마다 유튜브를 직접 검색해 갱신(느림, 1~2분)
@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 HERE = os.path.dirname(__file__)
 HTML = os.path.join(HERE, '..', 'index.html')
-KEEP, MAX_DAYS = 8, 365
+KEEP, MAX_DAYS = 8, 730  # 최근 2년
 WORD = re.compile(r'해루질|갯벌|조개|박하지|돌게|꽃게|소라|골뱅이|낙지|주꾸미|쭈꾸미|맛조개|백합|동죽|바지락|가무락|모시조개|체험')
 
 # 장소별 이름표: any = 이 중 하나가 제목·설명에 있어야 함, need = 흔한 말이라 같이 있어야 하는 말(지역명)

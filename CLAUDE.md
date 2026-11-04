@@ -15,7 +15,7 @@
 - `collect-log.md` — 매일 클라우드 자동 수집 기록(맨 위가 최신).
 - `tools/search.py` — 해루질 글 최신순 검색(다음 블로그·카페, 네이버 블로그·카페, 유튜브·쇼츠). `python tools/search.py all "박하지 해루질"`. 인스타·X·틱톡은 로그인 없이 막혀 있음.
 - `tools/collect.py` — 매일 수집 1단계: 정해진 검색어+오늘 차례 장소 15곳을 모든 경로로 검색해 한 파일(TSV)로. `python tools/collect.py /tmp/c.tsv`
-- `tools/videos.py` — 장소별 해루질 유튜브 연결(제목·설명에 장소 이름+해루질 관련 말). `python tools/videos.py --tsv /tmp/c.tsv --search` → `VIDEOS` 갱신(장소마다 최근 1년 최신 8개). 흔한 지명은 스크립트의 `ALIAS`에 need(같이 있어야 하는 말)로 막는다.
+- `tools/videos.py` — 장소별 해루질 유튜브 연결(제목·설명에 장소 이름+해루질 관련 말). `python tools/videos.py --tsv /tmp/c.tsv --search` → `VIDEOS` 갱신(장소마다 최근 2년 최신 8개). 흔한 지명은 스크립트의 `ALIAS`에 need(같이 있어야 하는 말)로 막는다.
 - `tools/daum_search.py` — 다음만 검색하는 옛 도구(남겨 둠).
 - `tools/sheet_script.gs` — 현장 기록 구글 시트(사용자 드라이브 "백합 해루질 현장 기록")에 붙인 Apps Script 원본.
 
