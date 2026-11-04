@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0f6d74">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>백합 해루질 날짜</title>
+<title>갯벌친구</title>
 <style>
 .spotTip{background:rgba(255,255,255,.85);border:0;box-shadow:none;font:600 11px/1.2 sans-serif;padding:1px 4px}.spotTip:before{display:none}
 :root{--bg:#f6f4ef;--card:#fff;--ink:#1f2328;--sub:#5f6670;--line:#e3dfd6;--acc:#0f6d74;--acc2:#e3f1f1;--good:#2f7d32;--mid:#b7791f;--bad:#b42318;--bar:#d7ebe9}
@@ -91,7 +91,8 @@ input[type=date]{font:inherit;padding:4px 6px;border:1px solid var(--line);borde
 </head>
 <body>
 <main>
-<h1>백합 해루질 날짜 찾기</h1>
+<h1>갯벌친구</h1>
+<div class="sub" style="margin:-4px 0 8px">아이·연인과 함께하는 해루질 동반자</div>
 <p><button id="listBtn" onclick="siteList()">장소 목록 보기</button></p>
 <div class="sub">물때·간조 깊이·낮 시간·계절·날씨로 날짜와 장소에 점수를 매깁니다.</div>
 
@@ -636,9 +637,9 @@ const nStr=n=>new Date(n*DAY).toISOString().slice(0,10),strN=s=>Math.floor(Date.
 function shareRow(sid,n){return RESULT?RESULT.rows.find(r=>r.site.id===sid&&r.n===n):null}
 function shareText(sid,n){
  const s=SITES.find(x=>x.id===sid);if(!s)return '';
- if(n==null)return `[해루질] ${s.name}`;
+ if(n==null)return `[갯벌친구] ${s.name}`;
  const r=shareRow(sid,n),m=new Date(kDayStart(n)+KST).getUTCMonth()+1;
- let t=`[해루질] ${fmtD(n)} ${mulName(lunarDay(n))} · ${s.name}`;
+ let t=`[갯벌친구] ${fmtD(n)} ${mulName(lunarDay(n))} · ${s.name}`;
  if(r){t+=`\n${r.score}점(${r.ds!=null?'낮 '+r.ds:'낮 없음'} · ${r.ns!=null?'밤 '+r.ns:r.nsWhy==='금지'?'밤 금지':'밤 없음'}) · 작업 ${fmtT(r.b)}~${fmtT(r.e)}`;
   const tg=(DETAIL[sid]?.targets||[]).map(x=>findTarget(x.name)).filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).filter(v=>siteMonth(sid,v,m)==='g').map(v=>v.name);
   if(tg.length)t+=`\n이 시기 많이 나옴: ${tg.slice(0,4).join('·')}`}
@@ -652,7 +653,7 @@ function shareFocusHtml(id){ // 공유받은 날짜 카드
 function shareUrl(sid,n){return location.origin+location.pathname+'#s='+sid+(n!=null?'&d='+nStr(n):'')}
 async function doShare(sid,n,el){
  const text=shareText(sid,n),url=shareUrl(sid,n);
- if(navigator.share){try{await navigator.share({title:'해루질 추천',text,url});return}catch(e){if(e&&e.name==='AbortError')return}}
+ if(navigator.share){try{await navigator.share({title:'갯벌친구',text,url});return}catch(e){if(e&&e.name==='AbortError')return}}
  copyTxt(text+'\n'+url,el); // 공유 창이 없는 PC 등은 복사
 }
 const shareBtn=(sid,n)=>`<button type="button" onclick="event.stopPropagation();doShare('${sid}',${n==null?'null':n},this)" style="padding:1px 8px;font-size:12px;background:var(--card);color:var(--acc);border:1px solid var(--acc);border-radius:12px">공유</button>`;
