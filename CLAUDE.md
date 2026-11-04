@@ -29,7 +29,7 @@
 - 현장 기록: 폰(localStorage `bh_notes`)에 먼저 저장 → 연결되면 `SHARE`(구글 Apps Script 웹앱 주소)로 전송. 다른 사람 기록도 같은 주소 GET으로 읽음.
 
 ## 작업 순서
-1. 시작할 때 `git pull` (클라우드 자동 수집이 매일 아침 7시쯤 index.html·collect-log.md를 고쳐 올림).
+1. 시작할 때 `git pull` (클라우드 자동 수집이 하루 세 번(7시·15시·20시쯤) index.html·collect-log.md를 고쳐 올림).
 2. 고친 뒤 문법 확인:
    `node -e "const h=require('fs').readFileSync('index.html','utf8');[...h.matchAll(/<script>([\s\S]*?)<\/script>/g)].forEach(x=>new Function(x[1]));console.log('OK')"`
 3. 화면 확인: 브라우저로 공유 링크를 열어 바뀐 부분을 직접 본다(올린 뒤 1~2분이면 반영).
@@ -37,7 +37,7 @@
 5. `<meta name="robots" content="noindex,nofollow,noarchive">` 줄은 지우지 않는다(링크 아는 사람만 쓰게).
 
 ## 자동 수집(클라우드 루틴)
-- 이름 "해루질 매일 수집 · 백합 도구 갱신", 매일 07:07(한국시간). 관리: https://claude.ai/code/routines/trig_01A4YWcF17pAkLQQkdL8mVjd
+- 이름 "해루질 매일 수집 · 백합 도구 갱신", 매일 07:07·15:07·20:07(한국시간, 하루 세 번). 관리: https://claude.ai/code/routines/trig_01A4YWcF17pAkLQQkdL8mVjd
 - 기존 장소 갱신 + 근거 2건 이상인 새 장소 하루 3곳까지 추가 + 앱 현장 기록 반영.
 - 후기에 장소 안 위치가 구체적으로 나오면(바위·다리·방조제 번호·물골 등) 카카오 장소 검색(`https://search.map.kakao.com/mapsearch/map.daum?q=...&msFlag=A&sort=0`, Referer `https://map.kakao.com/`)이나 OSM으로 좌표를 잡아 `SPOTS`에 추가한다(원문 확인 1건 또는 요약 2건 이상, 대략이면 p:'대략'). 위치가 붙은 앱 현장 기록이 한 지점에 '좋음'으로 여러 건 모이면 그 지점도 SPOTS에 넣는다.
 - 클라우드 환경 네트워크 허용: search.daum.net, v.daum.net, *.daum.net, search.naver.com, *.tistory.com, brunch.co.kr, *.youtube.com (현장 기록 읽기에 script.google.com·script.googleusercontent.com이 필요할 수 있음).
