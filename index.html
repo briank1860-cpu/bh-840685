@@ -192,6 +192,11 @@ details.cond>.card{margin-top:8px}
 button.fav{background:transparent;border:0;box-shadow:none;padding:0 4px;margin:0 2px;font-size:22px;line-height:1;color:var(--sun);vertical-align:-2px;cursor:pointer}
 button.fav:not(.on){color:var(--mud)}
 .empty{padding:18px 4px;color:var(--sub);line-height:1.7}
+.fgcard{margin:10px 0;padding:12px 14px;border-radius:14px;border:1.5px dashed var(--acc);background:var(--card)}
+.fgcard.on{border-style:solid;background:var(--acc2)}.fgcard p{margin:6px 0}.fgcard input{margin:6px 6px 6px 0;max-width:160px}
+button.ghost2{background:transparent;color:var(--acc);border:1.5px solid var(--acc);box-shadow:none}
+.fgl{margin:6px 0;padding-left:18px}.fgl li{margin:3px 0}
+.fbbox{margin-top:12px;border-top:1px solid var(--line);padding-top:8px}.fbbox summary{font-size:14px;color:var(--acc)}.fbbox textarea{width:100%;margin:8px 0}
 /* 잡는 법·손질 코너 */
 .gpick{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 10px;scrollbar-width:thin}
 .gpick button{flex:none;width:72px;background:none;color:var(--ink);padding:0;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:4px;font:600 13.5px "Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif}
@@ -314,7 +319,7 @@ button.fav:not(.on){color:var(--mud)}
 </details>
 </div>
 <button type="button" id="toTop" class="totop" hidden aria-label="처음 화면으로">↑ 처음으로</button>
-<footer class="foot"><p class="brand">갯벌친구 · 바다가 길을 내주는 시간, 함께 걸어요</p><details><summary>사진 출처</summary><p>맨 위: 고창 갯벌, 문화재청(공공누리 제1유형). 대상 사진: 위키미디어 공용 — 백합 H. Zell(CC BY-SA 3.0), 동죽·개량조개(밀조개)·박하지(CC BY-SA 3.0), 바지락 Holger Krisp(CC BY 3.0), 맛조개 Fumikas Sagisavas(CC0), 꽃게 Franz Anthony(CC BY 4.0), 낙지 Ulrich Walder(CC0), 주꾸미 Totti(CC BY-SA 4.0), 소라 George Chernilevsky(퍼블릭 도메인), 골뱅이·떡조개(CC BY-SA 3.0), 해삼 OpenCage(CC BY-SA 2.5), 굴 David Monniaux(CC BY-SA 3.0), 개불 ProjectManhattan(CC0), 가무락 국립국어원(CC BY-SA 2.0 KR), 개조개 Lombroso(CC BY-SA 4.0), 가리비 James St. John(CC BY 2.0). 장소 사진: 그 장소 관련 유튜브 영상 미리보기.</p></details></footer>
+<footer class="foot"><p class="brand">갯벌친구 · 바다가 길을 내주는 시간, 함께 걸어요</p><div id="footFb"></div><details><summary>사진 출처</summary><p>맨 위: 고창 갯벌, 문화재청(공공누리 제1유형). 대상 사진: 위키미디어 공용 — 백합 H. Zell(CC BY-SA 3.0), 동죽·개량조개(밀조개)·박하지(CC BY-SA 3.0), 바지락 Holger Krisp(CC BY 3.0), 맛조개 Fumikas Sagisavas(CC0), 꽃게 Franz Anthony(CC BY 4.0), 낙지 Ulrich Walder(CC0), 주꾸미 Totti(CC BY-SA 4.0), 소라 George Chernilevsky(퍼블릭 도메인), 골뱅이·떡조개(CC BY-SA 3.0), 해삼 OpenCage(CC BY-SA 2.5), 굴 David Monniaux(CC BY-SA 3.0), 개불 ProjectManhattan(CC0), 가무락 국립국어원(CC BY-SA 2.0 KR), 개조개 Lombroso(CC BY-SA 4.0), 가리비 James St. John(CC BY 2.0). 장소 사진: 그 장소 관련 유튜브 영상 미리보기.</p></details></footer>
 </main>
 
 <script>
@@ -923,7 +928,7 @@ function siteDetail(id){saveState({dlg:{t:'s',id}});
  s.src.forEach(([t,u])=>{if(!(d.sources||[]).some(x=>x[1]===u))src.push(`<li><a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a></li>`)});
  if((VIDEOS[id]||[]).length)h+=`<h4>관련 영상 <span class="sub">유튜브 · 최근 2년</span></h4><div style="display:grid;gap:8px">${VIDEOS[id].map(v=>`<a href="https://www.youtube.com/${v.s?'shorts/':'watch?v='}${v.v}" target="_blank" rel="noopener" style="display:flex;gap:8px;align-items:center;text-decoration:none;color:inherit"><img src="https://i.ytimg.com/vi/${v.v}/mqdefault.jpg" loading="lazy" alt="" style="width:112px;height:63px;object-fit:cover;border-radius:6px;flex:none;background:#ddd"><span><span style="font-size:14px">${esc(v.t)}</span><br><span class="sub">${esc(v.d)}${v.s?' · 쇼츠':''}</span></span></a>`).join('')}</div><p class="sub" style="margin-top:4px">제목·설명에 이 장소가 나오는 영상을 자동으로 모았습니다. 날짜는 대략입니다.</p>`;
  h+=`<h4>지도·물때·출처</h4><p><a href="https://map.kakao.com/?q=${q}" target="_blank" rel="noopener">카카오맵</a> · <a href="https://map.naver.com/p/search/${q}" target="_blank" rel="noopener">네이버지도</a> · <a href="https://www.badatime.com/${s.bt}.html" target="_blank" rel="noopener">물때표</a></p><ul>${src.join('')}</ul>`;
- openDlg(`<h3 class="fh">${esc(s.name)} ${favBtn(id)}</h3>`,h);drawMap(id);
+ openDlg(`<h3 class="fh">${esc(s.name)} ${favBtn(id)}</h3>`,h);drawMap(id);fgRender();
 }
 // 현장 기록: 폰에 먼저 저장하고(신호 없어도 됨), 연결되면 공용 시트로 보냄. 다른 사람 기록도 장소 화면에 보여 줌
 const NKEY='bh_notes',SHARE='https://script.google.com/macros/s/AKfycbyHPeoClz6dBFF638b1znOuZoDNsxYD7Sv0Zh1iuW8WhwZRS5J4c-p5UsF_bb8Kgh0/exec';
@@ -982,9 +987,20 @@ function noteBlock(id){
    <label class="sub"><input type="checkbox" id="nL"${lsGet('bh_noLoc','')?'':' checked'}> 지금 위치 같이 저장(장소 근처일 때만, 지도에 표시)</label>
    <input id="nN" placeholder="별명 (안 써도 됨)" value="${esc(lsGet('bh_nick',''))}">
    <button type="button" onclick="saveNote('${id}')">저장</button><span id="nMsg" class="sub"></span>
-  </div>${ns.length?`<div style="margin-top:8px"><b>내 기록</b><ul style="margin:4px 0 0;padding-left:18px">${ns.map(n=>noteLine(n,1,id)).join('')}</ul></div>`:''}
+  </div>${fbForm(id)}${ns.length?`<div style="margin-top:8px"><b>내 기록</b><ul style="margin:4px 0 0;padding-left:18px">${ns.map(n=>noteLine(n,1,id)).join('')}</ul></div>`:''}
   ${others.length?`<div style="margin-top:8px"><b>다른 사람 기록</b><ul style="margin:4px 0 0;padding-left:18px">${others.map(n=>noteLine(n,0,id)).join('')}</ul></div>`:''}</details>`;
 }
+// ── 앱 문제·제안: 현장 기록과 같은 시트에 sid 'app_feedback'으로 보냄. 자동 수집이 feedback.md에 모아 검토
+function fbForm(where){return `<details class="fbbox"><summary>앱 문제·제안 보내기</summary><textarea id="fbT" rows="3" placeholder="불편한 점, 틀린 정보, 있었으면 하는 기능을 적어 주세요. 검토해서 좋은 의견은 반영해요."></textarea><button type="button" onclick="sendFb('${where||''}')">보내기</button> <span id="fbMsg" class="sub"></span></details>`}
+async function sendFb(where){
+ const t=($('fbT')&&$('fbT').value.trim())||'';if(t.length<2){$('fbMsg').textContent='내용을 적어 주세요.';return}
+ const q=JSON.parse(lsGet('bh_fb','[]'));q.push({t:Date.now(),m:t.slice(0,1000),w:where});lsSet('bh_fb',JSON.stringify(q));
+ $('fbT').value='';$('fbMsg').textContent='보내는 중…';const n=await syncFb();$('fbMsg').textContent=n?'고마워요! 검토해서 좋은 의견은 반영할게요.':'저장해 뒀어요. 인터넷이 되면 보낼게요.'}
+async function syncFb(){const q=JSON.parse(lsGet('bh_fb','[]')),left=[];let ok=0;const d=new Date(Date.now()+KST).toISOString().slice(0,10);
+ for(const x of q){if(await postShare({sid:'app_feedback',name:'앱 의견',d,r:'m',c:'앱 의견'+(x.w?' · '+((SITES.find(s=>s.id===x.w)||{}).name||x.w):''),m:x.m,n:lsGet('bh_nick',''),dev:devId(),k:'fb'+x.t}))ok++;else left.push(x)}
+ lsSet('bh_fb',JSON.stringify(left));return ok}
+window.addEventListener('online',()=>syncFb());
+
 async function saveNote(id){
  const d=$('nD').value,r=(document.querySelector('input[name=nR]:checked')||{}).value||'m',c=$('nC').value.trim(),m=$('nM').value.trim();
  if(!d){$('nMsg').textContent='날짜를 넣으세요.';return}
@@ -1434,6 +1450,7 @@ function eojangBlock(id){
  <div style="margin:4px 0"><button id="geoBtn" onclick="toggleGeo('${id}')">내 위치 보기</button> <button id="alarmBtn" onclick="toggleAlarm('${id}')">${alarmSite===id?'간조 알람 끄기':'간조 알람 켜기'}</button></div><div id="geoBox" style="font-size:14px;margin-bottom:6px"></div>
 ${FREEZONE[id]?`<p style="margin:4px 0"><span style="color:#2f9e44">■</span> <b>무료 해루질 가능 구역(추정) 약 ${FREEZONE[id].freeHa}ha</b> <span class="sub">— 갯벌 ${FREEZONE[id].flatHa}ha 중 어업권 구역 밖. 현장 안내판·통제구역이 우선</span></p>`:''}
  <div id="ejMap" style="height:300px;border:1px solid var(--line);border-radius:8px"></div>
+ <div id="fgBox" data-s="${id}"></div>
  <p class="sub"><span style="color:#d9480f">■</span> 마을어업(채취 금지) <span style="color:#e8a317">■</span> 양식어업 <span style="color:#7048e8">■</span> 정치망 · <span style="color:#2f9e44">■</span> 무료 가능(추정) · <span style="color:#b42318">┅</span> 출입통제 구역 · <span style="color:#3d5a73">━</span> 해안선 <span style="color:#c9b48a">■</span> 갯벌 <span style="color:#e0c873">■</span> 모래사장 <b style="color:#1c64d6">P</b> 주차장 · <b style="background:#555;color:#fff;padding:0 3px;border-radius:2px;font-size:11px">계산 기준점</b> 물때 계산용 대략 위치(내 위치 아님) · <span style="color:#1c7ed6">●</span> 내 위치(버튼 누를 때만). 구역을 누르면 내용이 나옵니다.</p>
  <ul style="font-size:13px">${near}</ul>
  <p class="sub">국립해양조사원 어장정보(공공데이터포털, 2025-08 공개). 면허기간이 지났어도 갱신됐을 수 있고, 이후 새로 생긴 어장은 빠져 있을 수 있습니다. 색칠된 구역 밖이어도 현장 안내판·시·군 해양수산과로 확인하세요.</p>`;
@@ -1499,6 +1516,72 @@ function distPoly(la,lo,g){ // 경계선까지 최단거리(km)
 }
 function stopGeo(){if(geoWatch!=null&&navigator.geolocation)navigator.geolocation.clearWatch(geoWatch);geoWatch=null;const b=$('geoBtn');if(b)b.textContent='내 위치 보기'}
 function geoErr(e){return e.code===1?(window.top!==window?'이 링크(claude.ai) 안에서는 위치가 막혀 있습니다. 휴대폰 설정에서 위치를 허용했는데도 이 문구가 나오면 링크 보안 제한입니다.':'위치 권한이 거부됐습니다. 휴대폰 설정에서 이 브라우저의 위치를 허용하세요.'):e.code===3?'위치를 찾는 데 시간이 오래 걸립니다. 하늘이 트인 곳에서 다시 눌러 주세요.':'위치를 가져오지 못했습니다.'}
+// ── 현장 친구 위치 공유: 모임 링크를 받은 사람끼리 서로 위치를 지도에 표시(앱 화면을 켜 둔 동안). 위치는 사용자 구글 시트('위치' 탭)에만, 12시간 뒤 지움
+let FG=null,fgWatch=null,fgPos=null,fgSent=0,fgSentPos=null,fgTimer=null,fgPoll=null,fgLocs=[],fgLayer=null,fgErr='';
+function fgLoad(){try{const o=JSON.parse(localStorage.getItem('bh_fg')||'null');if(o&&o.until>Date.now())return o}catch(e){}return null}
+function fgSave(){try{FG?localStorage.setItem('bh_fg',JSON.stringify(FG)):localStorage.removeItem('bh_fg')}catch(e){}}
+const fgCode=()=>[...crypto.getRandomValues(new Uint8Array(12))].map(b=>'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'[b%55]).join('');
+const fgLink=()=>location.origin+location.pathname+'#fg='+FG.g+'&s='+FG.sid;
+const agoTxt=t=>{const m=Math.round((Date.now()-t)/60e3);return m<1?'방금':m<60?m+'분 전':Math.floor(m/60)+'시간 전'};
+function fgStart(sid,g){
+ if(!navigator.geolocation){fgErr='이 브라우저는 위치를 지원하지 않아요.';fgRender();return}
+ const nick=($('fgNick')&&$('fgNick').value.trim())||lsGet('bh_nick','')||'나';lsSet('bh_nick',nick.slice(0,30));
+ FG={g:g||fgCode(),sid,nick:nick.slice(0,20),until:Date.now()+8*3600e3};fgSave();fgErr='';fgRun();fgRender();
+ if(!g)fgShare();
+}
+function fgRun(){
+ if(!FG)return;if(navigator.wakeLock&&document.visibilityState==='visible')navigator.wakeLock.request('screen').catch(()=>{});
+ if(fgWatch==null)fgWatch=navigator.geolocation.watchPosition(p=>{fgPos={la:p.coords.latitude,lo:p.coords.longitude,acc:p.coords.accuracy,t:Date.now()};fgTick()},e=>{fgErr=geoErr(e);fgRender()},{enableHighAccuracy:true,maximumAge:10000,timeout:30000});
+ clearInterval(fgTimer);fgTimer=setInterval(fgTick,20000);clearInterval(fgPoll);fgPoll=setInterval(fgFetch,15000);fgFetch();
+}
+async function fgTick(){ // 15m 넘게 움직였거나 60초 지나면 내 위치 보냄
+ if(!FG||!fgPos)return;if(Date.now()>FG.until){fgStop();return}
+ const moved=!fgSentPos||kmD(fgPos.la,fgPos.lo,fgSentPos.la,fgSentPos.lo)>0.015;
+ if(!moved&&Date.now()-fgSent<60e3)return;
+ fgSent=Date.now();fgSentPos=fgPos;
+ const ok=await postShare({op:'loc',g:FG.g,dev:devId(),n:FG.nick,la:+fgPos.la.toFixed(6),lo:+fgPos.lo.toFixed(6),acc:Math.round(fgPos.acc||0),sid:FG.sid});
+ if(!ok)fgErr='위치를 못 보냈어요(신호 약함). 잠시 뒤 다시 보내요.';else fgErr='';fgRender();
+}
+async function fgFetch(){
+ if(!FG)return;
+ try{const r=await fetch(SHARE+'?g='+FG.g);const j=await r.json();
+  if(!('locs' in j)){fgErr='위치 공유 서버 준비 전이에요(시트 스크립트 업데이트 필요).';fgRender();return}
+  const me=devId().slice(0,6);fgLocs=(j.locs||[]).filter(x=>x.d!==me)}catch(e){fgErr='친구 위치를 못 받았어요(신호 약함).'}
+ fgRender();
+}
+async function fgStop(){
+ if(FG)postShare({op:'loc',g:FG.g,dev:devId(),stop:1,la:0,lo:0});
+ if(fgWatch!=null)navigator.geolocation.clearWatch(fgWatch);fgWatch=null;clearInterval(fgTimer);clearInterval(fgPoll);
+ FG=null;fgSave();fgLocs=[];fgPos=null;fgSentPos=null;fgRender();
+}
+async function fgShare(){
+ if(!FG)return;const url=fgLink(),text=`갯벌친구 — ${(SITES.find(s=>s.id===FG.sid)||{}).name||''}에서 서로 위치 보기. 링크를 열고 '참여'를 누르세요.`;
+ try{if(navigator.share){await navigator.share({title:'갯벌친구 위치 공유',text,url});return}}catch(e){if(e&&e.name==='AbortError')return}
+ try{await navigator.clipboard.writeText(text+' '+url);alert('링크를 복사했어요. 카톡 등에 붙여 넣어 보내세요.')}catch(e){prompt('이 링크를 친구에게 보내세요',url)}
+}
+function fgRender(){
+ const box=$('fgBox');
+ if(box){const sid=box.dataset.s;
+  if(!FG||FG.sid!==sid){const inv=getState().fgInvite;
+   box.innerHTML=inv&&inv.s===sid?`<div class="fgcard"><b>친구가 위치 공유에 초대했어요</b><p class="sub">참여하면 이 앱을 켜 둔 동안 서로 위치가 지도에 보여요. 위치는 12시간 뒤 지워져요.</p><input id="fgNick" placeholder="내 별명" value="${esc(lsGet('bh_nick',''))}"><button type="button" onclick="fgJoin()">참여</button></div>`
+    :`<div class="fgcard"><b>친구와 현장 위치 공유</b><p class="sub">같이 간 사람끼리 갯벌에서 서로 어디 있는지 지도로 봐요. 링크를 받은 사람만 보이고, 이 앱을 켜 둔 동안만 공유돼요.</p><input id="fgNick" placeholder="내 별명" value="${esc(lsGet('bh_nick',''))}"><button type="button" onclick="fgStart('${sid}')">공유 시작하고 링크 보내기</button>${FG?`<p class="sub">다른 장소(${esc((SITES.find(s=>s.id===FG.sid)||{}).name||'')})에서 공유 중이에요.</p>`:''}</div>`}
+  else{const rows=fgLocs.map(x=>{const d=fgPos?kmD(fgPos.la,fgPos.lo,x.la,x.lo):null,old=Date.now()-x.t>5*60e3;
+    return `<li><b>${esc(x.n||'친구')}</b> ${d!=null?`${mTxt(d)} ${bearing(fgPos.la,fgPos.lo,x.la,x.lo)}쪽`:''} <span class="sub">${agoTxt(x.t)}</span>${old?' <span style="color:var(--bad)">· 5분 넘게 소식 없음</span>':''}</li>`}).join('');
+   box.innerHTML=`<div class="fgcard on"><b>위치 공유 중</b> <span class="sub">${esc(FG.nick)} · ${fgPos?'내 위치 '+agoTxt(fgSent||fgPos.t)+' 보냄':'위치 찾는 중…'}</span>
+    <ul class="fgl">${rows||'<li class="sub">아직 친구 위치가 없어요. 링크를 보내 주세요.</li>'}</ul>${fgErr?`<p style="color:var(--bad);margin:4px 0">${esc(fgErr)}</p>`:''}
+    <button type="button" onclick="fgShare()">링크 다시 보내기</button> <button type="button" class="ghost2" onclick="fgStop()">공유 끄기</button>
+    <p class="sub">화면이 꺼지거나 다른 앱으로 가면 잠시 멈춰요. 같이 있는 사람이 멀어지면 바로 연락하세요.</p></div>`}}
+ fgMap();
+}
+function fgMap(){ // 장소 지도에 친구 위치 표시
+ if(typeof ejMap==='undefined'||!ejMap){fgLayer=null;return}
+ if(fgLayer&&!ejMap.hasLayer(fgLayer))fgLayer=null;
+ if(!fgLayer)fgLayer=L.layerGroup().addTo(ejMap);fgLayer.clearLayers();
+ if(!FG)return;
+ fgLocs.forEach(x=>{L.circleMarker([x.la,x.lo],{radius:8,color:'#fff',weight:2,fillColor:'#7048e8',fillOpacity:1}).bindTooltip(esc(x.n||'친구')+' · '+agoTxt(x.t),{permanent:true,direction:'top',offset:[0,-6]}).addTo(fgLayer)});
+}
+function fgJoin(){const inv=getState().fgInvite;if(!inv)return;saveState({fgInvite:null});fgStart(inv.s,inv.g)}
+
 function toggleGeo(id){
  if(geoWatch!=null){stopGeo();saveState({geo:false});$('geoBox').textContent='';return}
  if(!navigator.geolocation){$('geoBox').textContent='이 브라우저는 위치를 지원하지 않습니다.';return}
@@ -1934,7 +2017,7 @@ function nearRegions(){const msg=$('nearMsg');if(!navigator.geolocation){msg.tex
 function init(){
  const regs=[...new Set(SITES.map(s=>s.reg))].sort((a,b)=>(REG_ORDER.indexOf(a)+99)%99-(REG_ORDER.indexOf(b)+99)%99);
  $('siteCount').textContent=`${regs.join('·')} ${SITES.length}곳. 누르면 지도·포인트·후기·영상`;
- $('nearBtn').onclick=nearRegions;favCount();
+ $('nearBtn').onclick=nearRegions;favCount();$('footFb').innerHTML=fbForm('');syncFb();
  $('regions').innerHTML=regs.map(r=>`<label><input type="checkbox" value="${r}" checked> ${r}</label>`).join('');
  applyState();
  $('siteCards').innerHTML=SITES.map(s=>`<div class="card" data-s="${s.id}">${(v=>v?`<img class="ph" loading="lazy" alt="" src="https://i.ytimg.com/vi/${v.v}/mqdefault.jpg">`:'<div class="ph none"></div>')((VIDEOS[s.id]||[])[0])}<h3>${s.name} ${favBtn(s.id)}</h3>
@@ -1962,7 +2045,9 @@ function init(){
  $('sitePick').onchange=renderCal;
  $('weekend').onchange=()=>{if(RESULT){RESULT.opt.weekend=$('weekend').checked;render()}};
  // 공유 링크(#s=장소&d=날짜)로 열면: 그 장소 지역을 켜고 계산한 뒤 그 장소·날짜를 바로 보여 줌
- const HS=new URLSearchParams(location.hash.slice(1)),hs=HS.get('s'),hd=HS.get('d');
+ const HS=new URLSearchParams(location.hash.slice(1)),hs=HS.get('s'),hd=HS.get('d'),hg=HS.get('fg');
+ if(hg&&/^[A-Za-z0-9]{8,32}$/.test(hg)&&hs){const cur=fgLoad();if(!cur||cur.g!==hg)saveState({fgInvite:{g:hg,s:hs}})}
+ FG=fgLoad();if(FG)fgRun();
  if(hs&&SITES.some(x=>x.id===hs)){const s=SITES.find(x=>x.id===hs),x=[...document.querySelectorAll('#regions input')].find(i=>i.value===s.reg);if(x)x.checked=true;
   SHARE_FOCUS={s:hs,n:hd&&/^\d{4}-\d{2}-\d{2}$/.test(hd)?strN(hd):null};history.replaceState(null,'',location.pathname+location.search)}
  run().then(()=>{if(SHARE_FOCUS)siteDetail(SHARE_FOCUS.s);else restoreView()});

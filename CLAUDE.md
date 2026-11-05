@@ -20,7 +20,8 @@
 - `tools/videos.py` — 장소별 해루질 유튜브 연결(제목·설명에 장소 이름+해루질 관련 말). `python tools/videos.py --tsv /tmp/c.tsv --search` → `VIDEOS` 갱신(장소마다 최근 2년 최신 8개). 흔한 지명은 스크립트의 `ALIAS`에 need(같이 있어야 하는 말)로 막는다.
 - `tools/check_spots.py` — SPOTS 포인트가 육지에 찍혔는지 검사(해안선·갯벌·도로 자료). `--fix`는 바다 쪽으로 옮김.
 - `tools/daum_search.py` — 다음만 검색하는 옛 도구(남겨 둠).
-- `tools/sheet_script.gs` — 현장 기록 구글 시트(사용자 드라이브 "백합 해루질 현장 기록")에 붙인 Apps Script 원본.
+- `tools/sheet_script.gs` — 현장 기록 구글 시트(사용자 드라이브 "백합 해루질 현장 기록")에 붙인 Apps Script 원본. 2026-11 판부터 친구 위치 공유(op:'loc', '위치' 탭, GET ?g=모임코드)도 처리 — 사용자가 시트의 Apps Script에 붙여 넣고 '배포 관리 > 새 버전'으로 다시 배포해야 동작.
+- `feedback.md` — 앱 의견(문제·제안) 모음. 작업 세션을 시작하면 '반영 대기' 항목을 사용자에게 먼저 알린다.
 
 ## index.html 안의 데이터(스크립트 안 상수)
 - 한 줄 JSON: `DETAIL`, `REVIEW`, `PARK`, `MODE`, `SITEF`, `TARGETS`, `OSMBASE`, `FREEZONE` 등. 고칠 땐 파이썬으로 그 줄 JSON을 읽어 고친 뒤 `ensure_ascii=False`, 구분자 공백 없이, `</` → `<\/` 로 되돌려 쓴다.
@@ -36,6 +37,8 @@
 - `PHOTO`: 대상 사진 출처 {대상id:"작가, 라이선스"} — 사진은 `img/대상id.jpg`(480×360, 위키미디어 공용 등 자유 이용 사진만). 맨 위 사진 `img/hero.jpg`. 출처는 맨 아래 "사진 출처"에도 적는다. 장소 카드 사진은 VIDEOS 첫 영상 미리보기.
 - `ECO`: 대상별 공인 생태(활동 시간·바닥·수온·금어기, 출처 포함). `TIMEW`: 낮·밤 판단 근거 한 줄.
 - 현장 기록: 폰(localStorage `bh_notes`)에 먼저 저장 → 연결되면 `SHARE`(구글 Apps Script 웹앱 주소)로 전송. 다른 사람 기록도 같은 주소 GET으로 읽음.
+- 앱 의견: 현장 기록 칸·맨 아래의 '앱 문제·제안 보내기' → 같은 시트에 sid `app_feedback`(localStorage `bh_fb` 대기열). 테스트할 땐 postShare를 가짜로 바꿔 시트에 보내지 않는다.
+- 친구 위치 공유: 장소 화면 지도 아래 `fgBox`. 모임 링크 `#fg=코드&s=장소id`, localStorage `bh_fg`(8시간), 15m 움직이거나 60초마다 위치 보냄, 15초마다 친구 위치 받음. 앱을 켜 둔 동안만.
 
 ## 작업 순서
 1. 시작할 때 `git pull` (클라우드 자동 수집이 하루 세 번(7시·15시·20시쯤) index.html·collect-log.md를 고쳐 올림).
