@@ -52,7 +52,7 @@
 ## 자동 수집(클라우드 루틴)
 - 이름 "해루질 매일 수집 · 백합 도구 갱신", 매일 07:07·15:07·20:07(한국시간, 하루 세 번). 관리: https://claude.ai/code/routines/trig_01A4YWcF17pAkLQQkdL8mVjd
 - 기존 장소 갱신 + 근거 2건 이상인 새 장소 하루 3곳까지 추가 + 앱 현장 기록 반영.
-- 매 실행마다 collect.py 다음에 반드시 `python3 tools/videos.py --tsv /tmp/c.tsv --search`를 돌려 장소별 유튜브(VIDEOS)를 갱신한다. 새 장소를 넣으면 videos.py의 `ALIAS`에도 그 장소 이름표를 추가한다. 잘못 붙은 영상(다른 지역·해루질 무관)을 보면 ALIAS를 고쳐 막는다.
+- 장소별 유튜브(VIDEOS) 갱신은 collect.py가 끝에 videos.py를 자동으로 돌려 한다(2026-11-05부터, 따로 안 돌려도 됨). 출력 끝의 '새로 붙은 영상' 수를 collect-log.md에 적는다. 새 장소를 넣으면 videos.py의 `ALIAS`에도 그 장소 이름표를 추가한다. 잘못 붙은 영상(다른 지역·해루질 무관)을 보면 ALIAS를 고쳐 막는다(need: 같이 있어야 하는 말, not: 있으면 안 되는 말).
 - 후기에 장소 안 위치가 구체적으로 나오면(바위·다리·방조제 번호·물골 등) 카카오 장소 검색(`https://search.map.kakao.com/mapsearch/map.daum?q=...&msFlag=A&sort=0`, Referer `https://map.kakao.com/`)이나 OSM으로 좌표를 잡아 `SPOTS`에 추가한다(원문 확인 1건 또는 요약 2건 이상, 대략이면 p:'대략'). 좌표를 넣은 뒤엔 반드시 `python3 tools/check_spots.py`를 돌려 육지(건물·밭·도로·섬 안쪽)에 찍힌 포인트가 없는지 확인한다(문제 있으면 `--fix`로 바다 쪽 갯벌로 옮기거나 좌표를 다시 잡는다). 장소 이름 좌표·주소 검색 결과는 대개 육지(마을·주차장)라 그대로 쓰지 말고, 설명에 맞는 바위·갯벌·물골 쪽으로 옮긴다. 위치가 붙은 앱 현장 기록이 한 지점에 '좋음'으로 여러 건 모이면 그 지점도 SPOTS에 넣는다.
 - 클라우드 환경 네트워크 허용: search.daum.net, v.daum.net, *.daum.net, search.naver.com, *.tistory.com, brunch.co.kr, *.youtube.com (현장 기록 읽기에 script.google.com·script.googleusercontent.com이 필요할 수 있음).
 

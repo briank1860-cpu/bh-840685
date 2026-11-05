@@ -13,7 +13,7 @@ HTML = os.path.join(HERE, '..', 'index.html')
 KEEP, MAX_DAYS = 8, 730  # 최근 2년
 WORD = re.compile(r'해루질|갯벌|조개|박하지|돌게|꽃게|소라|골뱅이|낙지|주꾸미|쭈꾸미|맛조개|백합|동죽|바지락|가무락|모시조개|체험')
 
-# 장소별 이름표: any = 이 중 하나가 제목·설명에 있어야 함, need = 흔한 말이라 같이 있어야 하는 말(지역명)
+# 장소별 이름표: any = 이 중 하나가 제목·설명에 있어야 함, need = 흔한 말이라 같이 있어야 하는 말(지역명), not = 있으면 다른 곳(예: '당진해루질' 안의 '진해루')
 ALIAS = {
     'ic_seonnyeo': {'any': ['선녀바위']},
     'ic_masian': {'any': ['마시안']},
@@ -98,7 +98,7 @@ ALIAS = {
     'bs_sodam': {'any': ['소담공원', '신호동']},
     'bs_dadaepo': {'any': ['다대포']},
     'bs_ilgwang': {'any': ['일광해수욕장', '일광해변']},
-    'gn_jinhaeru': {'any': ['진해루']},
+    'gn_jinhaeru': {'any': ['진해루'], 'not': ['당진', '석문']},
     'gn_yongdaemi': {'any': ['룡대미', '용대미']},
     'gn_donghwa': {'any': ['동화마을', '동화어촌']},
     'gn_bito': {'any': ['비토섬', '비토리']},
@@ -145,7 +145,7 @@ def vid_of(url):
 def match_sites(text):
     out = []
     for sid, a in ALIAS.items():
-        if any(k in text for k in a['any']) and all(k in text for k in a.get('need', [])):
+        if any(k in text for k in a['any']) and all(k in text for k in a.get('need', [])) and not any(k in text for k in a.get('not', [])):
             out.append(sid)
     return out
 

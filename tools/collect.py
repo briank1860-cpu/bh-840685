@@ -65,6 +65,10 @@ def main():
         print('막힌 경로(실패 횟수):', ', '.join('%s %d' % kv for kv in fail.items()))
     print('오늘 장소 검색어:', ', '.join(todays))
     print('줄 형식: 경로<TAB>검색어<TAB>언제<TAB>제목<TAB>URL<TAB>요약')
+    # 영상 갱신은 빠뜨리기 쉬워 여기서 바로 한다(장소별 유튜브 VIDEOS)
+    import subprocess
+    print('--- 영상 갱신(videos.py) ---', flush=True)
+    subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'videos.py'), '--tsv', path, '--search'])
 
 
 if __name__ == '__main__':
