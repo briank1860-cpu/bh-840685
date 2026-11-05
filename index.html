@@ -991,7 +991,7 @@ function noteBlock(id){
   ${others.length?`<div style="margin-top:8px"><b>다른 사람 기록</b><ul style="margin:4px 0 0;padding-left:18px">${others.map(n=>noteLine(n,0,id)).join('')}</ul></div>`:''}</details>`;
 }
 // ── 앱 문제·제안: 현장 기록과 같은 시트에 sid 'app_feedback'으로 보냄. 자동 수집이 feedback.md에 모아 검토
-function fbForm(where){return `<details class="fbbox"><summary>앱 문제·제안 보내기</summary><textarea id="fbT" rows="3" placeholder="불편한 점, 틀린 정보, 있었으면 하는 기능을 적어 주세요. 검토해서 좋은 의견은 반영해요."></textarea><button type="button" onclick="sendFb('${where||''}')">보내기</button> <span id="fbMsg" class="sub"></span></details>`}
+function fbForm(where){return `<details class="fbbox"><summary>💬 앱에 대한 제안도 써 주세요 <span class="sub">불편한 점·틀린 정보·있었으면 하는 기능</span></summary><p class="sub" style="margin:6px 0 0">써 주신 의견은 하나하나 읽고, 좋은 의견은 앱에 반영해요.</p><textarea id="fbT" rows="3" placeholder="예: 이 갯벌 주차비가 바뀌었어요 / 지도에 화장실도 나오면 좋겠어요"></textarea><button type="button" onclick="sendFb('${where||''}')">보내기</button> <span id="fbMsg" class="sub"></span></details>`}
 async function sendFb(where){
  const t=($('fbT')&&$('fbT').value.trim())||'';if(t.length<2){$('fbMsg').textContent='내용을 적어 주세요.';return}
  const q=JSON.parse(lsGet('bh_fb','[]'));q.push({t:Date.now(),m:t.slice(0,1000),w:where});lsSet('bh_fb',JSON.stringify(q));
