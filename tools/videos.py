@@ -28,7 +28,7 @@ ALIAS = {
     'sc_seondo': {'any': ['선도리']},
     'sc_wolha': {'any': ['월하성']},
     'gc_gusipo': {'any': ['구시포']},
-    'gc_dongho': {'any': ['동호해수욕장', '동호해변', '고창 동호']},
+    'gc_dongho': {'any': ['동호해수욕장', '동호해변', '고창 동호'], 'not': ['동해', '양양', '강릉', '비단조개']},
     'ic_simnipo': {'any': ['십리포']},
     'ic_janggyeongri': {'any': ['장경리']},
     'ic_nogari': {'any': ['노가리해변', '노가리해수욕장', '용담리']},
@@ -137,6 +137,20 @@ def to_date(when, today):
     return today - datetime.timedelta(days=days)
 
 
+def is_approx(when):
+    """'3개월 전', '1년 전'처럼 정확한 날짜가 아닌 표시면 True(화면에 '~쯤'으로)."""
+    return bool(re.match(r'\s*\d+\s*(개월|년)\s*전', when or ''))
+
+
+FISH = re.compile(r'낚시|선상|에깅|루어')
+HARU = re.compile(r'해루질|낮루질|갯벌|조개|체험|캐기|줍')
+
+
+def skip_title(title):
+    """낚시 영상(해루질·갯벌 말이 제목에 없으면) 뺌."""
+    return bool(FISH.search(title)) and not HARU.search(title)
+
+
 def vid_of(url):
     m = re.search(r'(?:v=|shorts/)([A-Za-z0-9_-]{11})', url)
     return m.group(1) if m else None
@@ -182,12 +196,27 @@ def main():
         d = to_date(when, today)
         if d is None or (today - d).days > MAX_DAYS:
             continue
-        for sid in match_sites(text):
+        if skip_title(title):
+            continue
+        # 제목에 장소 이름이 있으면 제목만 믿고, 없을 때만 설명까지 본다(설명에 이웃 장소가 섞이는 것 막기)
+        for sid in (match_sites(title) or match_sites(text)):
             lst = V.setdefault(sid, [])
             if any(x['v'] == vid for x in lst):
                 continue
-            lst.append({'v': vid, 't': title[:90], 'd': d.isoformat(), 's': 1 if '/shorts/' in url else 0})
+            item = {'v': vid, 't': title[:90], 'd': d.isoformat(), 's': 1 if '/shorts/' in url else 0}
+            if is_approx(when):
+                item['a'] = 1
+            lst.append(item)
             added += 1
+    for sid in list(V):  # 이미 붙은 것 중 제목이 다른 장소를 가리키거나 낚시 영상이면 뺌
+        keep = []
+        for x in V[sid]:
+            ts = match_sites(x['t'])
+            bad_own = any(k in x['t'] for k in ALIAS.get(sid, {}).get('not', []))
+            if skip_title(x['t']) or bad_own or (ts and sid not in ts):
+                continue
+            keep.append(x)
+        V[sid] = keep
     for sid in list(V):  # 2년 지난 것 빼고 최신순 8개
         V[sid] = sorted([x for x in V[sid] if (today - datetime.date.fromisoformat(x['d'])).days <= MAX_DAYS],
                         key=lambda x: x['d'], reverse=True)[:KEEP]
