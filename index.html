@@ -964,24 +964,31 @@ function siteList(onlyFav){
 // edge=물가 끝 쪽(조간대 아래쪽~늘 잠긴 곳), low=가운데~물가 쪽, mid=갯벌 가운데(평균 해수면 높이), all=드러나는 갯벌 전체, rock=물가 쪽 바위·돌
 const ZONE={baekhap:'edge',pippul:'edge',kkotge:'edge',jukkumi:'edge',haesam:'edge',garibi:'edge',gaeryang:'edge',keunguseul:'edge',bajirak:'low',manjo:'mid',nakji:'low',dongjuk:'all',tteokjogae:'all',gamurak:'all',gul:'all',gaebul:'all',bakhaji:'rock'};
 const ZONE_T={edge:'물이 가장 많이 빠지는 끝 쪽(물가 근처)까지 나가야 많이 나와요',low:'갯벌 가운데에서 물가 쪽으로 나갈수록 많아요',mid:'갯벌 가운데쯤(평균 해수면 높이)에 많아요',all:'물이 빠지면 드러나는 갯벌 곳곳에 살아요',rock:'물가 쪽 바위·돌 밑까지 나가야 해요'};
-const WALK={"ic_seonnyeo": [64, 138], "ic_jangbong": [127, 127], "ta_mongsan": [262, 436], "br_muchang": [60, 387], "ic_simnipo": [36, 119], "ic_nogari": [60, 150], "ic_seopori": [30, 200], "ic_seungbong": [88, 109], "ic_eulwangri": [5, 47], "ic_jamjindo": [140, 273], "ic_yeongjongjin": [88, 88], "gg_gubong": [46, 70], "gg_tando": [35, 42], "gg_heulgot": [128, 128], "gg_gungpyeong": [4, 261], "gg_goon": [170, 170], "gg_oido": [235, 235], "ic_mokseom": [30, 72], "ic_soya": [42, 112], "gg_mechuri": [59, 59], "dj_seokmun_west": [59, 60], "ta_magumpo": [386, 1357], "ta_baeksajang": [188, 718], "dj_waemok": [70, 70], "br_yongdu": [65, 65], "ic_hanagae": [0, 947], "ta_dalsan": [352, 352], "ta_sambong": [60, 226], "sc_chunjang": [193, 193], "sc_wolha": [104, 271], "gc_dongho": [163, 163], "ic_ongam": [66, 66], "ic_jawol": [59, 113], "ic_ijak": [28, 28], "ic_wangsan": [167, 167], "ic_somuuido": [102, 102], "gg_bangamori": [108, 169], "gg_seongam": [60, 60], "gg_jebudo": [15, 58], "gg_baekmiri": [1558, 1558], "gg_gukhwado": [11, 47], "ic_naeri": [51, 51], "ic_cheukdo": [60, 126], "ic_geojampo": [202, 202], "gg_jjokbak": [1027, 1027], "dj_seokmun_main": [517, 799], "ta_jinsan": [178, 178], "ta_kkotji": [212, 770], "ss_beolcheonpo": [224, 224], "br_wonsando": [272, 272], "ba_gosapo": [245, 245]}; // 해안선에서 후기 속 잘 나오는 자리(SPOTS)까지 거리 [가까운, 먼](m). 지도 해안선이 갯벌 위에 그려진 곳도 있어 대략값 → 화면엔 구간으로만
+const WALK={"ic_seonnyeo": [209, 283, 1], "br_muchang": [875, 1295, 1], "ic_simnipo": [371, 490, 1], "ic_nogari": [804, 943, 1], "ic_seopori": [351, 2287, 1], "ic_seungbong": [1014, 1014, 1], "ic_eulwangri": [440, 654, 1], "ic_silmi": [667, 889, 1], "gg_gubong": [1362, 1474, 1], "gg_tando": [457, 776, 1], "gg_gungpyeong": [258, 631, 1], "gg_oido": [736, 736, 1], "ic_soya": [2140, 2212, 1], "ta_baeksajang": [333, 542, 1], "dj_waemok": [481, 481, 1], "br_yongdu": [427, 427, 1], "ic_hanagae": [874, 1503, 1], "sc_chunjang": [399, 399, 1], "gc_dongho": [350, 350, 1], "ic_jawol": [819, 1844, 1], "ic_ijak": [167, 167, 1], "ic_wangsan": [398, 398, 1], "ic_somuuido": [1283, 1283, 1], "gg_bangamori": [660, 964, 1], "gg_jonghyeon": [2209, 2209, 1], "gg_jebudo": [559, 1931, 1], "gg_baekmiri": [458, 458, 1], "ic_cheukdo": [1411, 1897, 1], "dj_seokmun_main": [1213, 1759, 1], "ta_kkotji": [428, 691, 1], "br_wonsando": [164, 164, 1], "ba_gosapo": [927, 927, 1], "gw_ayajin": [405, 405, 1]}; // 주차장(카카오 지도 좌표)에서 후기 속 잘 나오는 자리(SPOTS)까지 직선거리 [가까운, 먼](m), 세 번째 1=자리가 대략 위치. 실제 걷는 길은 더 길다
 const FLATW={}; // 갯벌 너비(m): 지도 갯벌 모양이 거칠어 값이 들쭉날쭉해 비워 둠. 믿을 만한 자료(현장 기록·위성 확인)가 생기면 장소별로 넣는다
-function riseCm(r,min){const A=Math.max(0.1,-(r.low&&r.low.v||0));return Math.round(A*(1-Math.cos(2*Math.PI*min/745))*100)} // 간조 뒤 min분에 차오르는 높이(cm), 12시간 25분 주기 근사
+function seaAt(sea,t){if(!sea)return null;for(let i=1;i<sea.length;i++){const a=sea[i-1],b=sea[i];if(a.t<=t&&t<=b.t&&a.v!=null&&b.v!=null)return a.v+(b.v-a.v)*(t-a.t)/(b.t-a.t)}return null}
+function riseCm(s,r,min){ // 간조 뒤 min분 동안 차오르는 높이(cm)
+ const sea=(DATA[s.id]||{}).sea,t=r.low.t-(s.tfix||0)*60e3,v0=seaAt(sea,t),v1=seaAt(sea,t+min*60e3);
+ if(v0!=null&&v1!=null)return {cm:Math.round((v1-v0)*100),src:'예보'};
+ const R=2.15*Math.max(0.1,-(r.low.v||0)),f=[0,1/12,3/12,6/12,9/12,11/12,1],x=min/62,i=Math.min(5,Math.floor(x)); // 반 주기 약 6시간 12분을 6칸으로
+ return {cm:Math.round(R*(f[i]+(f[i+1]-f[i])*(x-i))*1.3*100),src:'계산(넉넉히)'};
+}
 function reachDay(r){if(!r||r.F==null)return '';return r.F>=0.75?'끝 쪽까지 드러남':r.F>=0.45?'가운데까지 드러남':'끝 쪽 덜 드러남'}
 function reachBlock(s,next){
  const d=DETAIL[s.id]||{},rg=RANGE[s.id],seen=new Set(),zs=[];
  (d.targets||[]).forEach(t=>{const f=findTarget(t.name);if(f&&ZONE[f.id]&&!seen.has(f.id)){seen.add(f.id);zs.push([f,ZONE[f.id]])}});
  if(!zs.length&&!FLATW[s.id]&&!WALK[s.id])return '';
  let h='<h4>어디까지 나가야 하나</h4><div class="dl">';
- if(WALK[s.id]){const band=m=>m<100?'해변 가까이(100m 안)':m<300?'조금(100~300m)':m<1000?'꽤(300m~1km)':'멀리(1km 넘게)',[a,b]=WALK[s.id],ba=band(a),bb=band(b);
-  h+=`<dt>걸어 들어가기</dt><dd>${ba===bb?`잘 나오는 자리까지 해변에서 ${ba} 걸어 들어가요.`:`잘 나오는 자리까지 가까운 곳은 ${ba}, 먼 곳은 ${bb} 걸어 들어가요.`} <span class="sub">후기 속 자리를 지도로 잰 참고값이에요.</span></dd>`}
+ if(WALK[s.id]){const [a,b,ap]=WALK[s.id],km=m=>m<1000?Math.round(m/50)*50+'m':(m/1000).toFixed(1)+'km';
+  h+=`<dt>걸어 들어가기</dt><dd>주차장에서 잘 나오는 자리까지 직선으로 ${a===b||km(a)===km(b)?'약 '+km(b):'약 '+km(a)+'~'+km(b)}예요. 실제로 걷는 길은 이보다 길어요. <span class="sub">후기 속 자리${ap?'(위치는 대략)':''}를 지도로 잰 참고값이에요.</span></dd>`}
  if(FLATW[s.id]){const m=FLATW[s.id],km=m>=1000?(m/1000).toFixed(1)+'km':Math.round(m/50)*50+'m',min=Math.round(m/1000/2*60/5)*5;
   h+=`<dt>갯벌 너비</dt><dd>큰 사리 간조 때 해안선에서 약 ${km}까지 드러나요${min>=10?` (뻘길 걸어서 ${min}분쯤)`:''}. <span class="sub">지도 자료로 잰 대략값이에요.</span></dd>`}
  zs.forEach(([f,z])=>{h+=`<dt>${esc(f.name)}</dt><dd>${ZONE_T[z]}.</dd>`});
  const r=next&&next[0];
  if(r&&rg&&rg.hi>=0.5){const need=zs.some(([,z])=>z==='edge'||z==='rock');
   h+=`<dt>${fmtD(r.n)}</dt><dd>${r.F>=0.75?'물이 많이 빠져 끝 쪽까지 드러나요.':r.F>=0.45?'가운데까지는 드러나지만 끝 쪽은 덜 드러나요.':'물이 적게 빠져 끝 쪽이 거의 드러나지 않아요.'}${need&&r.F<0.75?' 끝 쪽에 사는 대상은 사리 무렵을 노리세요.':''}</dd>`;
-  h+=`<dt>돌아 나오기</dt><dd>간조 뒤 물이 30분에 약 ${riseCm(r,30)}cm, 1시간에 약 ${riseCm(r,60)}cm 차올라요. 끝 쪽까지 나갔다면 간조 시각 전후로 돌아 나오기 시작하세요. 물이 무릎을 넘으면 바로 나오세요.</dd>`}
+  {const x1=riseCm(s,r,60),x2=riseCm(s,r,120),ex=(RESULT&&RESULT.opt&&RESULT.opt.exit)||60;
+  h+=`<dt>돌아 나오기</dt><dd>간조(${fmtT(r.low.t)}) 뒤 물이 1시간에 약 ${x1.cm}cm, 2시간에 약 ${x2.cm}cm 차올라요(${x1.src}). 평평한 갯벌은 물이 순식간에 넓게 덮고, 갯골(물길)부터 먼저 차요. 앱의 작업 끝 시각(간조 ${ex}분 전, ${fmtT(r.e)})에는 돌아 나오기 시작하세요. 끝 쪽까지 나갔다면 더 일찍 나오고, 물이 무릎을 넘으면 바로 나오세요.</dd>`}}
  else if(rg&&rg.hi<0.5)h+=`<dt>물 높이</dt><dd>이곳은 조수 차가 작아 날마다 드러나는 곳이 비슷해요.</dd>`;
  return h+'</div>';
 }
