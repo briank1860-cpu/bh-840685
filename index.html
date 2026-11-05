@@ -964,14 +964,17 @@ function siteList(onlyFav){
 // edge=물가 끝 쪽(조간대 아래쪽~늘 잠긴 곳), low=가운데~물가 쪽, mid=갯벌 가운데(평균 해수면 높이), all=드러나는 갯벌 전체, rock=물가 쪽 바위·돌
 const ZONE={baekhap:'edge',pippul:'edge',kkotge:'edge',jukkumi:'edge',haesam:'edge',garibi:'edge',gaeryang:'edge',keunguseul:'edge',bajirak:'low',manjo:'mid',nakji:'low',dongjuk:'all',tteokjogae:'all',gamurak:'all',gul:'all',gaebul:'all',bakhaji:'rock'};
 const ZONE_T={edge:'물이 가장 많이 빠지는 끝 쪽(물가 근처)까지 나가야 많이 나와요',low:'갯벌 가운데에서 물가 쪽으로 나갈수록 많아요',mid:'갯벌 가운데쯤(평균 해수면 높이)에 많아요',all:'물이 빠지면 드러나는 갯벌 곳곳에 살아요',rock:'물가 쪽 바위·돌 밑까지 나가야 해요'};
+const WALK={"ic_seonnyeo": [64, 138], "ic_jangbong": [127, 127], "ta_mongsan": [262, 436], "br_muchang": [60, 387], "ic_simnipo": [36, 119], "ic_nogari": [60, 150], "ic_seopori": [30, 200], "ic_seungbong": [88, 109], "ic_eulwangri": [5, 47], "ic_jamjindo": [140, 273], "ic_yeongjongjin": [88, 88], "gg_gubong": [46, 70], "gg_tando": [35, 42], "gg_heulgot": [128, 128], "gg_gungpyeong": [4, 261], "gg_goon": [170, 170], "gg_oido": [235, 235], "ic_mokseom": [30, 72], "ic_soya": [42, 112], "gg_mechuri": [59, 59], "dj_seokmun_west": [59, 60], "ta_magumpo": [386, 1357], "ta_baeksajang": [188, 718], "dj_waemok": [70, 70], "br_yongdu": [65, 65], "ic_hanagae": [0, 947], "ta_dalsan": [352, 352], "ta_sambong": [60, 226], "sc_chunjang": [193, 193], "sc_wolha": [104, 271], "gc_dongho": [163, 163], "ic_ongam": [66, 66], "ic_jawol": [59, 113], "ic_ijak": [28, 28], "ic_wangsan": [167, 167], "ic_somuuido": [102, 102], "gg_bangamori": [108, 169], "gg_seongam": [60, 60], "gg_jebudo": [15, 58], "gg_baekmiri": [1558, 1558], "gg_gukhwado": [11, 47], "ic_naeri": [51, 51], "ic_cheukdo": [60, 126], "ic_geojampo": [202, 202], "gg_jjokbak": [1027, 1027], "dj_seokmun_main": [517, 799], "ta_jinsan": [178, 178], "ta_kkotji": [212, 770], "ss_beolcheonpo": [224, 224], "br_wonsando": [272, 272], "ba_gosapo": [245, 245]}; // 해안선에서 후기 속 잘 나오는 자리(SPOTS)까지 거리 [가까운, 먼](m). 지도 해안선이 갯벌 위에 그려진 곳도 있어 대략값 → 화면엔 구간으로만
 const FLATW={}; // 갯벌 너비(m): 지도 갯벌 모양이 거칠어 값이 들쭉날쭉해 비워 둠. 믿을 만한 자료(현장 기록·위성 확인)가 생기면 장소별로 넣는다
 function riseCm(r,min){const A=Math.max(0.1,-(r.low&&r.low.v||0));return Math.round(A*(1-Math.cos(2*Math.PI*min/745))*100)} // 간조 뒤 min분에 차오르는 높이(cm), 12시간 25분 주기 근사
 function reachDay(r){if(!r||r.F==null)return '';return r.F>=0.75?'끝 쪽까지 드러남':r.F>=0.45?'가운데까지 드러남':'끝 쪽 덜 드러남'}
 function reachBlock(s,next){
  const d=DETAIL[s.id]||{},rg=RANGE[s.id],seen=new Set(),zs=[];
  (d.targets||[]).forEach(t=>{const f=findTarget(t.name);if(f&&ZONE[f.id]&&!seen.has(f.id)){seen.add(f.id);zs.push([f,ZONE[f.id]])}});
- if(!zs.length&&!FLATW[s.id])return '';
+ if(!zs.length&&!FLATW[s.id]&&!WALK[s.id])return '';
  let h='<h4>어디까지 나가야 하나</h4><div class="dl">';
+ if(WALK[s.id]){const band=m=>m<100?'해변 가까이(100m 안)':m<300?'조금(100~300m)':m<1000?'꽤(300m~1km)':'멀리(1km 넘게)',[a,b]=WALK[s.id],ba=band(a),bb=band(b);
+  h+=`<dt>걸어 들어가기</dt><dd>${ba===bb?`잘 나오는 자리까지 해변에서 ${ba} 걸어 들어가요.`:`잘 나오는 자리까지 가까운 곳은 ${ba}, 먼 곳은 ${bb} 걸어 들어가요.`} <span class="sub">후기 속 자리를 지도로 잰 참고값이에요.</span></dd>`}
  if(FLATW[s.id]){const m=FLATW[s.id],km=m>=1000?(m/1000).toFixed(1)+'km':Math.round(m/50)*50+'m',min=Math.round(m/1000/2*60/5)*5;
   h+=`<dt>갯벌 너비</dt><dd>큰 사리 간조 때 해안선에서 약 ${km}까지 드러나요${min>=10?` (뻘길 걸어서 ${min}분쯤)`:''}. <span class="sub">지도 자료로 잰 대략값이에요.</span></dd>`}
  zs.forEach(([f,z])=>{h+=`<dt>${esc(f.name)}</dt><dd>${ZONE_T[z]}.</dd>`});
