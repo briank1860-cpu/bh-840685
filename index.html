@@ -653,7 +653,7 @@ async function loadData(sites){
 
 function weatherScore(wx,sea,a,b){
  const hs=(wx||[]).filter(x=>x.t>=a-H&&x.t<=b&&x.ws!=null);
- if(!hs.length)return {score:15,tags:[{t:'날씨 예보 전',c:'c'}],danger:false,murky:false};
+ if(!hs.length)return {score:11,tags:[{t:'날씨 예보 전',c:'c'}],danger:false,murky:false};
  const ws=Math.max(...hs.map(x=>x.ws)),wg=Math.max(...hs.map(x=>x.wg??x.ws)),pr=hs.reduce((s,x)=>s+(x.pr||0),0),
        vis=Math.min(...hs.map(x=>x.vis??99999)),tp=Math.min(...hs.map(x=>x.tp)),th=hs.some(x=>x.wc>=95);
  // 바람·파도가 세면 물이 뒤집혀 물속이 안 보임(사용자 기록: 초속 8~9m 밤 0마리, 2~4m 전날 많이) → 25점 중 크게 깎음
