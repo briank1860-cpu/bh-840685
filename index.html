@@ -196,7 +196,12 @@ button.fav:not(.on){color:var(--mud)}
 .fgcard.on{border-style:solid;background:var(--acc2)}.fgcard p{margin:6px 0}.fgcard input{margin:6px 6px 6px 0;max-width:160px}
 button.ghost2{background:transparent;color:var(--acc);border:1.5px solid var(--acc);box-shadow:none}
 .fgl{margin:6px 0;padding-left:18px}.fgl li{margin:3px 0}
-.fbbox{margin-top:12px;border-top:1px solid var(--line);padding-top:8px}.fbbox summary{font-size:14px;color:var(--acc)}.fbbox textarea{width:100%;margin:8px 0}
+.fbbox{margin-top:14px;padding:10px 12px;border-radius:12px;border:1.5px solid var(--fbline);background:var(--fbbg)}
+.fbbox summary{font-size:14.5px;font-weight:700;color:var(--fbink)}.fbbox summary .sub{font-weight:400}.fbbox textarea{width:100%;margin:8px 0}
+.fbbox button{background:var(--fbink);color:#fff}
+:root{--fbbg:#eef5e4;--fbline:#a9c98a;--fbink:#4d7a2a}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--fbbg:#242c1d;--fbline:#5f8243;--fbink:#a9d17f}}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .fbbox button{color:#1d1612}}
 /* 잡는 법·손질 코너 */
 .gpick{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 10px;scrollbar-width:thin}
 .gpick button{flex:none;width:72px;background:none;color:var(--ink);padding:0;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:4px;font:600 13.5px "Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif}
@@ -293,7 +298,7 @@ button.ghost2{background:transparent;color:var(--acc);border:1.5px solid var(--a
     <li>야간 출입통제 구역: 관할 해양경찰서(예: 태안해경 해양안전과 041-950-2851)</li>
     <li>구명조끼, 휴대폰 방수팩, 헤드랜턴</li>
     <li>판매 금지(비어업인 채취물)</li>
-    <li>2027년부터 시·군 조례로 해루질 시간·장소 제한 가능 — 해당 시·군 공지 확인</li>
+    <li>2026년 3월 법 개정으로 시·군 조례로 해루질 시간·장소를 제한할 수 있게 됨 — 시행 시기·내용은 해당 시·군 공지 확인</li>
   </ul>
 </div>
 
