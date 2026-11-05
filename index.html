@@ -729,7 +729,7 @@ function render(){
  rows.forEach(r=>{(byDay[r.n]=byDay[r.n]||[]).push(r)});
  let dayList=Object.keys(byDay).map(Number);
  if(opt.weekend)dayList=dayList.filter(n=>[0,6].includes(dow(n)));
- const best=dayList.map(n=>byDay[n].sort((a,b)=>b.adj-a.adj)).sort((a,b)=>b[0].adj-a[0].adj).slice(0,12);
+ const best=dayList.map(n=>byDay[n].sort((a,b)=>b.adj-a.adj)).sort((a,b)=>b[0].score-a[0].score||b[0].adj-a[0].adj).slice(0,12);
  $('top').innerHTML='<tr><th>날짜</th><th>물때</th><th>장소</th><th>작업 시간</th><th>간조</th><th>점수</th><th>메모</th></tr>'+
   best.map(g=>{const r=g[0],ld=lunarDay(r.n);return `<tr class="${[0,6].includes(dow(r.n))?'we':''}"><td><span class="link" data-d="${r.n}">${fmtD(r.n)}</span></td><td>${mulName(ld)}${fCell(r.F)}</td>
    <td><span class="link" data-s="${r.site.id}">${r.site.name}</span><div class="alt">${g.slice(1,3).map(x=>`<span class="link" data-s="${x.site.id}">${x.site.name}</span> ${x.score}`).join(' · ')}</div></td>
