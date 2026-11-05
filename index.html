@@ -154,6 +154,8 @@ select,input[type=number],input[type=date]{border-radius:10px;padding:6px 8px}
 @media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 input[type=checkbox],input[type=radio]{accent-color:var(--acc);width:17px;height:17px}
 /* 머리 화면 한 곳·내 조건 */
+.site-hero{position:relative;height:150px;border-radius:14px;overflow:hidden;background:#cdbb9c;margin:0 0 12px}.site-hero img{position:absolute;width:256px;height:256px;max-width:none}.site-hero:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 55%,rgba(40,20,8,.35) 100%);pointer-events:none}.site-hero .pin{position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#f0a23b;border:2px solid #fff;box-shadow:0 0 0 6px rgba(240,162,59,.35);z-index:1}.site-hero .cr{position:absolute;right:8px;bottom:5px;font-size:10px;color:#fff;opacity:.85;z-index:1;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.mg{font-size:11px;font-weight:600;margin-top:2px;white-space:nowrap}.mg.g{color:#2f7d4f}.mg.m{color:#8a6a3a}.mg.b{color:#b0574a}
 .hero-pick{margin-top:18px;display:inline-flex;flex-direction:column;gap:3px;padding:12px 16px;border-radius:16px;background:rgba(255,248,238,.16);border:1px solid rgba(255,255,255,.35);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);max-width:100%}
 .hero-pick:empty{display:none}
 .hero-pick .hp-k{font-size:12.5px;color:rgba(255,255,255,.85)}
@@ -255,7 +257,7 @@ body{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
  </div>
  <svg class="tide" viewBox="0 0 1200 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 30 C150 5 300 55 450 30 S750 5 900 30 S1100 55 1200 30 V60 H0Z"/></svg>
 </header>
-<nav class="jump" aria-label="바로 가기"><a href="#sec-wk">주말 베스트</a><a href="#sec-day">이 날 어때요</a><a href="#sec-top">물때 좋은 날</a><a href="#sec-sites">갯벌</a><a href="#sec-guide">잡는 법·손질</a><a href="#sec-tg">갯벌 친구들</a><a href="#sec-cond">내 조건</a></nav>
+<nav class="jump" aria-label="바로 가기"><a href="#sec-wk">주말 베스트</a><a href="#sec-day">이 날 어때요</a><a href="#sec-top">점수 높은 날</a><a href="#sec-sites">갯벌</a><a href="#sec-guide">잡는 법·손질</a><a href="#sec-tg">갯벌 친구들</a><a href="#sec-cond">내 조건</a></nav>
 <main>
 
 <details class="cond" id="condBox"><summary id="sec-cond"><span class="ck">내 조건</span><span id="condSum"></span><span class="chev">바꾸기</span></summary>
@@ -284,7 +286,7 @@ body{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
 <h2 id="sec-day">이 날 어때요? <span class="sub">날짜만 고르면 물때·날씨·좋은 곳이 한눈에</span></h2>
 <div class="card dayctl"><input type="date" id="dayPick"><select id="dayT"><option value="">대상 전체</option></select><button id="dayGo">보기</button></div>
 
-<h2 id="sec-top">물때 좋은 날 <span class="sub">앞으로 점수가 가장 높은 날과 그날의 베스트 장소</span></h2>
+<h2 id="sec-top">점수 높은 날 <span class="sub">물때·낮 시간·날씨·계절을 함께 본 점수예요. ‘조금 무렵’은 물이 적게 빠지는 날이에요.</span></h2>
 <div class="card tw"><table id="top"></table></div>
 
 <h2 id="sec-sites">갯벌 둘러보기 <span class="sub" id="siteCount">누르면 지도·포인트·후기·영상</span></h2>
@@ -528,6 +530,9 @@ const kDay=ms=>Math.floor((ms+KST)/DAY);              // KST 날짜 번호
 const kDayStart=n=>n*DAY-KST;                          // 그 날짜 0시(UTC ms)
 function lunarDay(dayNo){const nm=lastNewMoon(kDayStart(dayNo+1)-1);return dayNo-kDay(nm)+1}
 function mulName(ld){return MUL[(ld-1)%15]}
+/* 물 세기: 서해 7물때식 기준 사리(6~9물)·중간·조금(13물~2물) */
+function mulGrade(ld){const k=(ld-1)%15;return [0,1,2,14].includes(k)?['사리 무렵','g']:[6,7,8,9,10].includes(k)?['조금 무렵','b']:['중간','m']}
+function mulCell(ld){const g=mulGrade(ld);return `${mulName(ld)}<div class="mg ${g[1]}">${g[0]}</div>`}
 
 function radec(lon,lat,eps){
  const l=lon*D2R,b=lat*D2R,e=eps*D2R;
@@ -721,7 +726,7 @@ function render(){
  if(opt.weekend)dayList=dayList.filter(n=>[0,6].includes(dow(n)));
  const best=dayList.map(n=>byDay[n].sort((a,b)=>b.adj-a.adj)).sort((a,b)=>b[0].adj-a[0].adj).slice(0,12);
  $('top').innerHTML='<tr><th>날짜</th><th>물때</th><th>장소</th><th>작업 시간</th><th>간조</th><th>점수</th><th>메모</th></tr>'+
-  best.map(g=>{const r=g[0],ld=lunarDay(r.n);return `<tr class="${[0,6].includes(dow(r.n))?'we':''}"><td><span class="link" data-d="${r.n}">${fmtD(r.n)}</span></td><td>${mulName(ld)}</td>
+  best.map(g=>{const r=g[0],ld=lunarDay(r.n);return `<tr class="${[0,6].includes(dow(r.n))?'we':''}"><td><span class="link" data-d="${r.n}">${fmtD(r.n)}</span></td><td>${mulCell(ld)}</td>
    <td><span class="link" data-s="${r.site.id}">${r.site.name}</span><div class="alt">${g.slice(1,3).map(x=>`<span class="link" data-s="${x.site.id}">${x.site.name}</span> ${x.score}`).join(' · ')}</div></td>
    <td>${fmtT(r.b)}~${fmtT(r.e)}</td><td>${lowLine(r)}</td><td>${scoreCell(r.score)}${dnTxt(r)}</td><td>${tagH(r.tags)}</td></tr>`}).join('');
  renderWeekend();
@@ -795,7 +800,7 @@ function renderCal(){
  if(!RESULT)return;
  const id=$('sitePick').value,rows=RESULT.rows.filter(r=>r.site.id===id&&(!RESULT.opt.weekend||[0,6].includes(dow(r.n))));
  $('cal').innerHTML='<tr><th>날짜</th><th>물때</th><th>오전 간조</th><th>오후 간조</th><th>점수</th><th>메모</th></tr>'+
-  rows.map(r=>`<tr class="${[0,6].includes(dow(r.n))?'we':''}"><td>${fmtD(r.n)}</td><td>${mulName(lunarDay(r.n))}</td><td>${lowTxt(halves(r)[0],r,1)}</td><td>${lowTxt(halves(r)[1],r,1)}</td><td>${scoreCell(r.score)}${dnTxt(r)}</td><td>${tagH(r.tags)}</td></tr>`).join('');
+  rows.map(r=>`<tr class="${[0,6].includes(dow(r.n))?'we':''}"><td>${fmtD(r.n)}</td><td>${mulCell(lunarDay(r.n))}</td><td>${lowTxt(halves(r)[0],r,1)}</td><td>${lowTxt(halves(r)[1],r,1)}</td><td>${scoreCell(r.score)}${dnTxt(r)}</td><td>${tagH(r.tags)}</td></tr>`).join('');
 }
 
 async function run(){
@@ -950,11 +955,20 @@ function siteList(onlyFav){
   document.querySelectorAll('.slist .sgrp').forEach(g=>{let k=0;g.querySelectorAll('.row').forEach(r=>{const ok=kMatch(r.dataset.k,v);r.hidden=!ok;if(ok)k++});g.hidden=!k;n+=k});
   $('slNone').hidden=n>0;$('dlg').scrollTop=0});
 }
+function siteHero(s){/* 장소 화면 맨 위: 위성사진 띠(지도와 같은 Esri 타일, 열 때만 불러옴). 가운데는 가장 가까운 해안선(HEROC) */
+ const c=(typeof HEROC!=='undefined'&&HEROC[s.id]);if(!c)return '';
+ const z=15,n=2**z,H=150,W=640,x=(c[1]+180)/360*n*256,r=c[0]*Math.PI/180,y=(1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n*256;
+ const tx=Math.floor(x/256),ty=Math.floor(y/256),ox=x-tx*256,oy=y-ty*256;let t='';
+ for(let dx=-3;dx<=3;dx++){const L=dx*256-ox;if(L+256<-W/2||L>W/2)continue;
+  for(let dy=-1;dy<=1;dy++){const T=dy*256-oy;if(T+256<-H/2||T>H/2)continue;
+   t+=`<img src="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${ty+dy}/${tx+dx}" alt="" loading="lazy" decoding="async" style="left:calc(50% + ${Math.round(L)}px);top:${Math.round(H/2+T)}px">`;}}
+ return `<div class="site-hero" role="img" aria-label="${esc(s.name)} 위성사진">${t}<span class="pin"></span><span class="cr">위성사진 © Esri</span></div>`;
+}
 function siteDetail(id){saveState({dlg:{t:'s',id}});
  const s=SITES.find(x=>x.id===id),d=DETAIL[id]||{};
  const next=RESULT?RESULT.rows.filter(r=>r.site.id===id).sort((a,b)=>b.score-a.score).slice(0,3).sort((a,b)=>a.n-b.n):[];
  const q=encodeURIComponent(s.name.replace(' 체험장','').replace('·',' '));
- let h=`<p>${tagH([{t:s.reg},payTag(id)||{t:s.kind},{t:'모래 '+'●'.repeat(s.sand)+'○'.repeat(3-s.sand),c:'c'},{t:'후기 근거 '+['','약함','보통','확실'][s.ev],c:'c'}])}</p>
+ let h=siteHero(s)+`<p>${tagH([{t:s.reg},payTag(id)||{t:s.kind},{t:'모래 '+'●'.repeat(s.sand)+'○'.repeat(3-s.sand),c:'c'},{t:'후기 근거 '+['','약함','보통','확실'][s.ev],c:'c'}])}</p>
   ${noteBlock(id)}${shareFocusHtml(id)}${reviewBlock(id)}<p class="sub">${esc(s.memo)}</p>${s.warn?`<p style="color:var(--bad)">${esc(s.warn)}</p>`:''}`+(NIGHT[id]?`<p style="color:${NIGHT[id].law?'var(--bad)':'#b7791f'}"><b>${nightTag(id).t}</b> — ${esc(NIGHT[id].t)}</p>`:'')+(hasBoat(id)?`<h4>배편 <span class="tag" style="background:#e8a317;color:#fff">배 필요</span></h4><p>${esc(BOAT[id])}</p><p class="sub">배 시간이 간조와 맞는지, 막배 시간을 먼저 확인하세요.</p>`:'')+nowWx(id)+accessBlock(id)+eojangBlock(id);
  if(next.length)h+=`<h4>추천 날짜</h4><div class="dl">${next.map(r=>`<dt>${fmtD(r.n)}</dt><dd>${mulName(lunarDay(r.n))} · ${lowLine(r)} · 작업 ${fmtT(r.b)}~${fmtT(r.e)} · ${r.score}점 ${dnTxt(r)} ${shareBtn(id,r.n)}</dd>`).join('')}</div>`;
  h+=`<h4>주차</h4>${parkHtml(id)}${ul(d.parking)}<h4>가는 길·진입</h4>${ul(d.access)}<h4>잘 나오는 구역</h4>${ul(d.spots)}<h4>지형</h4>${SITEF[id]?`<p>${SITEF[id].b?'<b>바닥</b> '+esc(SITEF[id].b):''}${SITEF[id].w?'<br><b>물속 구간</b> '+esc(SITEF[id].w):''}</p>`:''}${ul(d.terrain)}`;
@@ -1232,7 +1246,7 @@ function dayDetail(n){saveState({dlg:{t:'d',n}});
  const st=sites.length?sunTimes(n,sites[0].lat,sites[0].lon):null;
  const good=TARGETS.filter(t=>mStat(t.id,m)==='g'),okT=TARGETS.filter(t=>mStat(t.id,m)==='o'),closed=TARGETS.filter(t=>mStat(t.id,m)==='x');
  const tchip=(t,cls)=>`<span class="chip ${cls||''}" data-t="${t.id}">${esc(t.name)}</span>`;
- let h=`<div class="dl"><dt>물때</dt><dd>${mulName(ld)} <span class="sub">(음력 ${ld}일)</span></dd>${st?`<dt>해</dt><dd>일출 ${fmtT(st.rise)} · 일몰 ${fmtT(st.set)}</dd>`:''}<dt>날씨 기준</dt><dd>${WX_AT?fmtT(WX_AT)+' 받은 실시간 예보 · <a href="https://www.weather.go.kr/w/special-report/overall.do" target="_blank" rel="noopener">기상특보</a>':'<span style="color:var(--bad)">날씨 못 받음 — 새로고침</span>'}</dd><dt>${m}월 제철</dt><dd><div class="chips">${good.map(t=>tchip(t)).join('')||'<span class="sub">없음</span>'}</div></dd>${okT.length?`<dt>${m}월 나옴</dt><dd><div class="chips">${okT.map(t=>tchip(t)).join('')}</div></dd>`:''}${closed.length?`<dt>금어기</dt><dd><div class="chips">${closed.map(t=>tchip(t,'cx')+`<span class="sub">${esc(MONTHS[t.id].xn)}</span>`).join(' ')}</div></dd>`:''}</div>`;
+ let h=`<div class="dl"><dt>물때</dt><dd>${mulName(ld)} · ${mulGrade(ld)[0]} <span class="sub">(음력 ${ld}일)</span></dd>${st?`<dt>해</dt><dd>일출 ${fmtT(st.rise)} · 일몰 ${fmtT(st.set)}</dd>`:''}<dt>날씨 기준</dt><dd>${WX_AT?fmtT(WX_AT)+' 받은 실시간 예보 · <a href="https://www.weather.go.kr/w/special-report/overall.do" target="_blank" rel="noopener">기상특보</a>':'<span style="color:var(--bad)">날씨 못 받음 — 새로고침</span>'}</dd><dt>${m}월 제철</dt><dd><div class="chips">${good.map(t=>tchip(t)).join('')||'<span class="sub">없음</span>'}</div></dd>${okT.length?`<dt>${m}월 나옴</dt><dd><div class="chips">${okT.map(t=>tchip(t)).join('')}</div></dd>`:''}${closed.length?`<dt>금어기</dt><dd><div class="chips">${closed.map(t=>tchip(t,'cx')+`<span class="sub">${esc(MONTHS[t.id].xn)}</span>`).join(' ')}</div></dd>`:''}</div>`;
  h+=targetRankHtml(n,m,rows);
  h+=`<h4>장소별 (고른 지역 ${sites.length}곳, 점수순)</h4>`;
  h+=rows.map(({s,r})=>{
