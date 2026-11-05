@@ -931,7 +931,7 @@ function siteDetail(id){saveState({dlg:{t:'s',id}});
  openDlg(`<h3 class="fh">${esc(s.name)} ${favBtn(id)}</h3>`,h);drawMap(id);fgRender();
 }
 // 현장 기록: 폰에 먼저 저장하고(신호 없어도 됨), 연결되면 공용 시트로 보냄. 다른 사람 기록도 장소 화면에 보여 줌
-const NKEY='bh_notes',SHARE='https://script.google.com/macros/s/AKfycbyHPeoClz6dBFF638b1znOuZoDNsxYD7Sv0Zh1iuW8WhwZRS5J4c-p5UsF_bb8Kgh0/exec';
+const NKEY='bh_notes',SHARE='https://script.google.com/macros/s/AKfycbxVO3FLss817CiNd1gcXxKNmaw6gCrPpb2KYaIyWeH05X14tiFXk6S9mHkQ0sFOLxcS/exec';
 function getNotes(){try{return JSON.parse(localStorage.getItem(NKEY)||'{}')}catch(e){return {}}}
 function putNotes(o){try{localStorage.setItem(NKEY,JSON.stringify(o));return true}catch(e){return false}}
 function lsGet(k,v){try{return localStorage.getItem(k)||v}catch(e){return v}}
