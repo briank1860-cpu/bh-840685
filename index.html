@@ -286,7 +286,7 @@ body{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
 <h2 id="sec-day">이 날 어때요? <span class="sub">날짜만 고르면 물때·날씨·좋은 곳이 한눈에</span></h2>
 <div class="card dayctl"><input type="date" id="dayPick"><select id="dayT"><option value="">대상 전체</option></select><button id="dayGo">보기</button></div>
 
-<h2 id="sec-top">점수 높은 날 <span class="sub">물때·낮 시간·날씨·계절을 함께 본 점수예요. ‘조금 무렵’은 물이 적게 빠지는 날이에요.</span></h2>
+<h2 id="sec-top">점수 높은 날 <span class="sub">물이 얼마나 빠지는지를 가장 크게, 다음으로 바람(물 맑기)을 봐요. 물이 적게 빠지거나 바람이 센 날은 점수를 낮춰요.</span></h2>
 <div class="card tw"><table id="top"></table></div>
 
 <h2 id="sec-sites">갯벌 둘러보기 <span class="sub" id="siteCount">누르면 지도·포인트·후기·영상</span></h2>
@@ -532,6 +532,7 @@ function lunarDay(dayNo){const nm=lastNewMoon(kDayStart(dayNo+1)-1);return dayNo
 function mulName(ld){return MUL[(ld-1)%15]}
 /* 물 세기: 서해 7물때식 기준 사리(6~9물)·중간·조금(13물~2물) */
 function mulGrade(ld){const k=(ld-1)%15;return [0,1,2,14].includes(k)?['사리 무렵','g']:[6,7,8,9,10].includes(k)?['조금 무렵','b']:['중간','m']}
+function fCell(F){const g=F>=0.75?['물 많이 빠짐','g']:F>=0.45?['보통','m']:['물 적게 빠짐','b'];return `<div class="mg ${g[1]}">${g[0]}</div>`}
 function mulCell(ld){const g=mulGrade(ld);return `${mulName(ld)}<div class="mg ${g[1]}">${g[0]}</div>`}
 
 function radec(lon,lat,eps){
@@ -652,11 +653,12 @@ async function loadData(sites){
 
 function weatherScore(wx,sea,a,b){
  const hs=(wx||[]).filter(x=>x.t>=a-H&&x.t<=b&&x.ws!=null);
- if(!hs.length)return {score:10,tags:[{t:'날씨 예보 전',c:'c'}],danger:false};
+ if(!hs.length)return {score:15,tags:[{t:'날씨 예보 전',c:'c'}],danger:false,murky:false};
  const ws=Math.max(...hs.map(x=>x.ws)),wg=Math.max(...hs.map(x=>x.wg??x.ws)),pr=hs.reduce((s,x)=>s+(x.pr||0),0),
        vis=Math.min(...hs.map(x=>x.vis??99999)),tp=Math.min(...hs.map(x=>x.tp)),th=hs.some(x=>x.wc>=95);
- let sc=ws<=4?20:ws<=6?15:ws<=8?9:ws<=10?4:0;
- if(pr>5)sc-=10;else if(pr>1)sc-=5;
+ // 바람·파도가 세면 물이 뒤집혀 물속이 안 보임(사용자 기록: 초속 8~9m 밤 0마리, 2~4m 전날 많이) → 25점 중 크게 깎음
+ let sc=ws<=3?25:ws<=5?20:ws<=6?14:ws<=7?8:0;
+ if(pr>5)sc-=6;else if(pr>1)sc-=3;
  if(tp<3)sc-=5;
  sc=Math.max(0,sc);
  const tags=[{t:'바람 '+ws.toFixed(0)+'m/s',c:ws>8?'w':''}];
@@ -664,11 +666,13 @@ function weatherScore(wx,sea,a,b){
  if(tp<3)tags.push({t:tp.toFixed(0)+'°C',c:'w'});
  const wv=(sea||[]).filter(x=>x.t>=a&&x.t<=b&&x.wave!=null).map(x=>x.wave);
  if(wv.length&&Math.max(...wv)>1.5)tags.push({t:'파고 '+Math.max(...wv).toFixed(1)+'m',c:'w'});
+ const wmax=wv.length?Math.max(...wv):0;if(wmax>1.5)sc-=10;else if(wmax>1)sc-=5;sc=Math.max(0,sc);
+ const murky=ws>=7||wmax>1.5;if(murky)tags.push({t:'물 흐림 가능',c:'w'});
  const fog=vis<1000&&a-Date.now()<3*DAY; // 시정 예보는 3일 이내만 신뢰
  const danger=ws>=10||wg>=15||fog||th;
  if(fog)tags.push({t:'안개',c:'w'});
  if(th)tags.push({t:'뇌우',c:'w'});
- return {score:sc,tags,danger};
+ return {score:sc,tags,danger,murky};
 }
 
 function evalSite(s,days0,nDays,opt){
@@ -689,12 +693,12 @@ function evalSite(s,days0,nDays,opt){
    const ok=dayOK(s.id,b,e,st);all.push({t:l.t,F,b,e,day,ban:!ok});
    const c={l,b,e,day,F,ok};
    // 작업 시간 중 해 있는 비율만큼 낮 점수, 나머지만큼 밤 점수(밤은 그 달 밤에 되는 대상이 있을 때만)
-   if(day>0){const x={...c,k:ok?F*40+day*25:-1};if(!bD||x.k>bD.k)bD=x}
-   if(day<1){const x={...c,k:ok&&nf?F*40+(1-day)*nf*25:-1};if(!bN||x.k>bN.k)bN=x}
+   if(day>0){const x={...c,k:ok?F*50+day*10:-1};if(!bD||x.k>bD.k)bD=x}
+   if(day<1){const x={...c,k:ok&&nf?F*50+(1-day)*nf*10:-1};if(!bN||x.k>bN.k)bN=x}
   });
   if(!bD&&!bN)continue;
   const season=SEASON[mo-1];
-  const sc=(c,night)=>{if(!c||c.k<0)return null;const w=weatherScore(d.wx,d.sea,c.b,c.e);c.ez=easyAt(s.id,mo,night);let v=c.k+season+w.score+(c.ez.length?6:0);if(w.danger)v=Math.min(v,25);c.w=w;return Math.round(Math.min(100,v))};
+  const sc=(c,night)=>{if(!c||c.k<0)return null;const w=weatherScore(d.wx,d.sea,c.b,c.e);c.ez=easyAt(s.id,mo,night);let v=c.k+season*2/3+w.score+(c.ez.length?5:0);if(c.F<0.35)v=Math.min(v,60);if(w.murky)v=Math.min(v,55);if(w.danger)v=Math.min(v,25);c.w=w;return Math.round(Math.min(100,v))};
   const ds=sc(bD,0),ns=sc(bN,1);
   const nsWhy=nban?'금지':!bN?'':!bN.ok?'금지':!nf?'대상 없음':''; // 밤 점수가 없는 이유
   const best=ns!=null&&(ds==null||ns>ds)?bN:(bD||bN),w=best.w||weatherScore(d.wx,d.sea,best.b,best.e);
@@ -703,6 +707,7 @@ function evalSite(s,days0,nDays,opt){
   if(best.day<0.5)tags.push({t:'야간',c:'w'});
   if(w.danger)tags.push({t:'위험',c:'w'});
   tags.push(...w.tags);
+  if(best.F>=0.75)tags.unshift({t:'물 많이 빠짐',c:''});else if(best.F<0.35)tags.unshift({t:'물 적게 빠짐',c:'w'});
   if(best.ez&&best.ez.length)tags.push({t:'초보 대상 '+best.ez.map(t=>t.name).join('·'),c:'c'});
   if(best.l.src==='calc')tags.push({t:'간조 추정',c:'c'});
   if(rg.hi<0.5)tags.push({t:'물때 영향 작음',c:'c'});
@@ -726,7 +731,7 @@ function render(){
  if(opt.weekend)dayList=dayList.filter(n=>[0,6].includes(dow(n)));
  const best=dayList.map(n=>byDay[n].sort((a,b)=>b.adj-a.adj)).sort((a,b)=>b[0].adj-a[0].adj).slice(0,12);
  $('top').innerHTML='<tr><th>날짜</th><th>물때</th><th>장소</th><th>작업 시간</th><th>간조</th><th>점수</th><th>메모</th></tr>'+
-  best.map(g=>{const r=g[0],ld=lunarDay(r.n);return `<tr class="${[0,6].includes(dow(r.n))?'we':''}"><td><span class="link" data-d="${r.n}">${fmtD(r.n)}</span></td><td>${mulCell(ld)}</td>
+  best.map(g=>{const r=g[0],ld=lunarDay(r.n);return `<tr class="${[0,6].includes(dow(r.n))?'we':''}"><td><span class="link" data-d="${r.n}">${fmtD(r.n)}</span></td><td>${mulName(ld)}${fCell(r.F)}</td>
    <td><span class="link" data-s="${r.site.id}">${r.site.name}</span><div class="alt">${g.slice(1,3).map(x=>`<span class="link" data-s="${x.site.id}">${x.site.name}</span> ${x.score}`).join(' · ')}</div></td>
    <td>${fmtT(r.b)}~${fmtT(r.e)}</td><td>${lowLine(r)}</td><td>${scoreCell(r.score)}${dnTxt(r)}</td><td>${tagH(r.tags)}</td></tr>`}).join('');
  renderWeekend();
@@ -800,7 +805,7 @@ function renderCal(){
  if(!RESULT)return;
  const id=$('sitePick').value,rows=RESULT.rows.filter(r=>r.site.id===id&&(!RESULT.opt.weekend||[0,6].includes(dow(r.n))));
  $('cal').innerHTML='<tr><th>날짜</th><th>물때</th><th>오전 간조</th><th>오후 간조</th><th>점수</th><th>메모</th></tr>'+
-  rows.map(r=>`<tr class="${[0,6].includes(dow(r.n))?'we':''}"><td>${fmtD(r.n)}</td><td>${mulCell(lunarDay(r.n))}</td><td>${lowTxt(halves(r)[0],r,1)}</td><td>${lowTxt(halves(r)[1],r,1)}</td><td>${scoreCell(r.score)}${dnTxt(r)}</td><td>${tagH(r.tags)}</td></tr>`).join('');
+  rows.map(r=>`<tr class="${[0,6].includes(dow(r.n))?'we':''}"><td>${fmtD(r.n)}</td><td>${mulName(lunarDay(r.n))}${fCell(r.F)}</td><td>${lowTxt(halves(r)[0],r,1)}</td><td>${lowTxt(halves(r)[1],r,1)}</td><td>${scoreCell(r.score)}${dnTxt(r)}</td><td>${tagH(r.tags)}</td></tr>`).join('');
 }
 
 async function run(){
@@ -1268,7 +1273,7 @@ function dayDetail(n){saveState({dlg:{t:'d',n}});
 // 하루 간조 오전·오후 나누기 (KST 12시 기준)
 function halves(r){const a=r.all||[{t:r.low.t,F:r.F,b:r.b,e:r.e,day:r.day}];const am=a.find(l=>new Date(l.t+KST).getUTCHours()<12)||null,pm=a.find(l=>new Date(l.t+KST).getUTCHours()>=12)||null;return [am,pm]}
 const isBest=(l,r)=>l&&Math.abs(l.t-r.low.t)<60e3;
-function lowTxt(l,r,withWork){if(!l)return '<span class="sub">없음</span>';if(l.ban)return `${fmtT(l.t)} <span style="color:var(--bad);font-size:12px">밤 금지</span>`;const t=`${fmtT(l.t)} <span class="sub">${Math.round(l.F*100)}%</span>`;return (isBest(l,r)?`<b>${t}</b>`:t)+(withWork?`<div class="sub">작업 ${fmtT(l.b)}~${fmtT(l.e)} · 낮 ${Math.round(l.day*100)}%</div>`:'')}
+function lowTxt(l,r,withWork){if(!l)return '<span class="sub">없음</span>';if(l.ban)return `${fmtT(l.t)} <span style="color:var(--bad);font-size:12px">밤 금지</span>`;const t=`${fmtT(l.t)} <span class="sub">빠짐 ${Math.round(l.F*100)}%</span>`;return (isBest(l,r)?`<b>${t}</b>`:t)+(withWork?`<div class="sub">작업 ${fmtT(l.b)}~${fmtT(l.e)} · 낮 ${Math.round(l.day*100)}%</div>`:'')}
 function lowLine(r){const [am,pm]=halves(r);return `오전 ${lowTxt(am,r)} · 오후 ${lowTxt(pm,r)}`}
 // 준비물: 기본 + 대상 + 날씨 + 시간대 + 장소
 const GEAR_T={ppulsora:['집게','장갑'],muneo:['랜턴','뜰채'],bomal:['장갑','아쿠아슈즈'],geobukson:['작은 칼','장갑'],ssok:['삽','붓','된장'],chilge:['삽'],kkomak:[],saejogae:['호미'],baekhap:['작은 호미'],dongjuk:['호미'],bajirak:['호미 또는 갈퀴'],manjo:['소금(케첩통에 담기)','삽'],gaeryang:['호미'],tteokjogae:['호미'],miljogae:[],gamurak:['호미'],gaejogae:['삽'],keunguseul:['호미'],pippul:['집게'],bakhaji:['집게','두꺼운 장갑'],kkotge:['뜰채','집게','랜턴'],nakji:['삽'],jukkumi:[],haesam:['집게'],gul:['갈고리','두꺼운 장갑'],gaebul:['삽']};
