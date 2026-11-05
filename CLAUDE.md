@@ -27,8 +27,9 @@
 - 한 줄 JSON: `DETAIL`, `REVIEW`, `PARK`, `MODE`, `SITEF`, `TARGETS`, `OSMBASE`, `FREEZONE` 등. 고칠 땐 파이썬으로 그 줄 JSON을 읽어 고친 뒤 `ensure_ascii=False`, 구분자 공백 없이, `</` → `<\/` 로 되돌려 쓴다.
 - 여러 줄 JS 객체: `SITES`(배열), `ACCESS`, `NIGHT`, `EXCLUDED`, `MONTHS`.
 - `/*CORE-START*/ ~ /*CORE-END*/` 계산 코드, `DEFAULTS`, `EOJANG`은 신중히.
-- 새 장소를 넣으면 SITES·DETAIL·ACCESS·REVIEW·MODE·SITEF·PARK를 모두 채운다(기존 장소 하나를 본보기로). bt = badatime.com 물때표 페이지 번호. 조위 기본값 `DEFAULTS`도 넣는다(앱에서 run 뒤 `CAL[id]` 값). 어장 `EOJANG`은 국립해양조사원 어장정보(data.go.kr 15130109, 새 지역은 2025-08 파일)에서 장소 4km 안 가까운 25개까지.
+- 새 장소를 넣으면 SITES·DETAIL·ACCESS·REVIEW·MODE·SITEF·PARK를 모두 채운다(기존 장소 하나를 본보기로). bt = badatime.com 물때표 페이지 번호. 조위 기본값 `DEFAULTS`도 넣는다(앱에서 run 뒤 `CAL[id]` 값). 어장 `EOJANG`은 국립해양조사원 어장정보(data.go.kr 15130109, 2025-08 파일, 2026-11-05 전 장소 갱신)에서 장소 4km 안 가까운 25개까지(모양은 큰 고리 4개까지 단순화).
 - 대상 이름 연결은 `findTarget`(정확한 이름·별칭 먼저, 그다음 가장 긴 이름 포함). '소라'는 서해 피뿔고둥(pippul), 남해·제주·동해의 뿔소라는 ppulsora(법정 '소라'). 새 대상: ppulsora·muneo·bomal·geobukson·ssok·chilge·kkomak·saejogae.
+- 화면: 아래 탭 막대(추천·지도·찾기·즐겨찾기·잡는 법), 전국 지도 `natMap`(앞으로 7일 최고 점수 색), 장소 카드는 지역 탭+처음 12곳+더 보기(`siteCardsInit`). 체험장(kind '체험장')은 밤 점수 없음, 머리 화면 추천은 낮 작업 우선.
 - 즐겨찾기: localStorage `bh_fav`(장소 id 배열). 창 이동 기록: `NAV`·`HDEPTH`(이전 버튼·휴대폰 뒤로가기).
 - 점수: 낮 점수(ds)·밤 점수(ns)를 따로 계산. 밤은 그 달 밤에 되는 대상이 있을 때만, 해경 밤 전체 금지면 없음. `TIMEP`(장소×대상 d/n/b, 후기 근거) → 없으면 `TIMEP_T`(대상 기본값, `ECO` 생태 근거). `EASY`(초보 대상) 후기·시간대 맞으면 +6.
 - `SPOTS`: 장소 안 포인트 {장소id:[{la,lo,p:'정확|대략',t:[대상id],d:설명,src}]} — 장소 지도에 대상 이름표로 표시. 현장 기록에 위치가 있으면(메모 끝 `⌖위도,경도`) 지도에 결과 색 점으로 표시.
