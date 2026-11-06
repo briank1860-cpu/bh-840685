@@ -146,9 +146,19 @@ FISH = re.compile(r'낚시|선상|에깅|루어')
 HARU = re.compile(r'해루질|낮루질|갯벌|조개|체험|캐기|줍')
 
 
-def skip_title(title):
-    """낚시 영상(해루질·갯벌 말이 제목에 없으면) 뺌."""
-    return bool(FISH.search(title)) and not HARU.search(title)
+CAMP = re.compile(r'캠핑|차박|텐트|글램핑|백패킹|솔캠|캠핑카|야영|vlog|브이로그|여행', re.I)
+CATCH = re.compile(r'해루|낮루질|갯벌|체험|조개|바지락|백합|맛조개|동죽|낙지|꽃게|박하지|소라|고둥|고동|잡이|캐기|줍')
+# 제목만으로 못 거르는 무관 영상(여행 일지·놀이 영상 등). 사람이 보고 넣는다
+BLOCK = {'-jx207czt3w', 'xAtMVoansP0', '_5ItCMmjJ2w', 'MfYAf4bmNXA', '491tY9MmNwo', 'XkWl7P_Tsvg'}
+
+
+def skip_title(title, vid=''):
+    """뺄 영상: 낚시 영상(해루질·갯벌 말이 제목에 없으면), 캠핑·차박·여행 영상(잡는 이야기가 제목에 없으면), BLOCK."""
+    if vid in BLOCK:
+        return True
+    if FISH.search(title) and not HARU.search(title):
+        return True
+    return bool(CAMP.search(title)) and not CATCH.search(title)
 
 
 def vid_of(url):
@@ -196,7 +206,7 @@ def main():
         d = to_date(when, today)
         if d is None or (today - d).days > MAX_DAYS:
             continue
-        if skip_title(title):
+        if skip_title(title, vid):
             continue
         # 제목에 장소 이름이 있으면 제목만 믿고, 없을 때만 설명까지 본다(설명에 이웃 장소가 섞이는 것 막기)
         for sid in (match_sites(title) or match_sites(text)):
@@ -208,12 +218,12 @@ def main():
                 item['a'] = 1
             lst.append(item)
             added += 1
-    for sid in list(V):  # 이미 붙은 것 중 제목이 다른 장소를 가리키거나 낚시 영상이면 뺌
+    for sid in list(V):  # 이미 붙은 것 중 제목이 다른 장소를 가리키거나 낚시·캠핑 영상이면 뺌
         keep = []
         for x in V[sid]:
             ts = match_sites(x['t'])
             bad_own = any(k in x['t'] for k in ALIAS.get(sid, {}).get('not', []))
-            if skip_title(x['t']) or bad_own or (ts and sid not in ts):
+            if skip_title(x['t'], x['v']) or bad_own or (ts and sid not in ts):
                 continue
             keep.append(x)
         V[sid] = keep
