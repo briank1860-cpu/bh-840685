@@ -154,7 +154,8 @@ select,input[type=number],input[type=date]{border-radius:10px;padding:6px 8px}
 @media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 input[type=checkbox],input[type=radio]{accent-color:var(--acc);width:17px;height:17px}
 /* 머리 화면 한 곳·내 조건 */
-.why{margin-top:6px;padding:8px 10px;border-radius:10px;background:var(--card);font-size:13.5px;line-height:1.55;color:var(--ink)}.why b{color:var(--acc);margin-right:2px}.recent4{margin:0 0 12px;padding:10px 12px;border-radius:12px;background:var(--card);border:1px solid var(--line);font-size:14px}.recent4 ul{margin:0;padding-left:18px}.recent4 li{margin:2px 0}.gear{display:grid;gap:6px}.gear .gk{font-weight:700;color:var(--acc);margin-top:6px;font-size:14px}.gear label{display:flex;gap:8px;align-items:center;font-size:15px}.gear input{width:20px;height:20px;accent-color:var(--acc)}
+.why{margin-top:6px;padding:8px 10px;border-radius:10px;background:var(--card);font-size:13.5px;line-height:1.55;color:var(--ink)}.why b{color:var(--acc);margin-right:2px}.daycard{margin:0 0 12px;padding:12px;border-radius:12px;background:var(--card);border:1.5px solid var(--acc)}.daycard .why{background:var(--bg)}.daycard .dl{grid-template-columns:auto minmax(0,1fr)}.daycard dd{min-width:0;overflow-wrap:anywhere}.daycard .chips{display:flex;flex-wrap:wrap;gap:6px;overflow:visible}
+.recent4{margin:0 0 12px;padding:10px 12px;border-radius:12px;background:var(--card);border:1px solid var(--line);font-size:14px}.recent4 ul{margin:0;padding-left:18px}.recent4 li{margin:2px 0}.gear{display:grid;gap:6px}.gear .gk{font-weight:700;color:var(--acc);margin-top:6px;font-size:14px}.gear label{display:flex;gap:8px;align-items:center;font-size:15px}.gear input{width:20px;height:20px;accent-color:var(--acc)}
 .site-hero{position:relative;height:190px;margin:-6px -16px 14px;overflow:hidden;background:#6b4a33;isolation:isolate}.site-hero img{position:absolute;width:256px;height:256px;max-width:none}.site-hero:before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(255,176,96,.10),rgba(255,140,60,.14));mix-blend-mode:soft-light;pointer-events:none}.site-hero:after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(40,18,6,0) 38%,rgba(40,18,6,.35) 62%,rgba(36,16,6,.82) 100%);pointer-events:none}.site-hero .sh-t{position:absolute;left:16px;right:16px;bottom:14px;z-index:2;color:#fff;text-shadow:0 1px 3px rgba(20,8,2,.55)}.site-hero .sh-k{font-size:12.5px;color:#FFE3B3;letter-spacing:-.01em}.site-hero .sh-v{font-size:17px;font-weight:800;letter-spacing:-.02em;margin-top:2px}.site-hero .sh-v small{font-size:13px;font-weight:600;opacity:.9}.site-hero.ph{display:block;background:#6b4a33 center/cover no-repeat;text-decoration:none}.site-hero.ph:before{display:none}.site-hero.sh-art{background:linear-gradient(165deg,#F6C48E 0%,#E59A5C 38%,#B8653A 72%,#7A3F24 100%)}.site-hero.sh-art:before{display:none}.site-hero .sh-w{position:absolute;inset:0;width:100%;height:100%;z-index:0}.site-hero .sh-w path{fill:none;stroke:rgba(255,236,210,.42);stroke-width:1.6}.site-hero .sh-w circle{fill:rgba(255,236,200,.55)}.site-hero .cr{position:absolute;right:10px;top:8px;z-index:2;font-size:10px;color:#fff;opacity:.75;text-shadow:0 1px 2px rgba(0,0,0,.6)}
 .mg{font-size:11px;font-weight:600;margin-top:2px;white-space:nowrap}.mg.g{color:#2f7d4f}.mg.m{color:#8a6a3a}.mg.b{color:#b0574a}
 .hero-pick{margin-top:18px;display:inline-flex;flex-direction:column;gap:3px;padding:12px 16px;border-radius:16px;background:rgba(255,248,238,.16);border:1px solid rgba(255,255,255,.35);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);max-width:100%}
@@ -1007,7 +1008,7 @@ function siteHero(s,next,fr){/* 장소 화면 맨 위: 대표 사진(있을 때,
 function jo(w,a,b){const c=(w||'').charCodeAt((w||'').length-1);return c>=0xAC00&&c<=0xD7A3&&(c-0xAC00)%28?a:b} // 받침 있으면 a(을·이·은), 없으면 b(를·가·는)
 function evDates(id){
  const R=REVIEW[id]||{},out=[];
- (R.recent||[]).forEach(x=>{const m=/^(\d{4}-\d{2}(?:-\d{2})?)/.exec(x);if(m)out.push(m[1])});
+ (R.recent||[]).forEach(x=>{const m=/^(\d{4}-\d{2}(?:-\d{2})?)/.exec(x);if(m&&/잡았|잡혔|캤|캐 왔|주웠|나왔|만통|가득|많았/.test(x)&&!/못 잡|없었|안 잡|관찰/.test(x))out.push(m[1])}); // 실제로 잡은 후기만
  (R.tbm||[]).forEach(t=>(t.evidence||[]).forEach(e=>{if(e&&/^\d{4}-\d{2}/.test(e[2]||''))out.push(e[2].slice(0,10))}));
  return [...new Set(out)].sort().reverse();
 }
@@ -1022,7 +1023,7 @@ function evInfo(id){
  const n30=ds.filter(d=>d>=cut&&d<=today).length,f30=fieldRecent(id,30).length;
  return {n30,f30,last:ds[0]||'',total:ds.length};
 }
-const mdTxt=d=>d.length>=10?`${+d.slice(5,7)}월 ${+d.slice(8,10)}일`:`${d.slice(0,4)}년 ${+d.slice(5,7)}월`;
+const mdTxt=d=>{const y=d.slice(0,4),cy=new Date(Date.now()+KST).toISOString().slice(0,4);return d.length>=10?`${y!==cy?y+'년 ':''}${+d.slice(5,7)}월 ${+d.slice(8,10)}일`:`${y}년 ${+d.slice(5,7)}월`}; // 올해가 아니면 연도도
 function evBonus(id){const e=evInfo(id),n=e.n30+e.f30;return n>=3?4:n>=1?2:e.total?0:-3}
 function evTag(id){
  const e=evInfo(id),n=e.n30+e.f30;
@@ -1068,14 +1069,34 @@ function gearBlock(id,next){
   g={기본:['구명조끼','휴대폰 방수팩(물때 앱·연락)','장화 또는 갯벌화','장갑','채취망·작은 바구니','마실 물','여벌옷·수건'],대상:[...tools]};}
  return `<h4>챙길 것 <span class="sub">${r?fmtD(r.n)+' 기준 · ':''}체크는 이 휴대폰에만 남아요</span></h4>${gearChecks(g)}`;
 }
+/* 장소 화면 맨 위 '그날 이렇게': 고른 날(없으면 추천 날) 하나로 물때·작업·나올 시각·날씨·대상·주의·근거를 묶어 보여 줌 */
+function dayCard(s,r){
+ if(!r)return '';
+ const n=r.n,m=new Date(kDayStart(n)+KST).getUTCMonth()+1,w=dayWeather(s,n),night=r.day<0.5;
+ const tg=(DETAIL[s.id]?.targets||[]).map(x=>findTarget(x.name)).filter(Boolean).filter((t,i,a)=>a.indexOf(t)===i);
+ const tp=t=>timePref(s.id,t.id),fitT=t=>night?tp(t)!=='d':tp(t)!=='n';
+ const good=[],weak=[];
+ tg.forEach(t=>{const k=siteMonth(s.id,t,m);if(k==='x'||!fitT(t))return;const c=cond(t.id,DATA[s.id]||{},r.b,r.e,s.id);(c&&c.lv?weak:good).push({t,k,c})});
+ good.sort((a,b)=>(b.k==='g')-(a.k==='g'));
+ const chips=good.map(o=>`<span class="chip ${o.k==='g'?'cg':''}" data-t="${o.t.id}">${esc(o.t.name)}</span>`).join('')+weak.map(o=>`<span class="chip cd" data-t="${o.t.id}" title="${esc(o.c.why||'')}">${esc(o.t.name)}</span>`).join('');
+ const warn=(r.tags||[]).filter(x=>x.c==='w').map(x=>x.t);
+ const wx=w?`${w.sky} · ${w.tmin.toFixed(0)}~${w.tmax.toFixed(0)}°C · 바람 최대 ${w.ws.toFixed(0)}m/s · 비 ${w.pr.toFixed(0)}mm${w.wave!=null?` · 파고 ${w.wave.toFixed(1)}m`:''}`:'<span class="sub">아직 예보가 없어요. 가기 전날 다시 확인하세요.</span>';
+ return `<div class="daycard"><h4 style="margin:0 0 6px">${fmtD(n)} 이렇게 하세요 <span class="sub">${night?'밤':'낮'} ${r.score}점</span></h4><div class="dl">
+  <dt>물때</dt><dd>${mulName(lunarDay(n))} · ${lowLine(r)} · ${reachDay(r)}</dd>
+  <dt>작업</dt><dd><b>${fmtT(r.b)}~${fmtT(r.e)}</b> · <b style="color:var(--bad)">${fmtT(r.e)}에는 나오기 시작하세요</b></dd>
+  <dt>날씨</dt><dd>${wx}</dd>
+  <dt>그날 대상</dt><dd>${chips?`<div class="chips" style="flex-wrap:wrap">${chips}</div>`:''}${chips?'':'<span class="sub">이 시간대에 맞는 대상 근거가 없어요</span>'}${weak.length?'<div class="sub" style="margin-top:3px">흐린 글씨 = 그날 날씨에 잘 안 맞아요</div>':''}</dd>
+  ${warn.length?`<dt>주의</dt><dd style="color:var(--bad)">${esc(warn.join(' · '))}</dd>`:''}
+ </div>${whyLine(r)}</div>`;
+}
 function siteDetail(id,fn){saveState({dlg:{t:'s',id}});
  const s=SITES.find(x=>x.id===id),d=DETAIL[id]||{};
  const next=RESULT?RESULT.rows.filter(r=>r.site.id===id).sort((a,b)=>b.score-a.score).slice(0,3).sort((a,b)=>a.n-b.n):[];
  const q=encodeURIComponent(s.name.replace(' 체험장','').replace('·',' '));
- const fr=fn!=null&&RESULT?RESULT.rows.find(r=>r.site.id===id&&r.n===fn):null,nx=fr?[fr,...next.filter(r=>r.n!==fn)]:next; // 누른 날짜가 있으면 그날 기준
- let h=siteHero(s,next,fr)+recentBox(id)+`<p>${tagH([{t:s.reg},payTag(id)||{t:s.kind},{t:'모래 '+'●'.repeat(s.sand)+'○'.repeat(3-s.sand),c:'c'},{t:'후기 근거 '+['','약함','보통','확실'][s.ev],c:'c'}])}</p>
+ const fr0=fn!=null&&RESULT?RESULT.rows.find(r=>r.site.id===id&&r.n===fn):null,fr=fr0||next.slice().sort((a,b)=>b.score-a.score)[0]||null,nx=fr?[fr,...next.filter(r=>r.n!==fr.n)]:next; // 기준 날짜 하나: 누른 날, 없으면 추천 날 중 점수 가장 높은 날
+ let h=siteHero(s,next,fr0)+dayCard(s,fr)+recentBox(id)+`<p>${tagH([{t:s.reg},payTag(id)||{t:s.kind},{t:'모래 '+'●'.repeat(s.sand)+'○'.repeat(3-s.sand),c:'c'},{t:'후기 근거 '+['','약함','보통','확실'][s.ev],c:'c'}])}</p>
   ${noteBlock(id)}${shareFocusHtml(id)}${reviewBlock(id)}<p class="sub">${esc(s.memo)}</p>${s.warn?`<p style="color:var(--bad)">${esc(s.warn)}</p>`:''}`+(NIGHT[id]?`<p style="color:${NIGHT[id].law?'var(--bad)':'#b7791f'}"><b>${nightTag(id).t}</b> — ${esc(NIGHT[id].t)}</p>`:'')+(hasBoat(id)?`<h4>배편 <span class="tag" style="background:#e8a317;color:#fff">배 필요</span></h4><p>${esc(BOAT[id])}</p><p class="sub">배 시간이 간조와 맞는지, 막배 시간을 먼저 확인하세요.</p>`:'')+nowWx(id)+accessBlock(id)+eojangBlock(id);
- if(nx.length)h+=`<h4>추천 날짜</h4><div class="dl">${nx.slice().sort((a,b)=>a.n-b.n).map(r=>`<dt>${fr&&r.n===fr.n?'<b>'+fmtD(r.n)+' (고른 날)</b>':fmtD(r.n)}</dt><dd>${mulName(lunarDay(r.n))} · ${lowLine(r)} · 작업 ${fmtT(r.b)}~${fmtT(r.e)} · ${r.score}점 · ${reachDay(r)} ${dnTxt(r)} ${shareBtn(id,r.n)}</dd>`).join('')}</div>`;
+ if(nx.length)h+=`<h4>추천 날짜</h4><div class="dl">${nx.slice().sort((a,b)=>a.n-b.n).map(r=>`<dt>${fr&&r.n===fr.n?'<b>'+fmtD(r.n)+(fr0?' (고른 날)':' (위 기준)')+'</b>':fmtD(r.n)}</dt><dd>${mulName(lunarDay(r.n))} · ${lowLine(r)} · 작업 ${fmtT(r.b)}~${fmtT(r.e)} · ${r.score}점 · ${reachDay(r)} ${dnTxt(r)} ${shareBtn(id,r.n)}</dd>`).join('')}</div>`;
  h+=reachBlock(s,nx);
  h+=gearBlock(id,nx);
  h+=`<h4>주차</h4>${parkHtml(id)}${ul(d.parking)}<h4>가는 길·진입</h4>${ul(d.access)}<h4>잘 나오는 구역</h4>${ul(d.spots)}<h4>지형</h4>${SITEF[id]?`<p>${SITEF[id].b?'<b>바닥</b> '+esc(SITEF[id].b):''}${SITEF[id].w?'<br><b>물속 구간</b> '+esc(SITEF[id].w):''}</p>`:''}${ul(d.terrain)}`;
