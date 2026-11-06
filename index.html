@@ -1111,7 +1111,7 @@ function betterDays(s,r,FT){ // 같은 조건(고른 어종·내 조건)으로 �
  const fw=x=>!x?'근거 없음':x.mk&&x.mk.lv?'날씨 안 맞음':x.sc>=75?'잘 맞음':x.sc>=55?'보통':'약함';
  const rank={'잘 맞음':3,'보통':2,'약함':1,'날씨 안 맞음':0,'근거 없음':0};
  const cur=fitN(r.n,r),curW=FT.length?fw(cur):'';
- const c=RESULT.rows.filter(x=>x.site.id===s.id&&x.n!==r.n&&x.score>=r.score+3).map(x=>({x,f:FT.length?fw(fitN(x.n,x)):''})).filter(o=>!FT.length||rank[o.f]>=Math.max(2,rank[curW]||0)).sort((a,b)=>b.x.score-a.x.score).slice(0,3);
+ const c=siteRows(s.id).filter(x=>x.n!==r.n&&x.score>=r.score+3).map(x=>({x,f:FT.length?fw(fitN(x.n,x)):''})).filter(o=>!FT.length||rank[o.f]>=Math.max(2,rank[curW]||0)).sort((a,b)=>b.x.score-a.x.score).slice(0,3);
  const ts=FT.map(t=>t.id).join(',');
  if(!c.length)return `<p class="sub" style="margin:6px 0 0">고른 조건으로는 계산 기간 안에서 이날이 가장 좋아요.</p>`;
  return `<div class="better"><b>더 좋은 날</b> <span class="sub">같은 조건${FT.length?'('+FT.map(t=>esc(t.name)).join('·')+')':''}</span>${c.map(o=>`<div><span class="link" data-s="${s.id}" data-n="${o.x.n}"${ts?` data-ts="${ts}"`:''}><b>${fmtD(o.x.n)}</b></span> ${tScore(o.x,FT)}점 · ${o.x.day>=0.5?'낮':'밤'} ${fmtT(o.x.b)}~${fmtT(o.x.e)}${o.f?' · '+o.f:''} <span class="sub">(+${o.x.score-r.score})</span></div>`).join('')}</div>`;
@@ -1139,9 +1139,9 @@ function dayCard(s,r,FT){
 }
 function siteDetail(id,fn,fts){if(fn==null)fn=FOCUS.n;if(!fts)fts=FOCUS.ts;saveState({dlg:{t:'s',id}});
  const s=SITES.find(x=>x.id===id),d=DETAIL[id]||{};
- const next=RESULT?RESULT.rows.filter(r=>r.site.id===id).sort((a,b)=>b.score-a.score).slice(0,3).sort((a,b)=>a.n-b.n):[];
+ const next=siteRows(id).length?siteRows(id).sort((a,b)=>b.score-a.score).slice(0,3).sort((a,b)=>a.n-b.n):[];
  const q=encodeURIComponent(s.name.replace(' 체험장','').replace('·',' '));
- const fr0=fn!=null&&RESULT?RESULT.rows.find(r=>r.site.id===id&&r.n===fn):null,fr=fr0||next.slice().sort((a,b)=>b.score-a.score)[0]||null,FT=(fts||wkTSel()).map(x=>TARGETS.find(t=>t.id===x)).filter(t=>t&&siteHas(id,t)),nx=fr?[fr,...next.filter(r=>r.n!==fr.n)]:next; // 기준 날짜 하나: 누른 날, 없으면 추천 날 중 점수 가장 높은 날
+ const fr0=fn!=null?siteRows(id).find(r=>r.n===fn)||null:null,fr=fr0||next.slice().sort((a,b)=>b.score-a.score)[0]||null,FT=(fts||wkTSel()).map(x=>TARGETS.find(t=>t.id===x)).filter(t=>t&&siteHas(id,t)),nx=fr?[fr,...next.filter(r=>r.n!==fr.n)]:next; // 기준 날짜 하나: 누른 날, 없으면 추천 날 중 점수 가장 높은 날
  const miss=fn!=null&&!fr0?`<p class="sub" style="margin:0 0 8px;color:var(--bad)">고른 날(${fmtD(fn)})에는 이 장소에 맞는 간조가 없어요. 아래는 가장 좋은 추천 날 기준이에요.</p>`:'';
  // 순서: 그날 이렇게 → 안전 → 주차·가는 길 → 어디까지 → 챙길 것 → 최근·후기 → 추천 날짜 → 자세한 정보 → 다녀온 뒤 현장 기록
  const safeH=`${s.warn?`<p style="color:var(--bad)">${esc(s.warn)}</p>`:''}`+(NIGHT[id]?`<p style="color:${NIGHT[id].law?'var(--bad)':'#b7791f'}"><b>${nightTag(id).t}</b> — ${esc(NIGHT[id].t)}</p>`:'')+(d.safety&&d.safety.length?ul(d.safety):'');
@@ -1750,8 +1750,8 @@ function drawMap(id){
 
 function nowWx(id){
  const c=DATA[id]?.cur;
- if(!WX_AT||!c)return `<h4>지금 날씨</h4><p class="sub">날씨 못 받음 — 새로고침</p>`;
- return `<h4>지금 날씨 <span class="sub">${fmtT(c.t)} 관측·예보값 · ${fmtT(WX_AT)} 받음</span></h4><p>${WC(c.wc)} · ${c.tp.toFixed(0)}°C · 바람 ${c.ws.toFixed(0)}m/s(돌풍 ${c.wg.toFixed(0)}) · 비 ${c.pr.toFixed(1)}mm · <a href="https://www.weather.go.kr/w/special-report/overall.do" target="_blank" rel="noopener">기상특보</a></p>`;
+ const at=SWX[id]||WX_AT;if(!at||!c)return `<h4>지금 날씨</h4><p class="sub">날씨 못 받음 — 새로고침</p>`;
+ return `<h4>지금 날씨 <span class="sub">${fmtT(c.t)} 관측·예보값 · ${fmtT(at)} 받음</span></h4><p>${WC(c.wc)} · ${c.tp.toFixed(0)}°C · 바람 ${c.ws.toFixed(0)}m/s(돌풍 ${c.wg.toFixed(0)}) · 비 ${c.pr.toFixed(1)}mm · <a href="https://www.weather.go.kr/w/special-report/overall.do" target="_blank" rel="noopener">기상특보</a></p>`;
 }
 // 내 위치(휴대폰 GPS) — 지도에 표시하고 마을어장 안 여부·철수까지 남은 시간 안내
 let geoWatch=null,meMk=null,meCirc=null,meFollow=true,geoSite=null,meTrail=null,meBtn=null,meTrailT=[];
@@ -2340,6 +2340,21 @@ function init(){
  setInterval(()=>{if(stale())run()},5*60e3);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&stale())run()});
 }
+// 보고 있는 장소 날씨 실시간: 그 장소만 따로 받아(지역 밖 장소 포함) 10분마다 새로 받고 장소 화면을 그 자리에서 다시 그림. 고른 날이 앞날이면 그날 그 장소 예보(dayCard)
+let EXTRA={},SWX={},STRY={},SD_ARGS=null;
+function siteRows(id){const r=RESULT?RESULT.rows.filter(x=>x.site.id===id):[];return r.length?r:(EXTRA[id]||[])}
+async function refreshSite(id){const s=SITES.find(x=>x.id===id);if(!s)return false;STRY[id]=Date.now();const keep=WX_AT;let st;
+ try{st=await loadData([s])}catch(e){WX_AT=keep;return false}WX_AT=keep;if(!st.wx&&!st.marine)return false;
+ const today=kDay(Date.now()),d=DATA[id];let p=null;if(d&&d.sea)p=calibrate(findLows(d.sea),s.lon);CAL[id]=p||DEFAULTS[id]||DEFAULTS._;RANGE[id]=depthRange(s.lon,CAL[id],kDayStart(today));
+ const opt=RESULT?RESULT.opt:{days:+$('days').value,exit:+$('exit').value,work:+$('work').value,weekend:false,night:!!($('night')&&$('night').checked)};
+ const rows=evalSite(s,today,opt.days,opt);if(st.wx)SWX[id]=Date.now();
+ if(RESULT&&RESULT.rows.some(x=>x.site.id===id))RESULT.rows=RESULT.rows.filter(x=>x.site.id!==id).concat(rows);else EXTRA[id]=rows;return true}
+function sdOpen(id){const d=$('dlg');return d&&d.open&&CUR&&CUR.t==='s'&&CUR.id===id}
+function reDetail(id){if(!sdOpen(id)||!SD_ARGS||SD_ARGS.id!==id)return;const y=$('dlg').scrollTop;siteDetail(id,SD_ARGS.fn,SD_ARGS.fts);$('dlg').scrollTop=y}
+function siteWxKick(id){const old=!SWX[id]||Date.now()-SWX[id]>10*60e3,tried=STRY[id]&&Date.now()-STRY[id]<60e3;if(old&&!tried)refreshSite(id).then(ok=>{if(ok)reDetail(id)})}
+{const _sd=siteDetail;siteDetail=function(id,fn,fts){const r=_sd(id,fn,fts);SD_ARGS={id,fn,fts};siteWxKick(id);return r}}
+if(typeof setInterval!=='undefined')setInterval(()=>{if(SD_ARGS&&sdOpen(SD_ARGS.id))siteWxKick(SD_ARGS.id)},60e3);
+if(typeof document!=='undefined')document.addEventListener('visibilitychange',()=>{if(!document.hidden&&SD_ARGS&&sdOpen(SD_ARGS.id))siteWxKick(SD_ARGS.id)});
 if(typeof document!=='undefined')init();
 // 카카오톡 안 브라우저는 앱을 나가면 닫힘 → 기본 브라우저로 열기 안내
 if(/KAKAOTALK/i.test(navigator.userAgent)&&/^https:/.test(location.href)){const b=document.createElement('div');b.style.cssText='position:sticky;top:0;z-index:50;background:#fee500;color:#191919;padding:10px 16px;font-size:14px;display:flex;gap:10px;align-items:center;justify-content:space-between';b.innerHTML='<span>카카오톡 안에서는 화면을 나가면 닫혀요.</span><a style="background:#191919;color:#fee500;padding:6px 10px;border-radius:6px;text-decoration:none;white-space:nowrap" href="kakaotalk://web/openExternal?url='+encodeURIComponent(location.href)+'">크롬으로 열기</a>';document.body.prepend(b)}
