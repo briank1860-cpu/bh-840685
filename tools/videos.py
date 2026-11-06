@@ -149,7 +149,7 @@ HARU = re.compile(r'해루질|낮루질|갯벌|조개|체험|캐기|줍')
 CAMP = re.compile(r'캠핑|차박|텐트|글램핑|백패킹|솔캠|캠핑카|야영|vlog|브이로그|여행', re.I)
 CATCH = re.compile(r'해루|낮루질|갯벌|체험|조개|바지락|백합|맛조개|동죽|낙지|꽃게|박하지|소라|고둥|고동|잡이|캐기|줍')
 # 제목만으로 못 거르는 무관 영상(여행 일지·놀이 영상 등). 사람이 보고 넣는다
-BLOCK = {'-jx207czt3w', 'xAtMVoansP0', '_5ItCMmjJ2w', 'MfYAf4bmNXA', '491tY9MmNwo', 'XkWl7P_Tsvg'}
+BLOCK = {'-jx207czt3w', '491tY9MmNwo', '4CmLd3w9U6Y', '72kRGcR9XIo', 'EGou-hugmqs', 'I0xfWjvJddo', 'MfYAf4bmNXA', 'NlmzLy_divo', 'V6tNH3jwwHY', 'XkWl7P_Tsvg', 'YCaDUfIR3kA', 'Yi8njCQafa4', '_5ItCMmjJ2w', 'a4rMRQviPzI', 'aKE_3vEExlI', 'c2KYK9_I0ho', 'd0Pgf-bulcs', 'e2JgMSSioPQ', 'itdCT3O187o', 'jqOCtw1ORUg', 'm6rj57KM9Sc', 'mEK0DSMlgas', 'n0dpCg9EWgU', 'ndAfoGmUKE8', 'xAtMVoansP0', 'zBg8wNoB28k'}
 
 
 def skip_title(title, vid=''):
