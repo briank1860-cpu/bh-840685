@@ -792,7 +792,7 @@ function wkTargetDay(n,Ts,dayRows){
  return head+notes+`<ol style="margin:0;padding-left:22px">${list.map(o=>{const x=o.best;
   const chips=o.ts.sort((a,b)=>b.x.sc-a.x.sc).map(({T,x})=>`<span class="chip${siteMonth(o.s.id,T,m)==='g'?' cg':''}${x.mk&&x.mk.lv?' cd':''}" data-t="${T.id}">${esc(T.name)} · ${MODE_T[catchMode(o.s.id,T.id)]} · ${fitW(x)}</span>`).join('');
   const why=o.ts.filter(({x})=>x.mk&&x.mk.lv).map(({T,x})=>esc(T.name)+': '+x.mk.t);
-  return `<li style="margin:5px 0"><span class="link" data-s="${o.s.id}" data-n="${n}"><b>${esc(o.s.name)}</b></span> <b>${RS[o.s.id].score}점</b> ${dnTxt(RS[o.s.id])} ${shareBtn(o.s.id,n)}${fieldSum(o.s.id)}<br><span class="sub">간조 ${fmtT(x.l.t)} · 작업 ${fmtT(x.l.b)}~${fmtT(x.l.e)}${x.l.day<0.5?' · 야간'+(o.ts.some(({T})=>timePref(o.s.id,T.id)==='n')?'(밤에 잘 되는 곳)':''):''}${x.w.danger?' · 위험':''}</span><div class="chips" style="margin-top:3px">${chips}</div>${why.length?`<div style="color:#8a5a00;font-size:12px">${why.join('<br>')}</div>`:''}</li>`}).join('')}</ol>`;
+  return `<li style="margin:5px 0"><span class="link" data-s="${o.s.id}" data-n="${n}" data-ts="${o.ts.map(({T})=>T.id).join(',')}"><b>${esc(o.s.name)}</b></span> <b>${RS[o.s.id].score}점</b> ${dnTxt(RS[o.s.id])} ${shareBtn(o.s.id,n)}${fieldSum(o.s.id)}<br><span class="sub">간조 ${fmtT(x.l.t)} · 작업 ${fmtT(x.l.b)}~${fmtT(x.l.e)}${x.l.day<0.5?' · 야간'+(o.ts.some(({T})=>timePref(o.s.id,T.id)==='n')?'(밤에 잘 되는 곳)':''):''}${x.w.danger?' · 위험':''}</span><div class="chips" style="margin-top:3px">${chips}</div>${why.length?`<div style="color:#8a5a00;font-size:12px">${why.join('<br>')}</div>`:''}</li>`}).join('')}</ol>`;
 }
 // 주말 베스트: 그 장소에서 그 시기 잘 나오는 대상(날씨 안 맞으면 흐리게, 이유 한 줄)
 function wkTargets(s,r,n){
@@ -979,9 +979,9 @@ function riseCm(s,r,min){ // 간조 뒤 min분 동안 차오르는 높이(cm)
  return {cm:Math.round(R*(f[i]+(f[i+1]-f[i])*(x-i))*1.3*100),src:'계산(넉넉히)'};
 }
 function reachDay(r){if(!r||r.F==null)return '';return r.F>=0.75?'끝 쪽까지 드러남':r.F>=0.45?'가운데까지 드러남':'끝 쪽 덜 드러남'}
-function reachBlock(s,next){
- const d=DETAIL[s.id]||{},rg=RANGE[s.id],seen=new Set(),zs=[];
- (d.targets||[]).forEach(t=>{const f=findTarget(t.name);if(f&&ZONE[f.id]&&!seen.has(f.id)){seen.add(f.id);zs.push([f,ZONE[f.id]])}});
+function reachBlock(s,next,FT){
+ const d=DETAIL[s.id]||{},rg=RANGE[s.id],seen=new Set(),zs=[],only=(FT||[]).map(t=>t.id);
+ (d.targets||[]).forEach(t=>{const f=findTarget(t.name);if(f&&ZONE[f.id]&&!seen.has(f.id)&&(!only.length||only.includes(f.id))){seen.add(f.id);zs.push([f,ZONE[f.id]])}});
  if(!zs.length&&!FLATW[s.id]&&!WALK[s.id])return '';
  let h='<h4>어디까지 나가야 하나</h4><div class="dl">';
  if(WALK[s.id]){const [a,b,ap]=WALK[s.id],km=m=>m<1000?Math.round(m/50)*50+'m':(m/1000).toFixed(1)+'km';
@@ -1063,44 +1063,46 @@ function gearGet(){try{return JSON.parse(lsGet('bh_gear','{}'))}catch(e){return 
 function gearToggle(el){const g=gearGet();if(el.checked)g[el.value]=1;else delete g[el.value];try{localStorage.setItem('bh_gear',JSON.stringify(g))}catch(e){}}
 function gearClear(btn){try{localStorage.removeItem('bh_gear')}catch(e){};btn.closest('.gear').querySelectorAll('input').forEach(i=>i.checked=false)}
 function gearChecks(g){const c=gearGet();return '<div class="gear">'+Object.entries(g).filter(([k,v])=>v.length).map(([k,v])=>`<div class="gk">${esc(k)}</div>`+v.map(x=>`<label><input type="checkbox" value="${esc(x)}" ${c[x]?'checked':''} onchange="gearToggle(this)"> ${esc(x)}</label>`).join('')).join('')+'<button class="btn ghost" type="button" onclick="gearClear(this)" style="margin-top:6px">체크 모두 지우기</button></div>'}
-function gearBlock(id,next){
+function gearBlock(id,next,FT){
  const s=SITES.find(x=>x.id===id);let g;
  const r=(next||[])[0]; // '어디까지 나가야 하나'와 같은 날짜
- if(r)g=gearList(s,r,r.n,dayWeather(s,r.n));
+ if(r)g=gearList(s,r,r.n,dayWeather(s,r.n),FT);
  else{const tg=(DETAIL[id]?.targets||[]).map(x=>findTarget(x.name)).filter(Boolean);const tools=new Set();tg.forEach(t=>(GEAR_T[t.id]||[]).forEach(x=>tools.add(x)));
   g={기본:['구명조끼','휴대폰 방수팩(물때 앱·연락)','장화 또는 갯벌화','장갑','채취망·작은 바구니','마실 물','여벌옷·수건'],대상:[...tools]};}
- return `<h4>챙길 것 <span class="sub">${r?fmtD(r.n)+' 기준 · ':''}체크는 이 휴대폰에만 남아요</span></h4>${gearChecks(g)}`;
+ return `<h4>챙길 것 <span class="sub">${r?fmtD(r.n)+' 기준 · ':''}${FT&&FT.length?FT.map(t=>t.name).join('·')+' 잡기 · ':''}체크는 이 휴대폰에만 남아요</span></h4>${gearChecks(g)}`;
 }
 /* 장소 화면 맨 위 '그날 이렇게': 고른 날(없으면 추천 날) 하나로 물때·작업·나올 시각·날씨·대상·주의·근거를 묶어 보여 줌 */
-function dayCard(s,r){
- if(!r)return '';
+function dayCard(s,r,FT){
+ if(!r)return '';FT=FT||[];
  const n=r.n,m=new Date(kDayStart(n)+KST).getUTCMonth()+1,w=dayWeather(s,n),night=r.day<0.5;
  const tg=(DETAIL[s.id]?.targets||[]).map(x=>findTarget(x.name)).filter(Boolean).filter((t,i,a)=>a.indexOf(t)===i);
  const tp=t=>timePref(s.id,t.id),fitT=t=>night?tp(t)!=='d':tp(t)!=='n';
  const good=[],weak=[];
- tg.forEach(t=>{const k=siteMonth(s.id,t,m);if(k==='x'||!fitT(t))return;const c=cond(t.id,DATA[s.id]||{},r.b,r.e,s.id);(c&&c.lv?weak:good).push({t,k,c})});
+ tg.forEach(t=>{const k=siteMonth(s.id,t,m);if(k==='x'||!fitT(t)||FT.includes(t))return;const c=cond(t.id,DATA[s.id]||{},r.b,r.e,s.id);(c&&c.lv?weak:good).push({t,k,c})});
  good.sort((a,b)=>(b.k==='g')-(a.k==='g'));
  const chips=good.map(o=>`<span class="chip ${o.k==='g'?'cg':''}" data-t="${o.t.id}">${esc(o.t.name)}</span>`).join('')+weak.map(o=>`<span class="chip cd" data-t="${o.t.id}" title="${esc(o.c.why||'')}">${esc(o.t.name)}</span>`).join('');
+ const fitW=x=>!x?'이날 근거 없음':x.mk&&x.mk.lv?'날씨 안 맞음 — '+x.mk.t:x.sc>=75?'잘 맞음':x.sc>=55?'보통':'약함';
+ const pick=FT.map(T=>{const rk=rankTarget(n,m,T,[{s,r}]);const x=rk&&rk[0];return `<div style="margin:2px 0"><span class="chip cg" data-t="${T.id}">${esc(T.name)}</span> ${rk===null?'<span style="color:var(--bad)">금어기예요</span>':esc(MODE_T[catchMode(s.id,T.id)]+' · '+fitW(x))}</div>`}).join('');
  const warn=(r.tags||[]).filter(x=>x.c==='w').map(x=>x.t);
  const wx=w?`${w.sky} · ${w.tmin.toFixed(0)}~${w.tmax.toFixed(0)}°C · 바람 최대 ${w.ws.toFixed(0)}m/s · 비 ${w.pr.toFixed(0)}mm${w.wave!=null?` · 파고 ${w.wave.toFixed(1)}m`:''}`:'<span class="sub">아직 예보가 없어요. 가기 전날 다시 확인하세요.</span>';
  return `<div class="daycard"><h4 style="margin:0 0 6px">${fmtD(n)} 이렇게 하세요 <span class="sub">${night?'밤':'낮'} ${r.score}점</span></h4><div class="dl">
   <dt>물때</dt><dd>${mulName(lunarDay(n))} · ${lowLine(r)} · ${reachDay(r)}</dd>
   <dt>작업</dt><dd><b>${fmtT(r.b)}~${fmtT(r.e)}</b> · <b style="color:var(--bad)">${fmtT(r.e)}에는 나오기 시작하세요</b></dd>
   <dt>날씨</dt><dd>${wx}</dd>
-  <dt>그날 대상</dt><dd>${chips?`<div class="chips" style="flex-wrap:wrap">${chips}</div>`:''}${chips?'':'<span class="sub">이 시간대에 맞는 대상 근거가 없어요</span>'}${weak.length?'<div class="sub" style="margin-top:3px">흐린 글씨 = 그날 날씨에 잘 안 맞아요</div>':''}</dd>
+  ${pick?`<dt>고른 대상</dt><dd>${pick}</dd>`:''}<dt>${pick?'그 밖에':'그날 대상'}</dt><dd>${chips?`<div class="chips" style="flex-wrap:wrap">${chips}</div>`:''}${chips?'':'<span class="sub">이 시간대에 맞는 대상 근거가 없어요</span>'}${weak.length?'<div class="sub" style="margin-top:3px">흐린 글씨 = 그날 날씨에 잘 안 맞아요</div>':''}</dd>
   ${warn.length?`<dt>주의</dt><dd style="color:var(--bad)">${esc(warn.join(' · '))}</dd>`:''}
  </div>${whyLine(r)}</div>`;
 }
-function siteDetail(id,fn){saveState({dlg:{t:'s',id}});
+function siteDetail(id,fn,fts){saveState({dlg:{t:'s',id}});
  const s=SITES.find(x=>x.id===id),d=DETAIL[id]||{};
  const next=RESULT?RESULT.rows.filter(r=>r.site.id===id).sort((a,b)=>b.score-a.score).slice(0,3).sort((a,b)=>a.n-b.n):[];
  const q=encodeURIComponent(s.name.replace(' 체험장','').replace('·',' '));
- const fr0=fn!=null&&RESULT?RESULT.rows.find(r=>r.site.id===id&&r.n===fn):null,fr=fr0||next.slice().sort((a,b)=>b.score-a.score)[0]||null,nx=fr?[fr,...next.filter(r=>r.n!==fr.n)]:next; // 기준 날짜 하나: 누른 날, 없으면 추천 날 중 점수 가장 높은 날
- let h=siteHero(s,next,fr0)+dayCard(s,fr)+recentBox(id)+`<p>${tagH([{t:s.reg},payTag(id)||{t:s.kind},{t:'모래 '+'●'.repeat(s.sand)+'○'.repeat(3-s.sand),c:'c'},{t:'후기 근거 '+['','약함','보통','확실'][s.ev],c:'c'}])}</p>
+ const fr0=fn!=null&&RESULT?RESULT.rows.find(r=>r.site.id===id&&r.n===fn):null,fr=fr0||next.slice().sort((a,b)=>b.score-a.score)[0]||null,FT=(fts||[]).map(x=>TARGETS.find(t=>t.id===x)).filter(t=>t&&siteHas(id,t)),nx=fr?[fr,...next.filter(r=>r.n!==fr.n)]:next; // 기준 날짜 하나: 누른 날, 없으면 추천 날 중 점수 가장 높은 날
+ let h=siteHero(s,next,fr0)+dayCard(s,fr,FT)+recentBox(id)+`<p>${tagH([{t:s.reg},payTag(id)||{t:s.kind},{t:'모래 '+'●'.repeat(s.sand)+'○'.repeat(3-s.sand),c:'c'},{t:'후기 근거 '+['','약함','보통','확실'][s.ev],c:'c'}])}</p>
   ${noteBlock(id)}${shareFocusHtml(id)}${reviewBlock(id)}<p class="sub">${esc(s.memo)}</p>${s.warn?`<p style="color:var(--bad)">${esc(s.warn)}</p>`:''}`+(NIGHT[id]?`<p style="color:${NIGHT[id].law?'var(--bad)':'#b7791f'}"><b>${nightTag(id).t}</b> — ${esc(NIGHT[id].t)}</p>`:'')+(hasBoat(id)?`<h4>배편 <span class="tag" style="background:#e8a317;color:#fff">배 필요</span></h4><p>${esc(BOAT[id])}</p><p class="sub">배 시간이 간조와 맞는지, 막배 시간을 먼저 확인하세요.</p>`:'')+nowWx(id)+accessBlock(id)+eojangBlock(id);
  if(nx.length)h+=`<h4>추천 날짜</h4><div class="dl">${nx.slice().sort((a,b)=>a.n-b.n).map(r=>`<dt>${fr&&r.n===fr.n?'<b>'+fmtD(r.n)+(fr0?' (고른 날)':' (위 기준)')+'</b>':fmtD(r.n)}</dt><dd>${mulName(lunarDay(r.n))} · ${lowLine(r)} · 작업 ${fmtT(r.b)}~${fmtT(r.e)} · ${r.score}점 · ${reachDay(r)} ${dnTxt(r)} ${shareBtn(id,r.n)}</dd>`).join('')}</div>`;
- h+=reachBlock(s,nx);
- h+=gearBlock(id,nx);
+ h+=reachBlock(s,nx,FT);
+ h+=gearBlock(id,nx,FT);
  h+=`<h4>주차</h4>${parkHtml(id)}${ul(d.parking)}<h4>가는 길·진입</h4>${ul(d.access)}<h4>잘 나오는 구역</h4>${ul(d.spots)}<h4>지형</h4>${SITEF[id]?`<p>${SITEF[id].b?'<b>바닥</b> '+esc(SITEF[id].b):''}${SITEF[id].w?'<br><b>물속 구간</b> '+esc(SITEF[id].w):''}</p>`:''}${ul(d.terrain)}`;
  const tg=d.targets||[];
  h+=`<h4>잡히는 대상</h4>`+(tg.length?`<div class="dl">${tg.map(t=>{const f=findTarget(t.name);return `<dt>${f?`<span class="link" data-t="${esc(f.id)}">${esc(t.name)}</span>`:esc(t.name)}</dt><dd>${f?`<span class="tag c">${TIME_T[timePref(id,f.id)]}${TIMEW[id]?.[f.id]?'':' (일반)'}</span> `:''}${esc(t.note)}${f&&TIMEW[id]?.[f.id]?` <span class="sub">· ${esc(TIMEW[id][f.id])}</span>`:''}${t.season?` <span class="sub">· ${esc(t.season)}</span>`:''}${f?siteHowHtml(id,f):''}</dd>`}).join('')}</div>`:'<p class="sub">조사된 정보 없음</p>');
@@ -1302,7 +1304,7 @@ function targetRankHtml(n,m,rows){
  const line=(t,k)=>{const rk0=rankTarget(n,m,t,rows),rk=rk0&&rk0.filter(x=>RS[x.s.id]).sort((a,b)=>RS[b.s.id].score-RS[a.s.id].score||b.sc-a.sc);
   if(rk0===null)return `<dt><span class="chip cx" data-t="${t.id}">${esc(t.name)}</span></dt><dd class="sub">${esc(MONTHS[t.id]?.xn||'금어기')}</dd>`;
   if(!rk.length)return '';
-  return `<dt><span class="chip ${mStat(t.id,m)==='g'?'cg':''}" data-t="${t.id}">${esc(t.name)}</span></dt><dd>${rk.slice(0,k).map((x,i)=>`<div>${i+1}. <span class="link" data-s="${x.s.id}" data-n="${n}">${esc(x.s.name)}</span> <b>${RS[x.s.id].score}점</b> ${dnTxt(RS[x.s.id])} <span class="sub">간조 ${fmtT(x.l.t)} · 작업 ${fmtT(x.l.b)}~${fmtT(x.l.e)}${x.l.day<0.5?' · 야간':''}${x.w.danger?' · 위험':''}</span>${x.mk&&x.mk.lv?` <span class="tag ${x.mk.lv===2?'w':'c'}">${x.mk.t}</span>`:''}</div>`).join('')}</dd>`};
+  return `<dt><span class="chip ${mStat(t.id,m)==='g'?'cg':''}" data-t="${t.id}">${esc(t.name)}</span></dt><dd>${rk.slice(0,k).map((x,i)=>`<div>${i+1}. <span class="link" data-s="${x.s.id}" data-n="${n}" data-ts="${t.id}">${esc(x.s.name)}</span> <b>${RS[x.s.id].score}점</b> ${dnTxt(RS[x.s.id])} <span class="sub">간조 ${fmtT(x.l.t)} · 작업 ${fmtT(x.l.b)}~${fmtT(x.l.e)}${x.l.day<0.5?' · 야간':''}${x.w.danger?' · 위험':''}</span>${x.mk&&x.mk.lv?` <span class="tag ${x.mk.lv===2?'w':'c'}">${x.mk.t}</span>`:''}</div>`).join('')}</dd>`};
  let h='';
  if(sel){const t=TARGETS.find(x=>x.id===sel);
   h+=`<h4>${esc(t.name)} 좋은 장소</h4>`+(ts.includes(t)?`<div class="dl">${line(t,6)}</div>`:`<p class="sub">고른 지역에 ${esc(t.name)}${jo(t.name,'이','가')} 나온다는 근거가 있는 장소가 없습니다.</p>`);}
@@ -1317,7 +1319,7 @@ function renderTargets(){
 document.addEventListener('click',e=>{
  const fv=e.target.closest('[data-fav]');if(fv){e.preventDefault();e.stopPropagation();toggleFav(fv.dataset.fav);return}
  const t=e.target.closest('[data-t]');if(t){targetDetail(t.dataset.t);return}
- const s=e.target.closest('[data-s]');if(s){siteDetail(s.dataset.s,s.dataset.n!=null?+s.dataset.n:null);return}
+ const s=e.target.closest('[data-s]');if(s){siteDetail(s.dataset.s,s.dataset.n!=null?+s.dataset.n:null,s.dataset.ts?s.dataset.ts.split(','):null);return}
  const d=e.target.closest('[data-d]');if(d){dayDetail(+d.dataset.d);return}
 });
 
@@ -1404,10 +1406,11 @@ function lowTxt(l,r,withWork){if(!l)return '<span class="sub">없음</span>';if(
 function lowLine(r){const [am,pm]=halves(r);return `오전 ${lowTxt(am,r)} · 오후 ${lowTxt(pm,r)}`}
 // 준비물: 기본 + 대상 + 날씨 + 시간대 + 장소
 const GEAR_T={ppulsora:['집게','장갑'],muneo:['랜턴','뜰채'],bomal:['장갑','아쿠아슈즈'],geobukson:['작은 칼','장갑'],ssok:['삽','붓','된장'],chilge:['삽'],kkomak:[],saejogae:['호미'],baekhap:['작은 호미'],dongjuk:['호미'],bajirak:['호미 또는 갈퀴'],manjo:['소금(케첩통에 담기)','삽'],gaeryang:['호미'],tteokjogae:['호미'],miljogae:[],gamurak:['호미'],gaejogae:['삽'],keunguseul:['호미'],pippul:['집게'],bakhaji:['집게','두꺼운 장갑'],kkotge:['뜰채','집게','랜턴'],nakji:['삽'],jukkumi:[],haesam:['집게'],gul:['갈고리','두꺼운 장갑'],gaebul:['삽']};
-function gearList(s,r,n,w){
+function gearList(s,r,n,w,FT){
  const g={기본:['구명조끼','휴대폰 방수팩(물때 앱·연락)','장화 또는 갯벌화','장갑','채취망·작은 바구니','마실 물','여벌옷·수건','아이스박스(가져갈 때)'],대상:[],날씨:[],시간대:[],장소:[]};
  const m=new Date(kDayStart(n)+KST).getUTCMonth()+1;
- const tg=(DETAIL[s.id]?.targets||[]).map(x=>findTarget(x.name)).filter(Boolean).filter(t=>mStat(t.id,m)!=='x');
+ const only=(FT||[]).map(t=>t.id);
+ const tg=(DETAIL[s.id]?.targets||[]).map(x=>findTarget(x.name)).filter(Boolean).filter(t=>mStat(t.id,m)!=='x'&&(!only.length||only.includes(t.id)));
  const tools=new Set();tg.forEach(t=>(GEAR_T[t.id]||[]).forEach(x=>tools.add(x)));
  g.대상=[...tools].map(x=>x+' — '+tg.filter(t=>(GEAR_T[t.id]||[]).includes(x)).map(t=>t.name).join('·'));
  g.대상.push('작은 자(크기 확인, 작은 개체 방류)');
