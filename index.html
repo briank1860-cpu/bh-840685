@@ -751,6 +751,7 @@ function render(){
  renderWeekend();
  renderCal();
 }
+const PUBBIO={"ic_masian":{"s":[["동죽","2023",0.9],["백합","2023",0.9],["떡조개","2023",0.9],["쏙","2023",0.9]]},"ic_jangbong":{"s":[["백합","2020",1.0],["가무락","2023",1.7],["굴","2020",1.7]]},"ic_hanagae":{"s":[["가무락","2023",0.6]]},"ic_simnipo":{"s":[["맛조개","2023",0.8],["굴","2021",0.8],["바지락","2021",0.8],["소라","2021",0.8]]},"ic_ongam":{"s":[["가무락","2023",1.3],["굴","2020",1.3],["백합","2020",1.7]]},"ic_jamjindo":{"s":[["동죽","2023",1.8],["백합","2023",1.8],["떡조개","2023",1.8],["쏙","2023",1.8]]},"ic_nambuk":{"s":[["동죽","2023",0.7],["백합","2023",0.7],["떡조개","2023",0.7],["쏙","2023",0.7]]},"ic_silmi":{"s":[["가무락","2023",1.8]]},"gg_bangamori":{"s":[["쏙","2023",1.7]]},"gg_gubong":{"s":[["쏙","2023",0.5]]},"gg_jonghyeon":{"s":[["쏙","2023",0.7]]},"gg_jebudo":{"s":[["쏙","2023",0.5]]},"gg_oido":{"s":[["동죽","2021",0.9]]},"jn_jogeumnaru":{"s":[["바지락","2023",2.0]]},"jn_jeungdo":{"s":[["바지락","2023",1.8]]},"bs_sodam":{"s":[["쏙","2020",1.4]]},"br_muchang":{"v":["무창포어촌체험마을",["바지락","꽃게"]]},"gg_baekmiri":{"v":["백미리어촌체험마을",["낙지","굴"]]},"gg_gukhwado":{"v":["국화도어촌체험마을",["바지락","굴"]]},"jn_songgye":{"v":["송계어촌체험마을",["낙지"]]},"jn_dolmeori":{"v":["돌머리어촌체험마을",["바지락"]]}}; // 공공 자료 속 우리 대상만: s=국가해양생태계종합조사 갯벌 저서동물(대상,조사 연도,정점까지 km, 2km 안), v=해양수산부 어촌체험마을 체험 대상(마을이 곧 이 장소인 곳만)
 const RECO_MIN=70; // 이 점수 밑은 '추천'하지 않음(초보가 믿고 갔다가 실망하지 않게)
 function nextGood(after){ // 가장 가까운 좋은 날(80점 이상 먼저, 없으면 70점 이상 중 가장 높은 곳)
  if(!RESULT)return null;const rs=RESULT.rows.filter(r=>after==null||r.n>after);
@@ -1155,6 +1156,7 @@ function siteDetail(id,fn,fts){if(fn==null)fn=FOCUS.n;if(!fts)fts=FOCUS.ts;saveS
  h+=`<h4>잘 나오는 구역</h4>${ul(d.spots)}<h4>지형</h4>${SITEF[id]?`<p>${SITEF[id].b?'<b>바닥</b> '+esc(SITEF[id].b):''}${SITEF[id].w?'<br><b>물속 구간</b> '+esc(SITEF[id].w):''}</p>`:''}${ul(d.terrain)}`;
  const tg=d.targets||[];
  h+=`<h4>잡히는 대상</h4>`+(tg.length?`<div class="dl">${tg.map(t=>{const f=findTarget(t.name);return `<dt>${f?`<span class="link" data-t="${esc(f.id)}">${esc(t.name)}</span>`:esc(t.name)}</dt><dd>${f?`<span class="tag c">${TIME_T[timePref(id,f.id)]}${TIMEW[id]?.[f.id]?'':' (일반)'}</span> `:''}${esc(t.note)}${f&&TIMEW[id]?.[f.id]?` <span class="sub">· ${esc(TIMEW[id][f.id])}</span>`:''}${t.season?` <span class="sub">· ${esc(t.season)}</span>`:''}${f?siteHowHtml(id,f):''}</dd>`}).join('')}</div>`:'<p class="sub">조사된 정보 없음</p>');
+ const PB=PUBBIO[id];if(PB)h+=`<p class="sub" style="margin:6px 0 0"><b>공식 자료에도 있어요</b>${PB.v?`<br>· 해양수산부 어촌체험마을(${esc(PB.v[0])}) 체험: ${PB.v[1].map(esc).join('·')}`:''}${PB.s?`<br>· 국가해양생태계종합조사(가까운 갯벌 조사 지점): ${PB.s.map(x=>`${esc(x[0])}(${x[1]}년, ${x[2]}km)`).join(' · ')}`:''}<br>그곳에 산다는 공식 근거예요. 요즘 잡히는지는 위의 후기를 함께 보세요.</p>`;
  h+=accessBlock(id)+eojangBlock(id)+`<h4>시설</h4>${ul(d.facilities)}<h4>규정·운영</h4>${ul(d.rules)}<h4>현지 팁</h4>${ul(d.tips)}`;
  h+=`<h4>다녀오셨나요?</h4>`+noteBlock(id);
  const src=(d.sources||[]).map(([t,u,dt])=>`<li><a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a>${dt?` <span class="sub">${esc(dt)}</span>`:''}</li>`);
