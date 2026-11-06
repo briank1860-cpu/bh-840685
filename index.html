@@ -274,7 +274,7 @@ body{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
     <label><input type="checkbox" id="weekend"> 주말만</label>
     <label><input type="checkbox" id="noPaid"> 유료 빼기</label>
     <label><input type="checkbox" id="noBoat"> 배 타는 곳 빼기</label>
-    <label><input type="checkbox" id="night"> 밤 해루질도 보기 <span class="sub">(경험자와 함께일 때만)</span></label>
+    <label><input type="checkbox" id="night" checked> 밤 해루질도 보기</label>
   </div>
   <div class="ctl" style="margin-top:10px">
     <div class="regions" id="regions"></div>
@@ -762,7 +762,7 @@ function heroPick(w,byDay){const el=$('heroPick');if(!el)return;
 // 접힌 '내 조건' 한 줄 요약
 function condSumUpd(){const el=$('condSum');if(!el)return;
  const regs=[...document.querySelectorAll('#regions input:checked')].map(x=>x.value);
- const f=[$('weekend')&&$('weekend').checked?'주말만':'',$('night')&&$('night').checked?'밤도 봄':'낮만',$('noPaid')&&$('noPaid').checked?'유료 빼기':'',$('noBoat')&&$('noBoat').checked?'배 빼기':''].filter(Boolean);
+ const f=[$('weekend')&&$('weekend').checked?'주말만':'',$('night')&&!$('night').checked?'낮만':'',$('noPaid')&&$('noPaid').checked?'유료 빼기':'',$('noBoat')&&$('noBoat').checked?'배 빼기':''].filter(Boolean);
  el.textContent=[($('days')?$('days').value:'')+'일',regs.join('·')||'지역 없음',...f].join(' · ')}
 document.addEventListener('change',e=>{if(e.target.closest&&e.target.closest('#condBox'))condSumUpd()});
 window.addEventListener('load',()=>setTimeout(condSumUpd,300));
@@ -874,10 +874,10 @@ function findTarget(name){const n=name.replace(/\(.*?\)/g,'').replace(/소라게
 // 보던 상태를 휴대폰에 기억(브라우저가 페이지를 다시 불러와도 그대로 복원). 날씨 값은 저장하지 않음
 const SKEY='bh_state_v1';
 function getState(){try{return JSON.parse(localStorage.getItem(SKEY)||'{}')}catch(e){return {}}}
-function saveState(extra){try{const st=getState();if($('days'))Object.assign(st,{days:$('days').value,exit:$('exit').value,work:$('work').value,weekend:$('weekend').checked,noPaid:$('noPaid').checked,noBoat:$('noBoat').checked,night:$('night')?$('night').checked:false,off:[...document.querySelectorAll('#regions input')].filter(x=>!x.checked).map(x=>x.value)});Object.assign(st,extra||{});localStorage.setItem(SKEY,JSON.stringify(st))}catch(e){}}
+function saveState(extra){try{const st=getState();if($('days'))Object.assign(st,{days:$('days').value,exit:$('exit').value,work:$('work').value,weekend:$('weekend').checked,noPaid:$('noPaid').checked,noBoat:$('noBoat').checked,night2:$('night')?$('night').checked:true,off:[...document.querySelectorAll('#regions input')].filter(x=>!x.checked).map(x=>x.value)});Object.assign(st,extra||{});localStorage.setItem(SKEY,JSON.stringify(st))}catch(e){}}
 function applyState(){const st=getState();
  if(st.days)$('days').value=st.days;if(st.exit)$('exit').value=st.exit;if(st.work)$('work').value=st.work;
- if(st.weekend!=null)$('weekend').checked=st.weekend;if(st.noPaid!=null)$('noPaid').checked=st.noPaid;if(st.noBoat!=null)$('noBoat').checked=st.noBoat;if(st.night!=null&&$('night'))$('night').checked=st.night;
+ if(st.weekend!=null)$('weekend').checked=st.weekend;if(st.noPaid!=null)$('noPaid').checked=st.noPaid;if(st.noBoat!=null)$('noBoat').checked=st.noBoat;if(st.night2!=null&&$('night'))$('night').checked=st.night2;
  (st.off||[]).forEach(r=>{const x=[...document.querySelectorAll('#regions input')].find(i=>i.value===r);if(x)x.checked=false});}
 function restoreView(){const st=getState(),d=st.dlg;if(!d)return;
  if(d.t==='s'&&SITES.some(x=>x.id===d.id)){siteDetail(d.id);if(st.geo&&$('geoBtn'))toggleGeo(d.id)}
