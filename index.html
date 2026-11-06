@@ -1004,6 +1004,7 @@ function siteHero(s,next){/* 장소 화면 맨 위: 대표 사진(있을 때, ph
  return `<div class="site-hero sh-art" aria-hidden="false"><svg class="sh-w" viewBox="0 0 400 190" preserveAspectRatio="none" aria-hidden="true"><path d="M0 118 C60 104 120 132 200 118 S340 104 400 116" /><path d="M0 138 C70 126 130 152 210 138 S350 126 400 136" /><path d="M0 158 C80 148 140 170 220 158 S360 148 400 156" /><circle cx="318" cy="62" r="26" /></svg>${t}</div>`;
 }
 /* 추천 근거: 그 장소 조과 후기(REVIEW recent·tbm 근거)와 현장 기록의 날짜로 '최근 근거'를 셈 */
+function jo(w,a,b){const c=(w||'').charCodeAt((w||'').length-1);return c>=0xAC00&&c<=0xD7A3&&(c-0xAC00)%28?a:b} // 받침 있으면 a(을·이·은), 없으면 b(를·가·는)
 function evDates(id){
  const R=REVIEW[id]||{},out=[];
  (R.recent||[]).forEach(x=>{const m=/^(\d{4}-\d{2}(?:-\d{2})?)/.exec(x);if(m)out.push(m[1])});
@@ -1035,7 +1036,7 @@ function whyLine(r){
  p.push(r.F>=0.75?'물이 많이 빠지는 날이에요':r.F>=0.5?'물이 보통으로 빠져요':'물이 적게 빠지는 날이에요');
  const w=r.w;
  if(w){if(w.danger)p.push('날씨가 위험해요');else if(w.murky)p.push('바람·파도로 물이 흐릴 수 있어요');else if(w.tags&&/예보 전/.test(w.tags[0]?.t||''))p.push('날씨 예보는 아직 안 나왔어요');else if(w.score>=20)p.push('바람이 약해요');}
- const mt=monthTargets(id,mo);if(mt.length)p.push(`${mo}월에 ${mt.join('·')}를 잡았다는 후기가 있어요`);
+ const mt=monthTargets(id,mo);if(mt.length)p.push(`${mo}월에 ${mt.join('·')}${jo(mt[mt.length-1],'을','를')} 잡았다는 후기가 있어요`);
  const e=evInfo(id),eb=evBonus(id);let ev;
  if(e.n30||e.f30)ev=`최근 한 달 후기 ${e.n30}건${e.f30?`·현장 기록 ${e.f30}건`:''}${e.last?` (가장 최근 ${mdTxt(e.last)})`:''}`;
  else ev=`<span style="color:var(--bad)">최근 한 달 조과 후기는 없어요${e.last?` (마지막 ${mdTxt(e.last)})`:' (날짜가 있는 조과 후기가 없어요)'}</span>`;
@@ -1279,7 +1280,7 @@ function targetRankHtml(n,m,rows){
   return `<dt><span class="chip ${mStat(t.id,m)==='g'?'cg':''}" data-t="${t.id}">${esc(t.name)}</span></dt><dd>${rk.slice(0,k).map((x,i)=>`<div>${i+1}. <span class="link" data-s="${x.s.id}">${esc(x.s.name)}</span> <b>${x.sc}</b> ${dnTxt(x)} <span class="sub">간조 ${fmtT(x.l.t)} · 작업 ${fmtT(x.l.b)}~${fmtT(x.l.e)}${x.l.day<0.5?' · 야간':''}${x.w.danger?' · 위험':''}</span>${x.mk&&x.mk.lv?` <span class="tag ${x.mk.lv===2?'w':'c'}">${x.mk.t}</span>`:''}</div>`).join('')}</dd>`};
  let h='';
  if(sel){const t=TARGETS.find(x=>x.id===sel);
-  h+=`<h4>${esc(t.name)} 좋은 장소</h4>`+(ts.includes(t)?`<div class="dl">${line(t,6)}</div>`:`<p class="sub">고른 지역에 ${esc(t.name)}가 나온다는 근거가 있는 장소가 없습니다.</p>`);}
+  h+=`<h4>${esc(t.name)} 좋은 장소</h4>`+(ts.includes(t)?`<div class="dl">${line(t,6)}</div>`:`<p class="sub">고른 지역에 ${esc(t.name)}${jo(t.name,'이','가')} 나온다는 근거가 있는 장소가 없습니다.</p>`);}
  h+=`<h4>대상별 좋은 장소 <span class="sub">상위 3곳</span></h4><div class="dl">${ts.filter(t=>t.id!==sel).map(t=>line(t,3)).join('')}</div>`;
  return h;
 }
