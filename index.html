@@ -784,13 +784,15 @@ function wkTargetDay(n,Ts,dayRows){
   if(rk===null){note.push(`${esc(T.name)} 금어기`);return}
   if(!rk.length){note.push(`${esc(T.name)} 근거 있는 장소 없음`);return}
   rk.forEach(x=>{const o=by[x.s.id]=by[x.s.id]||{s:x.s,best:null,ts:[]};o.ts.push({T,x});if(!o.best||x.sc>o.best.sc)o.best=x})});
- const list=Object.values(by).sort((a,b)=>b.best.sc-a.best.sc||b.ts.length-a.ts.length).slice(0,5);
+ const RS=Object.fromEntries((dayRows||[]).map(r=>[r.site.id,r])); // 장소 점수(다른 화면과 같은 점수)
+ const fitW=x=>x.mk&&x.mk.lv?'날씨 안 맞음':x.sc>=75?'잘 맞음':x.sc>=55?'보통':'약함';
+ const list=Object.values(by).filter(o=>RS[o.s.id]).sort((a,b)=>RS[b.s.id].score-RS[a.s.id].score||b.best.sc-a.best.sc).slice(0,5);
  const notes=note.length?`<p class="sub" style="margin:2px 0">${note.join(' · ')}</p>`:'';
  if(!list.length)return head+notes+'<p class="sub">갈 만한 곳 없음</p>';
  return head+notes+`<ol style="margin:0;padding-left:22px">${list.map(o=>{const x=o.best;
-  const chips=o.ts.sort((a,b)=>b.x.sc-a.x.sc).map(({T,x})=>`<span class="chip${siteMonth(o.s.id,T,m)==='g'?' cg':''}${x.mk&&x.mk.lv?' cd':''}" data-t="${T.id}">${esc(T.name)} 낮 ${x.ds??'—'}·밤 ${x.ns??'—'} · ${MODE_T[catchMode(o.s.id,T.id)]}</span>`).join('');
+  const chips=o.ts.sort((a,b)=>b.x.sc-a.x.sc).map(({T,x})=>`<span class="chip${siteMonth(o.s.id,T,m)==='g'?' cg':''}${x.mk&&x.mk.lv?' cd':''}" data-t="${T.id}">${esc(T.name)} · ${MODE_T[catchMode(o.s.id,T.id)]} · ${fitW(x)}</span>`).join('');
   const why=o.ts.filter(({x})=>x.mk&&x.mk.lv).map(({T,x})=>esc(T.name)+': '+x.mk.t);
-  return `<li style="margin:5px 0"><span class="link" data-s="${o.s.id}" data-n="${n}"><b>${esc(o.s.name)}</b></span> <b>${x.sc}점</b> ${dnTxt(x)} ${shareBtn(o.s.id,n)}${fieldSum(o.s.id)}<br><span class="sub">간조 ${fmtT(x.l.t)} · 작업 ${fmtT(x.l.b)}~${fmtT(x.l.e)}${x.l.day<0.5?' · 야간'+(o.ts.some(({T})=>timePref(o.s.id,T.id)==='n')?'(밤에 잘 되는 곳)':''):''}${x.w.danger?' · 위험':''}</span><div class="chips" style="margin-top:3px">${chips}</div>${why.length?`<div style="color:#8a5a00;font-size:12px">${why.join('<br>')}</div>`:''}</li>`}).join('')}</ol>`;
+  return `<li style="margin:5px 0"><span class="link" data-s="${o.s.id}" data-n="${n}"><b>${esc(o.s.name)}</b></span> <b>${RS[o.s.id].score}점</b> ${dnTxt(RS[o.s.id])} ${shareBtn(o.s.id,n)}${fieldSum(o.s.id)}<br><span class="sub">간조 ${fmtT(x.l.t)} · 작업 ${fmtT(x.l.b)}~${fmtT(x.l.e)}${x.l.day<0.5?' · 야간'+(o.ts.some(({T})=>timePref(o.s.id,T.id)==='n')?'(밤에 잘 되는 곳)':''):''}${x.w.danger?' · 위험':''}</span><div class="chips" style="margin-top:3px">${chips}</div>${why.length?`<div style="color:#8a5a00;font-size:12px">${why.join('<br>')}</div>`:''}</li>`}).join('')}</ol>`;
 }
 // 주말 베스트: 그 장소에서 그 시기 잘 나오는 대상(날씨 안 맞으면 흐리게, 이유 한 줄)
 function wkTargets(s,r,n){
@@ -1296,10 +1298,11 @@ function rankTarget(n,m,t,rows){
 function targetRankHtml(n,m,rows){
  const sel=$('dayT')?$('dayT').value:'';
  const ts=TARGETS.filter(t=>rows.some(({s})=>siteHas(s.id,t)));
- const line=(t,k)=>{const rk=rankTarget(n,m,t,rows);
-  if(rk===null)return `<dt><span class="chip cx" data-t="${t.id}">${esc(t.name)}</span></dt><dd class="sub">${esc(MONTHS[t.id]?.xn||'금어기')}</dd>`;
+ const RS=Object.fromEntries(rows.map(({s,r})=>[s.id,r])); // 장소 점수로 통일
+ const line=(t,k)=>{const rk0=rankTarget(n,m,t,rows),rk=rk0&&rk0.filter(x=>RS[x.s.id]).sort((a,b)=>RS[b.s.id].score-RS[a.s.id].score||b.sc-a.sc);
+  if(rk0===null)return `<dt><span class="chip cx" data-t="${t.id}">${esc(t.name)}</span></dt><dd class="sub">${esc(MONTHS[t.id]?.xn||'금어기')}</dd>`;
   if(!rk.length)return '';
-  return `<dt><span class="chip ${mStat(t.id,m)==='g'?'cg':''}" data-t="${t.id}">${esc(t.name)}</span></dt><dd>${rk.slice(0,k).map((x,i)=>`<div>${i+1}. <span class="link" data-s="${x.s.id}">${esc(x.s.name)}</span> <b>${x.sc}</b> ${dnTxt(x)} <span class="sub">간조 ${fmtT(x.l.t)} · 작업 ${fmtT(x.l.b)}~${fmtT(x.l.e)}${x.l.day<0.5?' · 야간':''}${x.w.danger?' · 위험':''}</span>${x.mk&&x.mk.lv?` <span class="tag ${x.mk.lv===2?'w':'c'}">${x.mk.t}</span>`:''}</div>`).join('')}</dd>`};
+  return `<dt><span class="chip ${mStat(t.id,m)==='g'?'cg':''}" data-t="${t.id}">${esc(t.name)}</span></dt><dd>${rk.slice(0,k).map((x,i)=>`<div>${i+1}. <span class="link" data-s="${x.s.id}" data-n="${n}">${esc(x.s.name)}</span> <b>${RS[x.s.id].score}점</b> ${dnTxt(RS[x.s.id])} <span class="sub">간조 ${fmtT(x.l.t)} · 작업 ${fmtT(x.l.b)}~${fmtT(x.l.e)}${x.l.day<0.5?' · 야간':''}${x.w.danger?' · 위험':''}</span>${x.mk&&x.mk.lv?` <span class="tag ${x.mk.lv===2?'w':'c'}">${x.mk.t}</span>`:''}</div>`).join('')}</dd>`};
  let h='';
  if(sel){const t=TARGETS.find(x=>x.id===sel);
   h+=`<h4>${esc(t.name)} 좋은 장소</h4>`+(ts.includes(t)?`<div class="dl">${line(t,6)}</div>`:`<p class="sub">고른 지역에 ${esc(t.name)}${jo(t.name,'이','가')} 나온다는 근거가 있는 장소가 없습니다.</p>`);}
