@@ -1774,7 +1774,7 @@ function geoErr(e){return e.code===1?(window.top!==window?'이 링크(claude.ai)
 let FG=null,fgWatch=null,fgPos=null,fgSent=0,fgSentPos=null,fgTimer=null,fgPoll=null,fgLocs=[],fgLayer=null,fgErr='';
 function fgLoad(){try{const o=JSON.parse(localStorage.getItem('bh_fg')||'null');if(o&&o.until>Date.now())return o}catch(e){}return null}
 function fgSave(){try{FG?localStorage.setItem('bh_fg',JSON.stringify(FG)):localStorage.removeItem('bh_fg')}catch(e){}}
-const fgCode=()=>[...crypto.getRandomValues(new Uint8Array(12))].map(b=>'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'[b%55]).join('');
+const fgCode=()=>'gbf'+String(crypto.getRandomValues(new Uint32Array(1))[0]%1e6).padStart(6,'0') // 6자리 모임 번호(앱 안에서 번호로 참여);
 const fgLink=()=>location.origin+location.pathname+'#fg='+FG.g+'&s='+FG.sid;
 const agoTxt=t=>{const m=Math.round((Date.now()-t)/60e3);return m<1?'방금':m<60?m+'분 전':Math.floor(m/60)+'시간 전'};
 function fgStart(sid,g){
@@ -1809,7 +1809,10 @@ async function fgStop(){
  FG=null;fgSave();fgLocs=[];fgPos=null;fgSentPos=null;fgRender();
 }
 async function fgShare(){
- if(!FG)return;const url=fgLink(),text=`갯벌친구 — ${(SITES.find(s=>s.id===FG.sid)||{}).name||''}에서 서로 위치 보기. 링크를 열고 '참여'를 누르세요.`;
+ if(!FG)return;const url=fgLink(),nm=(SITES.find(s=>s.id===FG.sid)||{}).name||'',text=fgNum(FG.g)?`갯벌친구 위치 공유 — ${nm}
+모임 번호: ${fgNum(FG.g)}
+쓰던 갯벌친구 앱에서 ${nm}을(를) 열고 '번호로 참여'에 넣어 주세요.
+(앱이 없으면 아래 링크)`:`갯벌친구 — ${nm}에서 서로 위치 보기. 링크를 열고 '참여'를 누르세요.`;
  try{if(navigator.share){await navigator.share({title:'갯벌친구 위치 공유',text,url});return}}catch(e){if(e&&e.name==='AbortError')return}
  try{await navigator.clipboard.writeText(text+' '+url);alert('링크를 복사했어요. 카톡 등에 붙여 넣어 보내세요.')}catch(e){prompt('이 링크를 친구에게 보내세요',url)}
 }
@@ -1818,12 +1821,12 @@ function fgRender(){
  if(box){const sid=box.dataset.s;
   if(!FG||FG.sid!==sid){const inv=getState().fgInvite;
    box.innerHTML=inv&&inv.s===sid?`<div class="fgcard"><b>친구가 위치 공유에 초대했어요</b><p class="sub">참여하면 이 앱을 켜 둔 동안 서로 위치가 지도에 보여요. 위치는 12시간 뒤 지워져요.</p><input id="fgNick" placeholder="내 별명" value="${esc(lsGet('bh_nick',''))}"><button type="button" onclick="fgJoin()">참여</button></div>`
-    :`<div class="fgcard"><b>친구와 현장 위치 공유</b><p class="sub">같이 간 사람끼리 갯벌에서 서로 어디 있는지 지도로 봐요. 링크를 받은 사람만 보이고, 이 앱을 켜 둔 동안만 공유돼요.</p><input id="fgNick" placeholder="내 별명" value="${esc(lsGet('bh_nick',''))}"><button type="button" onclick="fgStart('${sid}')">공유 시작하고 링크 보내기</button>${FG?`<p class="sub">다른 장소(${esc((SITES.find(s=>s.id===FG.sid)||{}).name||'')})에서 공유 중이에요.</p>`:''}</div>`}
+    :`<div class="fgcard"><b>친구와 현장 위치 공유</b><p class="sub">같이 간 사람끼리 갯벌에서 서로 어디 있는지 지도로 봐요. 모임 번호를 아는 사람만 보이고, 이 앱을 켜 둔 동안만 공유돼요.</p><input id="fgNick" placeholder="내 별명" value="${esc(lsGet('bh_nick',''))}"><button type="button" onclick="fgStart('${sid}')">공유 시작하고 번호 보내기</button><div style="display:flex;gap:6px;margin-top:8px"><input id="fgNum" inputmode="numeric" maxlength="7" placeholder="친구에게 받은 모임 번호 6자리" style="flex:1"><button type="button" onclick="fgNumJoin('${sid}')">번호로 참여</button></div>${FG?`<p class="sub">다른 장소(${esc((SITES.find(s=>s.id===FG.sid)||{}).name||'')})에서 공유 중이에요.</p>`:''}</div>`}
   else{const rows=fgLocs.map(x=>{const d=fgPos?kmD(fgPos.la,fgPos.lo,x.la,x.lo):null,old=Date.now()-x.t>5*60e3;
     return `<li><b>${esc(x.n||'친구')}</b> ${d!=null?`${mTxt(d)} ${bearing(fgPos.la,fgPos.lo,x.la,x.lo)}쪽`:''} <span class="sub">${agoTxt(x.t)}</span>${old?' <span style="color:var(--bad)">· 5분 넘게 소식 없음</span>':''}</li>`}).join('');
    box.innerHTML=`<div class="fgcard on"><b>위치 공유 중</b> <span class="sub">${esc(FG.nick)} · ${fgPos?'내 위치 '+agoTxt(fgSent||fgPos.t)+' 보냄':'위치 찾는 중…'}</span>
-    <ul class="fgl">${rows||'<li class="sub">아직 친구 위치가 없어요. 링크를 보내 주세요.</li>'}</ul>${fgErr?`<p style="color:var(--bad);margin:4px 0">${esc(fgErr)}</p>`:''}
-    <button type="button" onclick="fgShare()">링크 다시 보내기</button> <button type="button" class="ghost2" onclick="fgStop()">공유 끄기</button>
+    ${fgNum(FG.g)?`<p style="margin:6px 0">모임 번호 <b style="font-size:22px;letter-spacing:2px">${fgNum(FG.g)}</b><br><span class="sub">친구는 쓰던 앱에서 이 장소를 열고 '번호로 참여'에 넣으면 돼요.</span></p>`:''}<ul class="fgl">${rows||'<li class="sub">아직 친구 위치가 없어요. 모임 번호를 알려 주세요.</li>'}</ul>${fgErr?`<p style="color:var(--bad);margin:4px 0">${esc(fgErr)}</p>`:''}
+    <button type="button" onclick="fgShare()">번호 다시 보내기</button> <button type="button" class="ghost2" onclick="fgStop()">공유 끄기</button>
     <p class="sub">화면이 꺼지거나 다른 앱으로 가면 잠시 멈춰요. 같이 있는 사람이 멀어지면 바로 연락하세요.</p></div>`}}
  fgMap();
 }
@@ -1834,6 +1837,8 @@ function fgMap(){ // 장소 지도에 친구 위치 표시
  if(!FG)return;
  fgLocs.forEach(x=>{L.circleMarker([x.la,x.lo],{radius:8,color:'#fff',weight:2,fillColor:'#7048e8',fillOpacity:1}).bindTooltip(esc(x.n||'친구')+' · '+agoTxt(x.t),{permanent:true,direction:'top',offset:[0,-6]}).addTo(fgLayer)});
 }
+function fgNum(g){const m=/^gbf(\d{6})$/.exec(g||'');return m?m[1].slice(0,3)+' '+m[1].slice(3):''}
+function fgNumJoin(sid){const v=($('fgNum')&&$('fgNum').value||'').replace(/\D/g,'');if(v.length!==6){alert('모임 번호 6자리를 넣어 주세요.');return}fgStart(sid,'gbf'+v)}
 function fgJoin(){const inv=getState().fgInvite;if(!inv)return;saveState({fgInvite:null});fgStart(inv.s,inv.g)}
 
 function toggleGeo(id){
@@ -2362,7 +2367,10 @@ if(typeof setInterval!=='undefined')setInterval(()=>{if(SD_ARGS&&sdOpen(SD_ARGS.
 if(typeof document!=='undefined')document.addEventListener('visibilitychange',()=>{if(!document.hidden&&SD_ARGS&&sdOpen(SD_ARGS.id))siteWxKick(SD_ARGS.id)});
 if(typeof document!=='undefined')init();
 // 카카오톡 안 브라우저는 앱을 나가면 닫힘 → 기본 브라우저로 열기 안내
-if(/KAKAOTALK/i.test(navigator.userAgent)&&/^https:/.test(location.href)){const b=document.createElement('div');b.style.cssText='position:sticky;top:0;z-index:50;background:#fee500;color:#191919;padding:10px 16px;font-size:14px;display:flex;gap:10px;align-items:center;justify-content:space-between';b.innerHTML='<span>카카오톡 안에서는 화면을 나가면 닫혀요.</span><a style="background:#191919;color:#fee500;padding:6px 10px;border-radius:6px;text-decoration:none;white-space:nowrap" href="kakaotalk://web/openExternal?url='+encodeURIComponent(location.href)+'">크롬으로 열기</a>';document.body.prepend(b)}
+if(/KAKAOTALK/i.test(navigator.userAgent)&&/^https:/.test(location.href)){const b=document.createElement('div');b.style.cssText='position:sticky;top:0;z-index:50;background:#fee500;color:#191919;padding:10px 16px;font-size:14px;display:flex;gap:10px;align-items:center;justify-content:space-between';const go='kakaotalk://web/openExternal?url='+encodeURIComponent(location.href);b.innerHTML='<span>설치한 갯벌친구(또는 크롬)로 여는 중이에요. 안 열리면 눌러 주세요.</span><a style="background:#191919;color:#fee500;padding:6px 10px;border-radius:6px;text-decoration:none;white-space:nowrap" href="'+go+'">앱으로 열기</a>';document.body.prepend(b);
+ // 카톡에서 링크를 누르면 카톡 안 화면 대신 바로 밖으로(설치한 앱이 있으면 그 앱, 없으면 크롬). 한 번만 시도해 되돌이 막기
+ let tried=false;try{tried=sessionStorage.getItem('bh_kx')===location.href;sessionStorage.setItem('bh_kx',location.href)}catch(e){}
+ if(!tried)location.href=go}
 if('serviceWorker' in navigator&&location.protocol==='https:'&&/github\.io$/.test(location.hostname)){const hadSW=!!navigator.serviceWorker.controller;let rl=false;navigator.serviceWorker.register('sw.js').then(r=>{document.addEventListener('visibilitychange',()=>{if(!document.hidden)r.update().catch(()=>{})})}).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(hadSW&&!rl){rl=true;location.reload()}})}
 </script>
 </body>
