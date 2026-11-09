@@ -1052,6 +1052,7 @@ function tEv(id,T){ // 고른 대상을 실제로 잡았다는 날짜 있는 근
  const R=REVIEW[id]||{},cut=new Date(Date.now()+KST-365*864e5).toISOString().slice(0,10),out=[];
  (R.tbm||[]).forEach(t=>{if(findTarget(t.name)===T)(t.evidence||[]).forEach(e=>{if(e&&/^\d{4}-\d{2}/.test(e[2]||''))out.push(e[2].slice(0,10))})});
  (R.recent||[]).forEach(x=>{const m=/^(\d{4}-\d{2}(?:-\d{2})?)/.exec(x);if(m&&x.includes(T.name)&&/잡았|잡혔|캤|캐 왔|주웠|나왔|만통|가득|많았/.test(x)&&!/못 잡|없었|안 잡|관찰/.test(x))out.push(m[1])});
+ fieldRecent(id,365).forEach(x=>{if(x.r!=='b'&&(x.c||'').split(/[·,\s]+/).some(c=>findTarget(c)===T))out.push(x.d)}); // 현장 기록(공유 포함)도 근거
  const d=[...new Set(out)].filter(x=>x>=cut).sort().reverse();return {n:d.length,last:d[0]||''};
 }
 function tEvB(id,Ts){ // 대상 근거 점수: 2건 이상 +4, 1건 +2, 이름만 있고 잡은 후기 없음 -5
