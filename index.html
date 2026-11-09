@@ -1053,13 +1053,16 @@ function tEv(id,T){ // 고른 대상을 실제로 잡았다는 날짜 있는 근
  (R.tbm||[]).forEach(t=>{if(findTarget(t.name)===T)(t.evidence||[]).forEach(e=>{if(e&&/^\d{4}-\d{2}/.test(e[2]||''))out.push(e[2].slice(0,10))})});
  (R.recent||[]).forEach(x=>{const m=/^(\d{4}-\d{2}(?:-\d{2})?)/.exec(x);if(m&&x.includes(T.name)&&/잡았|잡혔|캤|캐 왔|주웠|나왔|만통|가득|많았/.test(x)&&!/못 잡|없었|안 잡|관찰/.test(x))out.push(m[1])});
  fieldRecent(id,365).forEach(x=>{if(x.r!=='b'&&(x.c||'').split(/[·,\s]+/).some(c=>findTarget(c)===T))out.push(x.d)}); // 현장 기록(공유 포함)도 근거
- const d=[...new Set(out)].filter(x=>x>=cut).sort().reverse();return {n:d.length,last:d[0]||''};
+ const miss=[],hasT=s=>(s||'').split(/[·,\s]+/).some(c=>findTarget(c.replace(/[0-9]+.*$/,''))===T);
+ fieldRecent(id,60).forEach(x=>{const g=/〔못 잡음: ([^〕]*)〕/.exec(x.m||'');if(g&&hasT(g[1]))miss.push(x.d)}); // 노렸지만 못 잡은 현장 기록
+ (R.recent||[]).forEach(x=>{const m=/^(\d{4}-\d{2}-\d{2})/.exec(x);if(m&&x.includes(T.name)&&/못 잡|하나도 없|안 잡혔/.test(x))miss.push(m[1])});
+ const d=[...new Set(out)].filter(x=>x>=cut).sort().reverse(),ms=miss.sort().reverse()[0]||'';return {n:d.length,last:d[0]||'',miss:ms&&ms>=(d[0]||'')?ms:''};
 }
 function tEvB(id,Ts){ // 대상 근거 점수: 2건 이상 +4, 1건 +2, 이름만 있고 잡은 후기 없음 -5
- if(!Ts||!Ts.length)return 0;return Math.max(...Ts.map(T=>{const e=tEv(id,T);return e.n>=2?4:e.n?2:-5}));
+ if(!Ts||!Ts.length)return 0;return Math.max(...Ts.map(T=>{const e=tEv(id,T);return e.miss?(e.n?-3:-5):e.n>=2?4:e.n?2:-5})); // 가장 최근 기록이 '못 잡음'이면 감점
 }
 function tScore(r,Ts){return r?Math.max(0,Math.min(100,r.score+tEvB(r.site.id,Ts))):0}
-function tEvTxt(id,T){const e=tEv(id,T);return e.n?`잡은 후기 ${e.n}건(최근 ${mdTxt(e.last)})`:'잡은 후기 없음'}
+function tEvTxt(id,T){const e=tEv(id,T);return (e.n?`잡은 후기 ${e.n}건(최근 ${mdTxt(e.last)})`:'잡은 후기 없음')+(e.miss?` · ${mdTxt(e.miss)} 노렸지만 못 잡음`:'')}
 function evBonus(id){const e=evInfo(id),n=e.n30+e.f30;return n>=3?4:n>=1?2:e.total?0:-3}
 function evTag(id){
  const e=evInfo(id),n=e.n30+e.f30;
@@ -1219,6 +1222,7 @@ function noteBlock(id){
    <label>날짜 <input type="date" id="nD" value="${today}"></label>
    <div style="display:flex;gap:10px">${Object.entries(NRES).map(([k,[t]])=>`<label><input type="radio" name="nR" value="${k}"${k==='m'?' checked':''}> ${t}</label>`).join('')}</div>
    <input id="nC" placeholder="잡은 것 (예: 박하지 20, 소라 조금)">
+   <input id="nF" placeholder="노렸지만 못 잡은 것 (예: 맛조개)">
    <label class="sub">어디까지 나갔나요 <select id="nX"><option value="">고르기</option><option>해변 가까이</option><option>갯벌 가운데</option><option>물가 끝 쪽</option></select> 물 깊이 <select id="nW"><option value="">고르기</option><option>물 밖</option><option>발목</option><option>무릎</option><option>허벅지</option><option>허리</option></select></label>
    <textarea id="nM" rows="2" placeholder="메모 (물 상태, 바람, 포인트 등)"></textarea>
    <label class="sub"><input type="checkbox" id="nL"${lsGet('bh_noLoc','')?'':' checked'}> 지금 위치 같이 저장(장소 근처일 때만, 지도에 표시)</label>
@@ -1239,7 +1243,7 @@ async function syncFb(){const q=JSON.parse(lsGet('bh_fb','[]')),left=[];let ok=0
 window.addEventListener('online',()=>syncFb());
 
 async function saveNote(id){
- const d=$('nD').value,r=(document.querySelector('input[name=nR]:checked')||{}).value||'m',c=$('nC').value.trim(),xw=[$('nX')&&$('nX').value,$('nW')&&$('nW').value&&('물 '+$('nW').value)].filter(Boolean).join(', '),m=(xw?'〔'+xw+'〕 ':'')+$('nM').value.trim();
+ const d=$('nD').value,r=(document.querySelector('input[name=nR]:checked')||{}).value||'m',c=$('nC').value.trim(),xw=[$('nX')&&$('nX').value,$('nW')&&$('nW').value&&('물 '+$('nW').value)].filter(Boolean).join(', '),fm=$('nF')?$('nF').value.trim():'',m=((xw?'〔'+xw+'〕 ':'')+$('nM').value.trim()+(fm?' 〔못 잡음: '+fm+'〕':'')).trim();
  if(!d){$('nMsg').textContent='날짜를 넣으세요.';return}
  lsSet('bh_nick',$('nN').value.trim().slice(0,30));
  const wantLoc=$('nL')&&$('nL').checked;lsSet('bh_noLoc',wantLoc?'':'1');
