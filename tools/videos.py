@@ -196,6 +196,7 @@ def main():
             except Exception as e:
                 print('# 실패', sid, e)
             time.sleep(0.4)
+    before = {(k, x['v']) for k, l in V.items() for x in l}
     added = 0
     for when, title, url, desc in rows:
         vid = vid_of(url)
@@ -240,7 +241,8 @@ def main():
         i = h.index('const SPOTS=')
         h = h[:i] + dump + '\n' + h[i:]
     open(HTML, 'w', encoding='utf-8', newline='').write(h)
-    print('새로 붙은 영상', added, '/ 영상 있는 장소', len(V), '/ 전체', sum(len(v) for v in V.values()))
+    after = {(k, x['v']) for k, l in V.items() for x in l}
+    print('실제로 새로 보이는 영상', len(after - before), '/ 빠진 영상', len(before - after), '(검색에서 붙은 수', added, ') / 영상 있는 장소', len(V), '/ 전체', len(after))
     for sid in ALIAS:
         print(sid, len(V.get(sid, [])))
 
