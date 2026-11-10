@@ -1780,7 +1780,7 @@ function mapFs(on,fromPop){
   if(!geoWatch&&$('geoBtn')&&SD_ARGS)toggleGeo(SD_ARGS.id); // 크게 볼 땐 내 위치도 바로
  }else{
   w.classList.remove('fs');$('dlg').classList.remove('fsOn');[ctl,geo,fg].forEach(x=>{if(x&&x._home)x._home.insertBefore(x,x._next&&x._next.parentElement===x._home?x._next:null)});
-  clearInterval(fsTimer);if(fsObs){fsObs.disconnect();fsObs=null}bot.innerHTML='';
+  clearInterval(fsTimer);if(fsObs){fsObs.disconnect();fsObs=null}bot.innerHTML='';if(RD_WAIT)setTimeout(()=>reDetail(RD_WAIT),300);
   if(!fromPop){IGNPOP++;HDEPTH=Math.max(0,HDEPTH-1);try{history.back()}catch(e){}}
  }
  setTimeout(()=>ejMap&&ejMap.invalidateSize(),60);setTimeout(()=>ejMap&&ejMap.invalidateSize(),350);
@@ -2419,10 +2419,18 @@ async function refreshSite(id){const s=SITES.find(x=>x.id===id);if(!s)return fal
  const rows=evalSite(s,today,opt.days,opt);if(st.wx)SWX[id]=Date.now();
  if(RESULT&&RESULT.rows.some(x=>x.site.id===id))RESULT.rows=RESULT.rows.filter(x=>x.site.id!==id).concat(rows);else EXTRA[id]=rows;return true}
 function sdOpen(id){const d=$('dlg');return d&&d.open&&CUR&&CUR.t==='s'&&CUR.id===id}
-function reDetail(id){if(!sdOpen(id)||!SD_ARGS||SD_ARGS.id!==id)return;const y=$('dlg').scrollTop;siteDetail(id,SD_ARGS.fn,SD_ARGS.fts);$('dlg').scrollTop=y}
+let RD_WAIT=null;
+function reDetail(id){if(!sdOpen(id)||!SD_ARGS||SD_ARGS.id!==id)return;
+ // 지도 크게 보기 중이거나 입력 중이면 화면을 다시 그리지 않음(크게 보기가 풀리고 입력하던 번호가 지워지던 문제) — 위 칸만 고치고, 끝나면 그림
+ const a=document.activeElement,typing=a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)&&$('dlg').contains(a);
+ if(MAPFS||typing){RD_WAIT=id;if(MAPFS)fsInfo();return}
+ RD_WAIT=null;const y=$('dlg').scrollTop,keep={};$('dBody').querySelectorAll('input[id],textarea[id]').forEach(x=>{if(x.type!=='checkbox'&&x.type!=='radio'&&x.value)keep[x.id]=x.value});
+ siteDetail(id,SD_ARGS.fn,SD_ARGS.fts);$('dlg').scrollTop=y;
+ Object.entries(keep).forEach(([k,v])=>{const x=$(k);if(x&&!x.value)x.value=v})}
+document.addEventListener('focusout',()=>setTimeout(()=>{if(RD_WAIT&&!MAPFS){const a=document.activeElement;if(!(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)))reDetail(RD_WAIT)}},400));
 function siteWxKick(id){const old=!SWX[id]||Date.now()-SWX[id]>10*60e3,tried=STRY[id]&&Date.now()-STRY[id]<60e3;if(old&&!tried)refreshSite(id).then(ok=>{if(ok)reDetail(id)})}
 {const _sd=siteDetail;siteDetail=function(id,fn,fts){const r=_sd(id,fn,fts);SD_ARGS={id,fn,fts};siteWxKick(id);return r}}
-if(typeof setInterval!=='undefined')setInterval(()=>{if(SD_ARGS&&sdOpen(SD_ARGS.id))siteWxKick(SD_ARGS.id)},60e3);
+if(typeof setInterval!=='undefined')setInterval(()=>{if(SD_ARGS&&sdOpen(SD_ARGS.id)){if(RD_WAIT===SD_ARGS.id)reDetail(RD_WAIT);siteWxKick(SD_ARGS.id)}},60e3);
 if(typeof document!=='undefined')document.addEventListener('visibilitychange',()=>{if(!document.hidden&&SD_ARGS&&sdOpen(SD_ARGS.id))siteWxKick(SD_ARGS.id)});
 if(typeof document!=='undefined')init();
 // 카카오톡 안 브라우저는 앱을 나가면 닫힘 → 기본 브라우저로 열기 안내
