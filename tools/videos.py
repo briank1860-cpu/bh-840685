@@ -165,6 +165,33 @@ def skip_title(title, vid=''):
     return bool(CAMP.search(title)) and not CATCH.search(title)
 
 
+DESC_CACHE = os.path.join(HERE, 'yt_desc_cache.json')  # 영상ID → 설명 전체에서 찾은 장소 id 목록(다시 안 열게)
+_dc = None
+def full_desc_sites(vid):
+    """제목·검색 요약으로 장소를 못 찾은 해루질 영상: 영상 페이지의 설명 전체를 읽어 장소를 찾는다."""
+    global _dc
+    if _dc is None:
+        try: _dc = json.load(open(DESC_CACHE, encoding='utf-8'))
+        except Exception: _dc = {}
+    if vid in _dc: return _dc[vid]
+    import urllib.request
+    try:
+        req = urllib.request.Request('https://www.youtube.com/watch?v=' + vid, headers={'User-Agent': 'Mozilla/5.0', 'Accept-Language': 'ko-KR,ko'})
+        h = urllib.request.urlopen(req, timeout=20).read().decode('utf-8', 'ignore')
+        m = re.search(r'"shortDescription":"((?:[^"\\]|\\.)*)"', h)
+        desc = json.loads('"' + m.group(1) + '"') if m else ''
+        tm = re.search(r'<meta name="keywords" content="([^"]*)"', h)
+        out = match_sites(desc + ' ' + (tm.group(1) if tm else '')) if desc or tm else []
+        if len(out) != 1: out = []  # 해시태그로 여러 장소를 늘어놓은 영상은 어느 곳인지 몰라 붙이지 않음
+    except Exception:
+        return []
+    _dc[vid] = out
+    return out
+def save_desc_cache():
+    if _dc is not None:
+        json.dump(_dc, open(DESC_CACHE, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
+
+
 def vid_of(url):
     m = re.search(r'(?:v=|shorts/)([A-Za-z0-9_-]{11})', url)
     return m.group(1) if m else None
@@ -200,7 +227,7 @@ def main():
                 print('# 실패', sid, e)
             time.sleep(0.4)
     before = {(k, x['v']) for k, l in V.items() for x in l}
-    added = 0
+    added = 0; opened = 0
     for when, title, url, desc in rows:
         vid = vid_of(url)
         if not vid:
@@ -211,10 +238,15 @@ def main():
         d = to_date(when, today)
         if d is None or (today - d).days > MAX_DAYS:
             continue
+        if is_approx(when) and re.search(r'([2-9]|\d\d)\s*년', when):  # '2년 전'은 2~3년 전이라 최근 2년 밖(날마다 붙었다 빠졌다 하는 것 막기)
+            continue
         if skip_title(title, vid):
             continue
         # 제목에 장소 이름이 있으면 제목만 믿고, 없을 때만 설명까지 본다(설명에 이웃 장소가 섞이는 것 막기)
-        for sid in (match_sites(title) or match_sites(text)):
+        ms = match_sites(title) or match_sites(text)
+        if not ms and HARU.search(title) and opened < 80:  # 제목에 해루질은 있는데 장소를 못 찾으면 설명 전체를 열어 본다
+            opened += 1; ms = full_desc_sites(vid); time.sleep(0.3)
+        for sid in ms:
             lst = V.setdefault(sid, [])
             if any(x['v'] == vid for x in lst):
                 continue
@@ -244,6 +276,7 @@ def main():
         i = h.index('const SPOTS=')
         h = h[:i] + dump + '\n' + h[i:]
     open(HTML, 'w', encoding='utf-8', newline='').write(h)
+    save_desc_cache()
     after = {(k, x['v']) for k, l in V.items() for x in l}
     print('실제로 새로 보이는 영상', len(after - before), '/ 빠진 영상', len(before - after), '(검색에서 붙은 수', added, ') / 영상 있는 장소', len(V), '/ 전체', len(after))
     for sid in ALIAS:
