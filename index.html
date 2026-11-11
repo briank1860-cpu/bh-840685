@@ -1719,7 +1719,7 @@ function eojangBlock(id){
  <div style="margin:4px 0"><button id="geoBtn" onclick="toggleGeo('${id}')">내 위치 보기</button> <button id="alarmBtn" onclick="toggleAlarm('${id}')">${alarmSite===id?'간조 알람 끄기':'간조 알람 켜기'}</button></div><div id="geoBox" style="font-size:14px;margin-bottom:6px"></div>
 ${FREEZONE[id]?`<p style="margin:4px 0"><span style="color:#2f9e44">■</span> <b>무료 해루질 가능 구역(추정) 약 ${FREEZONE[id].freeHa}ha</b> <span class="sub">— 갯벌 ${FREEZONE[id].flatHa}ha 중 어업권 구역 밖. 현장 안내판·통제구역이 우선</span></p>`:''}
  <div id="ejWrap"><button type="button" class="fsbtn" onclick="mapFs(true)">⛶ 지도 크게 보기</button><div id="fsTop"></div><div id="ejMap" style="height:300px;border:1px solid var(--line);border-radius:8px"></div><div id="fsBot"></div></div>
- <div id="fgBox" data-s="${id}"></div>
+ <div id="fgBox" data-fs="${id}"></div>
  <p class="sub"><span style="color:#d9480f">■</span> 마을어업(채취 금지) <span style="color:#e8a317">■</span> 양식어업 <span style="color:#7048e8">■</span> 정치망 · <span style="color:#2f9e44">■</span> 무료 가능(추정) · <span style="color:#b42318">┅</span> 출입통제 구역 · <span style="color:#3d5a73">━</span> 해안선 <span style="color:#c9b48a">■</span> 갯벌 <span style="color:#e0c873">■</span> 모래사장 <b style="color:#1c64d6">P</b> 주차장 · <b style="background:#555;color:#fff;padding:0 3px;border-radius:2px;font-size:11px">계산 기준점</b> 물때 계산용 대략 위치(내 위치 아님) · <span style="color:#1c7ed6">●</span> 내 위치(버튼 누를 때만). 구역을 누르면 내용이 나와요.</p>
  <ul style="font-size:13px">${near}</ul>
  <p class="sub">국립해양조사원 어장정보(공공데이터포털, 2025-08 공개). 면허기간이 지났어도 갱신됐을 수 있고, 이후 새로 생긴 어장은 빠져 있을 수 있어요. 색칠된 구역 밖이어도 현장 안내판·시·군 해양수산과로 확인하세요.</p>`;
@@ -1877,7 +1877,7 @@ async function fgShare(){
 }
 function fgRender(){
  const box=$('fgBox');
- if(box){const sid=box.dataset.s;
+ if(box){const sid=box.dataset.fs;
   if(!FG||FG.sid!==sid){const inv=getState().fgInvite;
    box.innerHTML=inv&&inv.s===sid?`<div class="fgcard"><b>친구가 위치 공유에 초대했어요</b><p class="sub">참여하면 이 앱을 켜 둔 동안 서로 위치가 지도에 보여요. 위치는 12시간 뒤 지워져요.</p><input id="fgNick" placeholder="내 별명" value="${esc(lsGet('bh_nick',''))}"><button type="button" onclick="fgJoin()">참여</button></div>`
     :`<div class="fgcard"><b>친구와 현장 위치 공유</b><p class="sub">같이 간 사람끼리 갯벌에서 서로 어디 있는지 지도로 봐요. 모임 번호를 아는 사람만 보이고, 이 앱을 켜 둔 동안만 공유돼요.</p><input id="fgNick" placeholder="내 별명" value="${esc(lsGet('bh_nick',''))}"><button type="button" onclick="fgStart('${sid}')">공유 시작하고 번호 보내기</button><div style="display:flex;gap:6px;margin-top:8px"><input id="fgNum" inputmode="numeric" maxlength="7" placeholder="친구에게 받은 모임 번호 6자리" style="flex:1"><button type="button" onclick="fgNumJoin('${sid}')">번호로 참여</button></div>${FG?`<p class="sub">다른 장소(${esc((SITES.find(s=>s.id===FG.sid)||{}).name||'')})에서 공유 중이에요.</p>`:''}</div>`}
