@@ -71,6 +71,8 @@ ALIAS = {
     'ta_batgae': {'any': ['밧개']},
     'ta_sinduri': {'any': ['신두리']},
     'ta_hakampo': {'any': ['학암포']},
+    'ta_duyeo': {'any': ['두여해변', '두여해수욕장']},
+    'ss_hwanggeum': {'any': ['서산 황금산', '황금산 해루', '황금산 낙지', '황금산 소라', '황금산 갯벌', '황금산해루']},
     'ta_jinsan': {'any': ['진산리']},
     'ta_magumpo': {'any': ['마검포']},
     'ta_kkotji': {'any': ['꽃지']},
