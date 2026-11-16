@@ -155,12 +155,12 @@ HARU = re.compile(r'해루질|낮루질|갯벌|조개|체험|캐기|줍')
 CAMP = re.compile(r'캠핑|차박|텐트|글램핑|백패킹|솔캠|캠핑카|야영|vlog|브이로그|여행', re.I)
 CATCH = re.compile(r'해루|낮루질|갯벌|체험|조개|바지락|백합|맛조개|동죽|낙지|꽃게|박하지|소라|고둥|고동|잡이|캐기|줍')
 # 제목만으로 못 거르는 무관 영상(여행 일지·놀이 영상 등). 사람이 보고 넣는다
-BLOCK = {'P3P78OK47q8', '-jx207czt3w', '491tY9MmNwo', '4CmLd3w9U6Y', '72kRGcR9XIo', 'EGou-hugmqs', 'I0xfWjvJddo', 'MfYAf4bmNXA', 'NlmzLy_divo', 'V6tNH3jwwHY', 'XkWl7P_Tsvg', 'YCaDUfIR3kA', 'Yi8njCQafa4', '_5ItCMmjJ2w', 'a4rMRQviPzI', 'aKE_3vEExlI', 'c2KYK9_I0ho', 'd0Pgf-bulcs', 'e2JgMSSioPQ', 'itdCT3O187o', 'jqOCtw1ORUg', 'm6rj57KM9Sc', 'mEK0DSMlgas', 'n0dpCg9EWgU', 'ndAfoGmUKE8', 'xAtMVoansP0', 'zBg8wNoB28k'}
+BLOCK = {'P3P78OK47q8', 'OsDgqdtQlvU', '-jx207czt3w', '491tY9MmNwo', '4CmLd3w9U6Y', '72kRGcR9XIo', 'EGou-hugmqs', 'I0xfWjvJddo', 'MfYAf4bmNXA', 'NlmzLy_divo', 'V6tNH3jwwHY', 'XkWl7P_Tsvg', 'YCaDUfIR3kA', 'Yi8njCQafa4', '_5ItCMmjJ2w', 'a4rMRQviPzI', 'aKE_3vEExlI', 'c2KYK9_I0ho', 'd0Pgf-bulcs', 'e2JgMSSioPQ', 'itdCT3O187o', 'jqOCtw1ORUg', 'm6rj57KM9Sc', 'mEK0DSMlgas', 'n0dpCg9EWgU', 'ndAfoGmUKE8', 'xAtMVoansP0', 'zBg8wNoB28k'}
 
 
 def skip_title(title, vid=''):
     """뺄 영상: 낚시 영상(해루질·갯벌 말이 제목에 없으면), 캠핑·차박·여행 영상(잡는 이야기가 제목에 없으면), BLOCK."""
-    if vid in BLOCK:
+    if vid in BLOCK or re.search(r'바다수영|오픈워터|스노클', title):
         return True
     if FISH.search(title) and not HARU.search(title):
         return True
@@ -183,15 +183,61 @@ def full_desc_sites(vid):
         m = re.search(r'"shortDescription":"((?:[^"\\]|\\.)*)"', h)
         desc = json.loads('"' + m.group(1) + '"') if m else ''
         tm = re.search(r'<meta name="keywords" content="([^"]*)"', h)
-        out = match_sites(desc + ' ' + (tm.group(1) if tm else '')) if desc or tm else []
+        kw = desc + ' ' + (tm.group(1) if tm else '')
+        out = match_sites(kw) if desc or tm else []
+        _dc['#' + vid] = bool(WORD.search(kw))  # 설명에 해루질 관련 말이 있는지(채널 영상 거르기용)
         if len(out) != 1: out = []  # 해시태그로 여러 장소를 늘어놓은 영상은 어느 곳인지 몰라 붙이지 않음
     except Exception:
         return []
     _dc[vid] = out
     return out
+def desc_haru(vid):
+    """설명 전체에 해루질 관련 말이 있는지(채널 영상에서 바다수영·여행 영상 거르기)."""
+    full_desc_sites(vid)
+    if '#' + vid not in _dc:  # 예전 기록엔 이 표시가 없어 한 번 다시 연다
+        _dc.pop(vid, None); full_desc_sites(vid)
+    return _dc.get('#' + vid, False)
 def save_desc_cache():
     if _dc is not None:
         json.dump(_dc, open(DESC_CACHE, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
+
+
+# 해루질 유명 유튜버(2026-11-16 사용자 명단). 채널 최근 영상(약 30개)을 받아, 제목·설명 전체에 장소가 딱 한 곳 나올 때만 연결한다
+CHANNELS = {
+    '해루남': 'UCzxiJCVB4rqEBdqSS5N_HmQ', '해루시대': 'UCooN1oaxqRME-p48T67Jq1w', '해루가자': 'UCK0EYMINuUmuAzFN2rDU8ig',
+    '주먹소라': 'UC8eFrFi9t1kdyg8tTiFA2LQ', '해루부부': 'UCuJ2gul2Yj-pH4Ftm8ttDdg', '바다생활': 'UCxjlyuGu2pJ2NYLm8gbYWeQ',
+    '해루팡': 'UC4b6iVxII-Cm8Pbzws1vRlQ', '가다구TV': 'UC-PJRyxH8Js4rJi4V5XBAzQ', '오늘은 어디?': 'UCoteH-AcW7rHbhIwUS6NYAg',
+    '낄끼파파': 'UC53hjLm1jGxdHfinJQFdhkQ', '체크범': 'UCnbf4zJgEeuIoz2f66Dzdeg', '허튭': 'UCZ-9oup4GdUS_05k_xt53fA',
+    '어쩌다 혼자 논다': 'UCHo4uJBxb8Zd_wI1QfBOjeA', '고독한 허당': 'UChtO1qSGxUkHybK7Tr_tT_A', '마린맨': 'UC0Mvcp3jYTdun1m3wyf1FoQ',
+}
+
+
+def channel_videos(cid):
+    """채널 '동영상' 탭의 최근 영상: [(언제, 제목, 주소)]."""
+    import search
+    s = search.get('https://www.youtube.com/channel/%s/videos' % cid)
+    m = re.search(r'var ytInitialData = (\{.*?\});</script>', s, re.S)
+    out = []
+    def texts(o, acc):
+        if isinstance(o, dict):
+            if isinstance(o.get('content'), str): acc.append(o['content'])
+            for x in o.values(): texts(x, acc)
+        elif isinstance(o, list):
+            for x in o: texts(x, acc)
+        return acc
+    def walk(o):
+        if isinstance(o, dict):
+            v = o.get('lockupViewModel')
+            if v and v.get('contentType') == 'LOCKUP_CONTENT_TYPE_VIDEO':
+                md = v.get('metadata', {}).get('lockupMetadataViewModel', {})
+                when = next((x for x in texts(md.get('metadata', {}), []) if re.search(r'전$', x)), '')
+                out.append((when, md.get('title', {}).get('content', ''), 'https://www.youtube.com/watch?v=' + v['contentId']))
+                return
+            for x in o.values(): walk(x)
+        elif isinstance(o, list):
+            for x in o: walk(x)
+    if m: walk(json.loads(m.group(1)))
+    return out
 
 
 def vid_of(url):
@@ -228,14 +274,23 @@ def main():
             except Exception as e:
                 print('# 실패', sid, e)
             time.sleep(0.4)
+        for name, cid in CHANNELS.items():
+            try:
+                for when, title, url in channel_videos(cid):
+                    rows.append((when, title, url, '', name))
+            except Exception as e:
+                print('# 채널 실패', name, e)
+            time.sleep(0.6)
     before = {(k, x['v']) for k, l in V.items() for x in l}
-    added = 0; opened = 0
-    for when, title, url, desc in rows:
+    added = 0; opened = 0; ch_opened = 0
+    for row in rows:
+        when, title, url, desc = row[:4]
+        chan = len(row) > 4  # 해루질 채널 영상: 제목에 해루질 말이 없어도 설명까지 본다
         vid = vid_of(url)
         if not vid:
             continue
         text = title + ' ' + desc
-        if not WORD.search(text):
+        if not chan and not WORD.search(text):
             continue
         d = to_date(when, today)
         if d is None or (today - d).days > MAX_DAYS:
@@ -248,6 +303,10 @@ def main():
         ms = match_sites(title) or match_sites(text)
         if not ms and HARU.search(title) and opened < 80:  # 제목에 해루질은 있는데 장소를 못 찾으면 설명 전체를 열어 본다
             opened += 1; ms = full_desc_sites(vid); time.sleep(0.3)
+        elif not ms and chan and ch_opened < 150:
+            ch_opened += 1; ms = full_desc_sites(vid); time.sleep(0.3)
+        if chan and ms and not WORD.search(title) and not desc_haru(vid):
+            ms = []  # 해루질 채널이라도 제목·설명에 잡는 이야기가 없으면(바다수영·여행 등) 붙이지 않음
         for sid in ms:
             lst = V.setdefault(sid, [])
             if any(x['v'] == vid for x in lst):
