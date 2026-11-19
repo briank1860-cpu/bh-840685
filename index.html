@@ -292,6 +292,9 @@ body{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
 <h2 id="sec-wk">이번 주말 베스트 <span class="sub">금·토·일, 내 조건의 지역에서 가장 좋은 다섯 곳</span></h2>
 <div class="card"><div style="margin-bottom:8px"><div class="sub" style="margin-bottom:4px">잡고 싶은 걸 고르면(3개까지) 그게 잘 나오는 곳 순서로 바꿔 드려요</div><div id="wkT" class="chips"></div></div><div id="wkTabs" style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap"></div><p class="sub" style="margin:0 0 8px">간조는 물이 가장 많이 빠지는 때예요. ○물은 그날 물때 이름이고, 물이 많이 빠지는 날을 사리, 적게 빠지는 날을 조금이라고 해요.</p><div id="wkList"></div></div>
 
+<h2 id="sec-new">요즘 올라온 영상·후기 <span class="sub" id="latestSub"></span></h2>
+<div class="card" id="latestBox"></div>
+
 <h2 id="sec-day">이 날 어때요? <span class="sub">날짜만 고르면 물때·날씨·좋은 곳이 한눈에</span></h2>
 <div class="card dayctl"><input type="date" id="dayPick"><select id="dayT"><option value="">대상 전체</option></select><button id="dayGo">보기</button></div>
 
@@ -805,7 +808,7 @@ function renderWeekend(){
 // 주말 베스트 대상 고르기: 3개까지, 이 폰에 기억
 let FOCUS={n:null,ts:null}; // 밖에서 마지막으로 고른 날짜·어종(장소 화면이 그대로 따름)
 function wkTSel(){return lsGet('bh_wkT','').split(',').filter(id=>TARGETS.some(t=>t.id===id)).slice(0,3)}
-function wkTChips(){const s=wkTSel();$('wkT').innerHTML=[...TARGETS].sort((a,b)=>EASY.test(b.id)-EASY.test(a.id)).map(t=>`<button type="button" style="${s.includes(t.id)?'background:var(--acc);color:#fff;border:1px solid var(--acc)':'background:var(--card);color:var(--ink);border:1px solid var(--line)'};padding:3px 10px;border-radius:14px" onclick="wkTToggle('${t.id}')">${esc(t.name)}</button>`).join('')+(s.length?` <button type="button" style="background:var(--card);color:var(--acc);border:1px solid var(--acc);padding:3px 10px;border-radius:14px" onclick="lsSet('bh_wkT','');wkTChips();renderWeekend()">선택 해제</button>`:'')}
+function wkTChips(){const s=wkTSel();$('wkT').innerHTML=[...TARGETS].sort((a,b)=>EASY.test(b.id)-EASY.test(a.id)).map(t=>`<button type="button" style="${s.includes(t.id)?'background:var(--acc);color:#fff;border:1px solid var(--acc)':'background:var(--card);color:var(--ink);border:1px solid var(--line)'};padding:3px 10px;border-radius:14px" onclick="wkTToggle('${t.id}')">${esc(t.name)}</button>`).join('')+(s.length?` <button type="button" style="background:var(--card);color:var(--acc);border:1px solid var(--acc);padding:3px 10px;border-radius:14px" onclick="lsSet('bh_wkT','');wkTChips();renderWeekend()">선택 해제</button>`:'');renderLatest()}
 function wkTToggle(id){let s=wkTSel();if(s.includes(id))s=s.filter(x=>x!==id);else{if(s.length>=3)s.shift();s.push(id)}lsSet('bh_wkT',s.join(','));FOCUS.ts=s.length?s:null;wkTChips();renderWeekend()}
 // 주말 베스트(대상 고름): 그날 고른 대상들이 잘 나오는 장소 5곳 — 장소마다 고른 대상 중 가장 좋은 점수로 순위
 function wkTargetDay(n,Ts,dayRows){
@@ -1287,9 +1290,16 @@ function tWords(T){if(T.id==='ppulsora')return ['뿔소라','참소라'];if(T.id
  const w=[T.name,...(T.alias||'').split(/[,·\/]+/).map(a=>a.replace(/\(.*?\)/g,'').trim())].filter(a=>a.length>=2);if(T.id==='jukkumi')w.push('쭈꾸미');return [...new Set(w)]}
 function tIn(text,T){let x=String(text||'');if(T.id==='pippul')x=x.replace(/뿔소라|참소라|소라게/g,'');return tWords(T).some(w=>x.includes(w))}
 function tMedia(T,sids){const ids=sids||SITES.map(s=>s.id),seen=new Set(),vids=[],su=new Set(),posts=[];
- ids.forEach(sid=>(VIDEOS[sid]||[]).forEach(v=>{if(seen.has(v.v)||!tIn(v.t,T))return;seen.add(v.v);vids.push({...v,sid})}));
- ids.forEach(sid=>((REVIEW[sid]||{}).tbm||[]).forEach(t=>{if(findTarget(t.name)!==T)return;(t.evidence||[]).forEach(e=>{if(!e||!/^https?:/.test(e[1]||'')||su.has(e[1]))return;su.add(e[1]);posts.push({sid,t:e[0],u:e[1],d:String(e[2]||'').slice(0,10)})})}));
+ ids.forEach(sid=>(VIDEOS[sid]||[]).forEach(v=>{if(seen.has(v.v)||(T&&!tIn(v.t,T)))return;seen.add(v.v);vids.push({...v,sid})}));
+ ids.forEach(sid=>((REVIEW[sid]||{}).tbm||[]).forEach(t=>{if(T&&findTarget(t.name)!==T)return;(t.evidence||[]).forEach(e=>{if(!e||!/^https?:/.test(e[1]||'')||su.has(e[1]))return;su.add(e[1]);posts.push({sid,t:e[0],u:e[1],d:String(e[2]||'').slice(0,10)})})}));
  const by=(a,b)=>a.d<b.d?1:a.d>b.d?-1:0;return {vids:vids.sort(by),posts:posts.sort(by)}}
+// 첫 화면 '요즘 올라온 영상·후기': 고른 대상이 없으면 전국 최신, 있으면 그 대상(2026-11-19 사용자)
+function renderLatest(){const el=$('latestBox');if(!el)return;const Ts=wkTSel().map(id=>TARGETS.find(t=>t.id===id)).filter(Boolean);
+ let m;if(Ts.length){m={vids:[],posts:[]};const sv=new Set(),sp=new Set();Ts.forEach(T=>{const x=tMedia(T);x.vids.forEach(v=>{if(!sv.has(v.v)){sv.add(v.v);m.vids.push(v)}});x.posts.forEach(q=>{if(!sp.has(q.u)){sp.add(q.u);m.posts.push(q)}})});
+  const by=(a,b)=>a.d<b.d?1:a.d>b.d?-1:0;m.vids.sort(by);m.posts.sort(by)}else m=tMedia(null);
+ m={vids:m.vids.slice(0,30),posts:m.posts.slice(0,30)}; // 첫 화면은 최근 30개씩만
+ $('latestSub').textContent=Ts.length?`고른 대상(${Ts.map(t=>t.name).join('·')}) · 최신순`:'전국 · 최신순 · 위에서 잡고 싶은 걸 고르면 그것만 보여 드려요';
+ el.innerHTML=mediaHtml(m,1,5)||'<p class="sub">아직 모은 영상·후기가 없어요.</p>'}
 const sName=sid=>(SITES.find(s=>s.id===sid)||{}).name||'';
 function vidCard(v,site){return `<a href="https://www.youtube.com/${v.s?'shorts/':'watch?v='}${v.v}" target="_blank" rel="noopener" style="display:flex;gap:8px;align-items:center;text-decoration:none;color:inherit"><img src="https://i.ytimg.com/vi/${v.v}/mqdefault.jpg" loading="lazy" alt="" style="width:112px;height:63px;object-fit:cover;border-radius:6px;flex:none;background:#ddd"><span><span style="font-size:14px">${esc(v.t)}</span><br><span class="sub">${site&&v.sid?esc(sName(v.sid))+' · ':''}${v.a?((Date.now()-new Date(v.d))/864e5<330?esc(v.d.slice(0,4)+'년 '+(+v.d.slice(5,7))+'월쯤'):'1~2년 전'):esc(v.d)}${v.s?' · 쇼츠':''}</span></span></a>`}
 function postLi(x,site){return `<li><a href="${esc(x.u)}" target="_blank" rel="noopener">${esc(x.t)}</a> <span class="sub">${site?esc(sName(x.sid))+' · ':''}${esc(x.d)}</span></li>`}
