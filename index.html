@@ -1180,6 +1180,8 @@ function siteDetail(id,fn,fts){if(fn==null)fn=FOCUS.n;if(!fts)fts=FOCUS.ts;saveS
  h+=`<h4>다녀오셨나요?</h4>`+noteBlock(id);
  const src=(d.sources||[]).map(([t,u,dt])=>`<li><a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a>${dt?` <span class="sub">${esc(dt)}</span>`:''}</li>`);
  s.src.forEach(([t,u])=>{if(!(d.sources||[]).some(x=>x[1]===u))src.push(`<li><a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a></li>`)});
+ if(FT.length){const MM=FT.map(T=>[T,tMedia(T,[id])]).filter(([T,m])=>m.vids.length||m.posts.length);
+  h+=`<h4>${FT.map(t=>esc(t.name)).join('·')} 영상·후기 글 <span class="sub">이 장소 · 고른 대상</span></h4>`+(MM.length?MM.map(([T,m])=>(FT.length>1?`<p style="margin:8px 0 0"><b>${esc(T.name)}</b></p>`:'')+mediaHtml(m,0,4)).join(''):`<p class="sub">이 장소에서 ${FT.map(t=>esc(t.name)).join('·')}${jo(FT[FT.length-1].name,'을','를')} 잡은 영상·후기 글은 아직 없어요. 아래 이 장소 영상을 보세요.</p>`)}
  if((VIDEOS[id]||[]).length)h+=`<h4>관련 영상 <span class="sub">유튜브 · 최근 2년</span></h4><div style="display:grid;gap:8px">${VIDEOS[id].map(v=>`<a href="https://www.youtube.com/${v.s?'shorts/':'watch?v='}${v.v}" target="_blank" rel="noopener" style="display:flex;gap:8px;align-items:center;text-decoration:none;color:inherit"><img src="https://i.ytimg.com/vi/${v.v}/mqdefault.jpg" loading="lazy" alt="" style="width:112px;height:63px;object-fit:cover;border-radius:6px;flex:none;background:#ddd"><span><span style="font-size:14px">${esc(v.t)}</span><br><span class="sub">${v.a?((Date.now()-new Date(v.d))/864e5<330?esc(v.d.slice(0,4)+'년 '+(+v.d.slice(5,7))+'월쯤'):'1~2년 전'):esc(v.d)}${v.s?' · 쇼츠':''}</span></span></a>`).join('')}</div><p class="sub" style="margin-top:4px">제목·설명에 이 장소가 나오는 영상을 자동으로 모았어요. 날짜는 대략이에요.</p>`;
  h+=`<h4>지도·물때·출처</h4><p><a href="https://map.kakao.com/?q=${q}" target="_blank" rel="noopener">카카오맵</a> · <a href="https://map.naver.com/p/search/${q}" target="_blank" rel="noopener">네이버지도</a> · <a href="https://www.badatime.com/${s.bt}.html" target="_blank" rel="noopener">물때표${s.btn?'('+esc(s.btn)+')':''}</a></p><ul>${src.join('')}</ul>`;
  openDlg(`<h3 class="fh">${esc(s.name)} ${favBtn(id)}</h3>`,h);drawMap(id);fgRender();
@@ -1280,11 +1282,46 @@ async function delNote(id,t){
 }
 loadShared().then(()=>{if(RESULT)renderWeekend();const g=getState().dlg;if(g&&g.t==='s'&&$('dlg').open&&$('nD')&&!$('nC').value&&!$('nM').value)siteDetail(g.id);syncNotes()});
 window.addEventListener('online',()=>syncNotes());
+// 대상별 영상·후기 글(2026-11-19 사용자: 어종을 누르면 그 어종 영상·글, 장소+어종이면 거기에 맞는 것)
+function tWords(T){if(T.id==='ppulsora')return ['뿔소라','참소라'];if(T.id==='gul')return ['굴 ','굴을','굴따','바위굴','자연산굴','석화','참굴'];
+ const w=[T.name,...(T.alias||'').split(/[,·\/]+/).map(a=>a.replace(/\(.*?\)/g,'').trim())].filter(a=>a.length>=2);if(T.id==='jukkumi')w.push('쭈꾸미');return [...new Set(w)]}
+function tIn(text,T){let x=String(text||'');if(T.id==='pippul')x=x.replace(/뿔소라|참소라|소라게/g,'');return tWords(T).some(w=>x.includes(w))}
+function tMedia(T,sids){const ids=sids||SITES.map(s=>s.id),seen=new Set(),vids=[],su=new Set(),posts=[];
+ ids.forEach(sid=>(VIDEOS[sid]||[]).forEach(v=>{if(seen.has(v.v)||!tIn(v.t,T))return;seen.add(v.v);vids.push({...v,sid})}));
+ ids.forEach(sid=>((REVIEW[sid]||{}).tbm||[]).forEach(t=>{if(findTarget(t.name)!==T)return;(t.evidence||[]).forEach(e=>{if(!e||!/^https?:/.test(e[1]||'')||su.has(e[1]))return;su.add(e[1]);posts.push({sid,t:e[0],u:e[1],d:String(e[2]||'').slice(0,10)})})}));
+ const by=(a,b)=>a.d<b.d?1:a.d>b.d?-1:0;return {vids:vids.sort(by),posts:posts.sort(by)}}
+const sName=sid=>(SITES.find(s=>s.id===sid)||{}).name||'';
+function vidCard(v,site){return `<a href="https://www.youtube.com/${v.s?'shorts/':'watch?v='}${v.v}" target="_blank" rel="noopener" style="display:flex;gap:8px;align-items:center;text-decoration:none;color:inherit"><img src="https://i.ytimg.com/vi/${v.v}/mqdefault.jpg" loading="lazy" alt="" style="width:112px;height:63px;object-fit:cover;border-radius:6px;flex:none;background:#ddd"><span><span style="font-size:14px">${esc(v.t)}</span><br><span class="sub">${site&&v.sid?esc(sName(v.sid))+' · ':''}${v.a?((Date.now()-new Date(v.d))/864e5<330?esc(v.d.slice(0,4)+'년 '+(+v.d.slice(5,7))+'월쯤'):'1~2년 전'):esc(v.d)}${v.s?' · 쇼츠':''}</span></span></a>`}
+function postLi(x,site){return `<li><a href="${esc(x.u)}" target="_blank" rel="noopener">${esc(x.t)}</a> <span class="sub">${site?esc(sName(x.sid))+' · ':''}${esc(x.d)}</span></li>`}
+function mediaHtml(m,site,k){k=k||6;const more=(arr,f,wrap)=>arr.length>k?`<details><summary class="sub">${arr.length-k}개 더 보기</summary>${wrap(arr.slice(k).map(f).join(''))}</details>`:'';
+ const vg=x=>`<div style="display:grid;gap:8px;margin-top:8px">${x}</div>`,ul2=x=>`<ul>${x}</ul>`;
+ return (m.vids.length?`<p class="sub" style="margin:8px 0 0"><b>영상 ${m.vids.length}개</b></p>${vg(m.vids.slice(0,k).map(v=>vidCard(v,site)).join(''))}${more(m.vids,v=>vidCard(v,site),vg)}`:'')
+  +(m.posts.length?`<p class="sub" style="margin:10px 0 0"><b>잡은 후기 글 ${m.posts.length}개</b></p>${ul2(m.posts.slice(0,k).map(x=>postLi(x,site)).join(''))}${more(m.posts,x=>postLi(x,site),ul2)}`:'')}
+// 대상 화면의 날짜별·장소별 점수(고른 지역·내 조건, 대상 근거 가감 포함 — 다른 화면과 같은 tScore)
+function tMonth(n){return new Date(kDayStart(n)+KST).getUTCMonth()+1}
+function tPlanHtml(T){
+ if(!RESULT||!RESULT.rows.length)return `<p class="sub">출발 지역을 고르면 ${esc(T.name)} 좋은 날과 장소를 점수로 보여 드려요.</p>`;
+ const rows=RESULT.rows.filter(r=>siteHas(r.site.id,T)&&mStat(T.id,tMonth(r.n))!=='x'&&(!RESULT.opt.weekend||[0,6].includes(dow(r.n))));
+ if(!rows.length)return `<p class="sub">고른 지역에는 ${esc(T.name)}${jo(T.name,'을','를')} 잡았다는 근거가 있는 장소가 없거나, 이 기간이 금어기예요.</p>`;
+ const sc=r=>tScore(r,[T]),lk=(r,txt)=>`<span class="link" data-s="${r.site.id}" data-n="${r.n}" data-ts="${T.id}">${txt}</span>`,pt=v=>`<b>${v}점</b>${v<RECO_MIN?' <span class="sub">(추천 기준 아래)</span>':''}`;
+ const byN={};rows.forEach(r=>(byN[r.n]=byN[r.n]||[]).push(r));Object.values(byN).forEach(a=>a.sort((x,y)=>sc(y)-sc(x)));
+ const days=Object.keys(byN).map(Number).sort((a,b)=>a-b);let h='';
+ const fn=FOCUS.n;
+ if(fn!=null&&byN[fn])h+=`<h4>${fmtD(fn)} ${esc(T.name)} 좋은 장소 <span class="sub">고른 날</span></h4><ol>${byN[fn].slice(0,5).map(r=>`<li>${lk(r,esc(r.site.name))} ${pt(sc(r))} <span class="sub">${mulName(lunarDay(r.n))} · 해루질 ${fmtT(r.b)}~${fmtT(r.e)} · ${esc(tEvTxt(r.site.id,T))}</span></li>`).join('')}</ol>`;
+ else if(fn!=null)h+=`<p class="sub">고른 날(${fmtD(fn)})에는 ${esc(T.name)}에 맞는 간조가 있는 장소가 없어요. 아래 좋은 날을 보세요.</p>`;
+ const best=days.map(n=>byN[n][0]),top=best.slice().sort((a,b)=>sc(b)-sc(a)).slice(0,5).sort((a,b)=>a.n-b.n);
+ h+=`<h4>${esc(T.name)} 좋은 날</h4>`+(top.some(r=>sc(r)>=RECO_MIN)?'':`<p class="sub">앞으로 ${RESULT.opt.days}일 안에는 ${RECO_MIN}점 넘는 날이 없어요. 가장 나은 날이에요.</p>`)+`<ol>${top.map(r=>`<li><b>${fmtD(r.n)}</b> ${lk(r,esc(r.site.name))} ${pt(sc(r))} <span class="sub">${mulName(lunarDay(r.n))} · 해루질 ${fmtT(r.b)}~${fmtT(r.e)}${r.day<0.5?' · 야간':''}</span></li>`).join('')}</ol>`;
+ h+=`<details><summary class="sub">날짜별 점수 모두 보기</summary><div class="dl">${days.map(n=>`<dt>${fmtD(n)}</dt><dd>${byN[n].slice(0,3).map(r=>`${lk(r,esc(r.site.name))} ${sc(r)}점`).join(' · ')}</dd>`).join('')}</div></details>`;
+ const bySite={};rows.forEach(r=>{const k=r.site.id;if(!bySite[k]||sc(r)>sc(bySite[k]))bySite[k]=r});
+ const sl=Object.values(bySite).sort((a,b)=>sc(b)-sc(a));
+ h+=`<h4>${esc(T.name)} 장소별 <span class="sub">가장 좋은 날 기준 · 고른 지역 ${sl.length}곳</span></h4><ol>${sl.slice(0,6).map(r=>`<li>${lk(r,esc(r.site.name))} ${pt(sc(r))} <span class="sub">${fmtD(r.n)} · ${esc(tEvTxt(r.site.id,T))}</span></li>`).join('')}</ol>`+(sl.length>6?`<details><summary class="sub">${sl.length-6}곳 더 보기</summary><ol start="7">${sl.slice(6).map(r=>`<li>${lk(r,esc(r.site.name))} ${sc(r)}점 <span class="sub">${fmtD(r.n)}</span></li>`).join('')}</ol></details>`:'');
+ return h}
 function targetDetail(id){saveState({dlg:{t:'t',id}});
  const t=TARGETS.find(x=>x.id===id);if(!t)return;
  const row=(k,v)=>v&&String(v).length?`<dt>${k}</dt><dd>${esc(Array.isArray(v)?v.join(' '):v)}</dd>`:'';
  const where=SITES.filter(s=>(DETAIL[s.id]?.targets||[]).some(x=>findTarget(x.name)===t));
- let h=`<p class="sub">${esc(t.alias||'')}${t.sci?` · <i>${esc(t.sci)}</i>`:''}</p><div class="dl">${row('생김새',t.look)}${row('구별',t.similar)}${row('사는 곳',t.habitat)}${row('깊이',t.depth)}${row('제철',t.season)}${row('낮·밤',t.daynight)}${row('흔적',t.signs)}${row('도구',t.tools)}${row('법 규정',t.legal)}${row('주의',t.caution)}${row('참고',t.tip)}</div>`;
+ const M=tMedia(t);
+ let h=`<p class="sub">${esc(t.alias||'')}${t.sci?` · <i>${esc(t.sci)}</i>`:''}</p>`+tPlanHtml(t)+(M.vids.length||M.posts.length?`<h4>${esc(t.name)} 영상·후기 글 <span class="sub">최신순 · 전국</span></h4>${mediaHtml(M,1)}`:'')+`<h4>${esc(t.name)} 알아보기</h4><div class="dl">${row('생김새',t.look)}${row('구별',t.similar)}${row('사는 곳',t.habitat)}${row('깊이',t.depth)}${row('제철',t.season)}${row('낮·밤',t.daynight)}${row('흔적',t.signs)}${row('도구',t.tools)}${row('법 규정',t.legal)}${row('주의',t.caution)}${row('참고',t.tip)}</div>`;
  const E=ECO[id];if(E)h+=`<h4>생태(공식 자료)</h4><div class="dl">${E.a?`<dt>활동 시간</dt><dd>${esc(E.a)}${E.aw?` <span class="sub">— ${esc(E.aw)}</span>`:''}</dd>`:''}${E.s?`<dt>사는 바닥</dt><dd>${esc(E.s)}${E.z?` · ${esc(E.z)}`:''}</dd>`:''}${E.t?`<dt>수온</dt><dd>${esc(E.t)}</dd>`:''}${E.c?`<dt>금어기·규정</dt><dd>${esc(E.c)}</dd>`:''}</div>${E.src.length?`<p class="sub">${E.src.map(([a,u,y])=>`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(a)}</a>${y?' '+esc(y):''}`).join(' · ')}</p>`:''}`;
  if(t.how&&t.how.length)h+=`<h4>잡는 법</h4><ol>${t.how.map(x=>`<li>${esc(x)}</li>`).join('')}</ol>`;
  if(where.length)h+=`<h4>나오는 장소</h4><div class="chips">${where.map(s=>`<span class="chip" data-s="${s.id}">${esc(s.name)}</span>`).join('')}</div>`;
