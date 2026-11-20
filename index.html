@@ -773,9 +773,12 @@ function nextGood(after){ // 가장 가까운 좋은 날(80점 이상 먼저, �
  if(!RESULT)return null;const Ts=wkTSel().map(id=>TARGETS.find(x=>x.id===id)).filter(Boolean); // 고른 대상이 있으면 그 대상이 되는 곳·날만(2026-11-20 사용자: 낙지를 골랐는데 백미리가 나옴)
  let rs=RESULT.rows.filter(r=>after==null||r.n>after);
  if(Ts.length){const ok=r=>tCover(r.site.id,Ts,r).ok.length,all=rs.filter(r=>ok(r)===Ts.length),any=rs.filter(r=>ok(r)>0);rs=(all.some(r=>tScore(r,Ts)>=RECO_MIN)?all:any).map(r=>({...r,score:tScore(r,Ts)}))}
- return rs.filter(r=>r.score>=80).sort((a,b)=>a.n-b.n||b.score-a.score)[0]||rs.filter(r=>r.score>=RECO_MIN).sort((a,b)=>b.score-a.score)[0]||null}
+ // 믿을 만한 곳(잡은 후기 8건 이상·최근 한 달 2건 이상)을 먼저, 그런 곳이 사흘 안에 있으면 그날로(2026-11-20 사용자: 후기도 별로 없는 백미리가 왜 나오나)
+ const tr=r=>(e=>e.total>=8||e.n30+e.f30>=2)(evInfo(r.site.id)),by=(a,b)=>a.n-b.n||tr(b)-tr(a)||b.score-a.score;
+ const A=rs.filter(r=>r.score>=80).sort(by),T=A.filter(tr);
+ return (T[0]&&(!A[0]||T[0].n<=A[0].n+3)?T[0]:A[0])||rs.filter(r=>r.score>=RECO_MIN).sort((a,b)=>tr(b)-tr(a)||b.score-a.score)[0]||null}
 function noGoodHtml(n,topScore){const g=nextGood(n);
- return `<p class="nogood">이날은 추천할 만한 곳이 없어요${topScore?` (가장 높은 곳 ${topScore}점)`:''}.${g?` 가장 가까운 좋은 날은 <span class="link" data-s="${g.site.id}" data-n="${g.n}"${wkTSel().length?` data-ts="${wkTSel().join(',')}"`:''}><b>${fmtD(g.n)} ${esc(g.site.name)}</b></span> ${g.score}점이에요.`:wkTSel().length?` 계산 기간 안에는 고른 대상(${esc(wkTSel().map(id=>TARGETS.find(t=>t.id===id).name).join('·'))})으로 추천할 만한 날이 없어요.`:''}</p>`}
+ return `<p class="nogood">이날은 추천할 만한 곳이 없어요${topScore?` (가장 높은 곳 ${topScore}점)`:''}.${g?` 가장 가까운 좋은 날은 <span class="link" data-s="${g.site.id}" data-n="${g.n}"${wkTSel().length?` data-ts="${wkTSel().join(',')}"`:''}><b>${fmtD(g.n)} ${esc(g.site.name)}</b></span> ${g.score}점이에요 <span class="sub">(${mulName(lunarDay(g.n))}${g.F>=0.75?' · 물 많이 빠짐':''} · ${(e=>e.n30+e.f30?'최근 한 달 후기 '+(e.n30+e.f30)+'건':'최근 한 달 후기 없음')(evInfo(g.site.id))})</span>.`:wkTSel().length?` 계산 기간 안에는 고른 대상(${esc(wkTSel().map(id=>TARGETS.find(t=>t.id===id).name).join('·'))})으로 추천할 만한 날이 없어요.`:''}</p>`}
 let wkIdx=0;
 // 머리 화면: 이번 주말 가장 점수 높은 한 곳
 function heroPick(w,byDay){const el=$('heroPick');if(!el)return;
