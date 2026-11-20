@@ -758,12 +758,12 @@ function render(){
  if(opt.weekend)dayList=dayList.filter(n=>[0,6].includes(dow(n)));
  const Ts=wkTSel().map(id=>TARGETS.find(x=>x.id===id)).filter(Boolean),tsA=Ts.length?` data-ts="${Ts.map(t=>t.id).join(',')}"`:''; // 고른 대상이 있으면 그 대상이 나오는 장소만, 대상 근거 점수로(다른 화면과 같게)
  const pool=n=>byDay[n].filter(r=>!Ts.length||Ts.some(T=>siteHas(r.site.id,T))).map(r=>Ts.length?{...r,score:tScore(r,Ts),_a:tEvB(r.site.id,Ts)}:r);
- const best=dayList.map(n=>pool(n).sort((a,b)=>b.score-a.score||b.adj-a.adj)).filter(g=>g.length).sort((a,b)=>b[0].score-a[0].score||b[0].adj-a[0].adj).slice(0,12);
+ const best=dayList.map(n=>pool(n).sort((a,b)=>covN(b.site.id,Ts,b)-covN(a.site.id,Ts,a)||b.score-a.score||b.adj-a.adj)).filter(g=>g.length).sort((a,b)=>b[0].score-a[0].score||b[0].adj-a[0].adj).slice(0,12);
  if($('topSub'))$('topSub').textContent=Ts.length?`고른 대상(${Ts.map(t=>t.name).join('·')})이 나오는 장소만`:'';
  $('top').innerHTML='<tr><th>날짜</th><th>물때</th><th>장소</th><th>해루질 시간</th><th>간조</th><th>점수</th><th>메모</th></tr>'+
   best.map(g=>{const r=g[0],ld=lunarDay(r.n);return `<tr class="${[0,6].includes(dow(r.n))?'we':''}"><td><span class="link" data-d="${r.n}">${fmtD(r.n)}</span></td><td>${mulName(ld)}${fCell(r.F)}</td>
    <td><span class="link" data-s="${r.site.id}" data-n="${r.n}"${tsA}>${r.site.name}</span><div class="alt">${g.slice(1,3).map(x=>`<span class="link" data-s="${x.site.id}" data-n="${x.n}"${tsA}>${x.site.name}</span> ${x.score}`).join(' · ')}</div></td>
-   <td>${fmtT(r.b)}~${fmtT(r.e)}</td><td>${lowLine(r)}</td><td>${scoreCell(r.score)}${dnTxt(r,r._a)}</td><td>${tagH(r.tags)}${evTag(r.site.id)}</td></tr>`}).join('')+(best.length?'':'<tr><td colspan="7" class="sub">고른 대상이 나오는 장소가 고른 지역에 없어요.</td></tr>');
+   <td>${fmtT(r.b)}~${fmtT(r.e)}</td><td>${lowLine(r)}</td><td>${scoreCell(r.score)}${dnTxt(r,r._a)}</td><td>${tagH(r.tags)}${evTag(r.site.id)}${coverTxt(tCover(r.site.id,Ts,r),Ts)}</td></tr>`}).join('')+(best.length?'':'<tr><td colspan="7" class="sub">고른 대상이 나오는 장소가 고른 지역에 없어요.</td></tr>');
  renderWeekend();
  renderCal();
 }
@@ -779,10 +779,10 @@ let wkIdx=0;
 function heroPick(w,byDay){const el=$('heroPick');if(!el)return;
  if(!lsGet('bh_start','')&&!((getState().off||[]).length)){el.innerHTML='<span class="hp-k">처음 오셨나요?</span><b>출발 지역부터 골라 주세요</b><span class="hp-v">가까운 바다의 좋은 날을 골라 드릴게요</span>';return}
  const Ts=wkTSel().map(id=>TARGETS.find(x=>x.id===id)).filter(Boolean);
- const all=(w?w.days.flatMap(n=>(byDay[n]||[]).filter(x=>!Ts.length||Ts.some(T=>siteHas(x.site.id,T))).map(x=>({...x,_n:n,score:tScore(x,Ts)}))):[]).filter(x=>x.score>0).sort((a,b)=>b.score-a.score);
+ const all=(w?w.days.flatMap(n=>(byDay[n]||[]).filter(x=>!Ts.length||Ts.some(T=>siteHas(x.site.id,T))).map(x=>({...x,_n:n,score:tScore(x,Ts)}))):[]).filter(x=>x.score>0).sort((a,b)=>covN(b.site.id,Ts,b)-covN(a.site.id,Ts,a)||b.score-a.score); // 여러 대상이면 모두 되는 곳 먼저
  let r=all.filter(x=>x.score>=RECO_MIN).find(x=>x.day>=0.5)||all.find(x=>x.score>=RECO_MIN),k='이번 주말, 여기 어때요'; // 아이·가족과 가기 좋은 낮을 먼저
  if(!r){const g=nextGood();if(g){r={...g,_n:g.n};k='이번 주말은 쉬어 가요 · 가장 가까운 좋은 날'}}
- el.innerHTML=r?`<span class="hp-k">${k}</span><b class="link" data-s="${r.site.id}" data-n="${r._n}"${Ts.length?` data-ts="${Ts.map(t=>t.id).join(',')}"`:''}>${esc(r.site.name)}</b><span class="hp-v">${fmtD(r._n)} · ${r.score}점 · ${r.day>=0.5?'낮':'밤'} ${fmtT(r.b)}~${fmtT(r.e)}</span>`:'<span class="hp-k">이번 주말은 쉬어 가요</span><b>계산 기간 안에 추천할 만한 날이 없어요</b><span class="hp-v">내 조건에서 다른 지역도 골라 보세요</span>'}
+ el.innerHTML=r?`<span class="hp-k">${k}</span><b class="link" data-s="${r.site.id}" data-n="${r._n}"${Ts.length?` data-ts="${Ts.map(t=>t.id).join(',')}"`:''}>${esc(r.site.name)}</b><span class="hp-v">${fmtD(r._n)} · ${r.score}점 · ${r.day>=0.5?'낮':'밤'} ${fmtT(r.b)}~${fmtT(r.e)}${Ts.length>1?(c=>' · '+(c.no.length?(c.ok.length?c.ok.map(t=>t.name).join('·')+'만 가능':'고른 대상 어려움'):'고른 '+Ts.length+'개 모두 가능'))(tCover(r.site.id,Ts,r)):''}</span>`:'<span class="hp-k">이번 주말은 쉬어 가요</span><b>계산 기간 안에 추천할 만한 날이 없어요</b><span class="hp-v">내 조건에서 다른 지역도 골라 보세요</span>'}
 // 접힌 '내 조건' 한 줄 요약
 function condSumUpd(){const el=$('condSum');if(!el)return;
  const regs=[...document.querySelectorAll('#regions input:checked')].map(x=>x.value);
@@ -824,13 +824,14 @@ function wkTargetDay(n,Ts,dayRows){
   rk.forEach(x=>{const o=by[x.s.id]=by[x.s.id]||{s:x.s,best:null,ts:[]};o.ts.push({T,x});if(!o.best||x.sc>o.best.sc)o.best=x})});
  const RS=Object.fromEntries((dayRows||[]).map(r=>[r.site.id,r])); // 장소 점수(다른 화면과 같은 점수)
  const fitW=x=>x.mk&&x.mk.lv?'날씨 안 맞음':x.sc>=75?'잘 맞음':x.sc>=55?'보통':'약함';
- const listAll=Object.values(by).filter(o=>RS[o.s.id]),TS=o=>tScore(RS[o.s.id],o.ts.map(({T})=>T)),list=listAll.filter(o=>TS(o)>=RECO_MIN).sort((a,b)=>TS(b)-TS(a)||b.best.sc-a.best.sc).slice(0,5);
- const notes=note.length?`<p class="sub" style="margin:2px 0">${note.join(' · ')}</p>`:'';
+ const listAll=Object.values(by).filter(o=>RS[o.s.id]),TS=o=>tScore(RS[o.s.id],o.ts.map(({T})=>T)),CV=o=>covN(o.s.id,Ts,RS[o.s.id]),list=listAll.filter(o=>TS(o)>=RECO_MIN).sort((a,b)=>CV(b)-CV(a)||TS(b)-TS(a)||b.best.sc-a.best.sc).slice(0,5);
+ const allN=Ts.length>1?list.filter(o=>CV(o)===Ts.length).length:0;
+ const notes=(note.length?`<p class="sub" style="margin:2px 0">${note.join(' · ')}</p>`:'')+(Ts.length>1&&list.length?`<p class="sub" style="margin:2px 0">${allN?`고른 ${Ts.length}개가 모두 되는 곳 ${allN}곳을 먼저 보여 드려요.`:`고른 ${Ts.length}개가 이날 모두 되는 곳은 없어요. 일부만 되는 곳이에요.`}</p>`:'');
  if(!list.length)return head+notes+noGoodHtml(n,listAll.length?Math.max(...listAll.map(TS)):0);
  return head+notes+`<ol style="margin:0;padding-left:22px">${list.map(o=>{const x=o.best;
   const chips=o.ts.sort((a,b)=>b.x.sc-a.x.sc).map(({T,x})=>`<span class="chip${siteMonth(o.s.id,T,m)==='g'?' cg':''}${x.mk&&x.mk.lv?' cd':''}" data-t="${T.id}">${esc(T.name)} · ${MODE_T[catchMode(o.s.id,T.id)]} · ${fitW(x)} · ${tEvTxt(o.s.id,T)}</span>`).join('');
   const why=o.ts.filter(({x})=>x.mk&&x.mk.lv).map(({T,x})=>esc(T.name)+': '+x.mk.t);
-  return `<li style="margin:5px 0"><span class="link" data-s="${o.s.id}" data-n="${n}" data-ts="${o.ts.map(({T})=>T.id).join(',')}"><b>${esc(o.s.name)}</b></span> <b>${TS(o)}점</b> ${dnTxt(RS[o.s.id],tEvB(o.s.id,o.ts.map(({T})=>T)))} ${shareBtn(o.s.id,n)}${fieldSum(o.s.id)}<br><span class="sub">간조 ${fmtT(x.l.t)} · 해루질 ${fmtT(x.l.b)}~${fmtT(x.l.e)}${x.l.day<0.5?' · 야간'+(o.ts.some(({T})=>timePref(o.s.id,T.id)==='n')?'(밤에 잘 되는 곳)':''):''}${x.w.danger?' · 위험':''}</span><div class="chips" style="margin-top:3px">${chips}</div>${why.length?`<div style="color:#8a5a00;font-size:12px">${why.join('<br>')}</div>`:''}</li>`}).join('')}</ol>`;
+  return `<li style="margin:5px 0"><span class="link" data-s="${o.s.id}" data-n="${n}" data-ts="${o.ts.map(({T})=>T.id).join(',')}"><b>${esc(o.s.name)}</b></span> <b>${TS(o)}점</b> ${dnTxt(RS[o.s.id],tEvB(o.s.id,o.ts.map(({T})=>T)))} ${shareBtn(o.s.id,n)}${fieldSum(o.s.id)}<br><span class="sub">간조 ${fmtT(x.l.t)} · 해루질 ${fmtT(x.l.b)}~${fmtT(x.l.e)}${x.l.day<0.5?' · 야간'+(o.ts.some(({T})=>timePref(o.s.id,T.id)==='n')?'(밤에 잘 되는 곳)':''):''}${x.w.danger?' · 위험':''}</span><div class="chips" style="margin-top:3px">${chips}</div>${coverTxt(tCover(o.s.id,Ts,RS[o.s.id]),Ts)}${why.length?`<div style="color:#8a5a00;font-size:12px">${why.join('<br>')}</div>`:''}</li>`}).join('')}</ol>`;
 }
 // 주말 베스트: 그 장소에서 그 시기 잘 나오는 대상(날씨 안 맞으면 흐리게, 이유 한 줄)
 function wkTargets(s,r,n){
@@ -926,6 +927,22 @@ const stars=n=>n?'★'.repeat(n)+'☆'.repeat(5-n):'';
 // 고른 대상 기준(2026-11-20 사용자: A를 골랐으면 각론에서 B·C를 보여 주면 안 됨) — 고른 대상 것만 보이고, 나머지는 접어 둠
 const ftHit=(txt,FT)=>!FT||!FT.length||FT.some(T=>tIn(txt,T));
 const ftNames=FT=>FT.map(t=>t.name).join('·');
+// 여러 대상을 골랐을 때(2026-11-20 사용자): 그 장소·그날 되는 대상(교집합)과 안 되는 대상·이유. 모두 되는 곳을 먼저 추천하고, 일부만 되면 알린다
+function tCover(sid,Ts,r){const n=r?r.n:null,m=n!=null?tMonth(n):null,night=r?r.day<0.5:false,ok=[],no=[];
+ Ts.forEach(T=>{if(!siteHas(sid,T))return no.push([T,'이 장소 잡은 후기 없음']);
+  if(m!=null&&mStat(T.id,m)==='x')return no.push([T,'금어기']);
+  if(m!=null&&!/^[go]$/.test(siteMonth(sid,T,m))&&!evNear(sid,T,m))return no.push([T,m+'월엔 잘 안 나옴']);
+  if(r){const p=timePref(sid,T.id);if(night&&p==='d')return no.push([T,'낮에 잡는 대상']);if(!night&&p==='n')return no.push([T,'밤에 잡는 대상'])}
+  ok.push(T)});return {ok,no}}
+function coverTxt(c,Ts){if(!Ts||Ts.length<2)return '';
+ if(!c.no.length)return `<div style="margin-top:3px"><span class="tag c">고른 ${Ts.length}개 모두 가능</span> <span class="sub">한 번에 모두 잡힌다는 보장은 없어요</span></div>`;
+ if(!c.ok.length)return `<div style="margin-top:3px"><span class="tag w">고른 대상 모두 어려워요</span> <span class="sub">${c.no.map(([T,w])=>esc(T.name)+': '+w).join(' · ')}</span></div>`;
+ return `<div style="margin-top:3px"><span class="tag">${c.ok.map(t=>esc(t.name)).join('·')}만 가능</span> <span class="sub">${c.no.map(([T,w])=>esc(T.name)+': '+w).join(' · ')}</span></div>`}
+function evNear(sid,T,m){ // 그 달·앞뒤 달에 잡은 날짜 근거가 있으면(월 표가 늦게 갱신돼도 근거와 어긋나지 않게)
+ const ms=new Set();((REVIEW[sid]||{}).tbm||[]).forEach(t=>{if(findTarget(t.name)===T)(t.evidence||[]).forEach(e=>{const x=/^\d{4}-(\d{2})/.exec((e&&e[2])||'');if(x)ms.add(+x[1])})});
+ const l=tEv(sid,T).last;if(l)ms.add(+l.slice(5,7)); // 최근 조황·현장 기록 근거도
+ return ms.has(m)||ms.has(m===1?12:m-1)||ms.has(m===12?1:m+1)}
+const covN=(sid,Ts,r)=>Ts.length>1?tCover(sid,Ts,r).ok.length:0;
 function reviewBlock(id,FT){
  if(FT&&FT.length){const r0=REVIEW[id];if(!r0)return '';const r={...r0,best:(r0.best||[]).filter(b=>FT.includes(findTarget(b))),tbm:(r0.tbm||[]).filter(v=>FT.includes(findTarget(v.name))),recent:(r0.recent||[]).filter(x=>ftHit(x,FT)),review:''};
   const tmp=REVIEW[id];REVIEW[id]=r;let h;try{h=reviewBlock(id)}finally{REVIEW[id]=tmp}
@@ -1177,7 +1194,8 @@ function siteDetail(id,fn,fts){if(fn==null)fn=FOCUS.n;if(!fts)fts=FOCUS.ts;saveS
  const q=encodeURIComponent(s.name.replace(' 체험장','').replace('·',' '));
  const fr0=fn!=null?siteRows(id).find(r=>r.n===fn)||null:null,fr=fr0||next.slice().sort((a,b)=>b.score-a.score)[0]||null,FT=(fts||wkTSel()).map(x=>TARGETS.find(t=>t.id===x)).filter(t=>t&&siteHas(id,t)),nx=fr?[fr,...next.filter(r=>r.n!==fr.n)]:next; // 기준 날짜 하나: 누른 날, 없으면 추천 날 중 점수 가장 높은 날
  const FX=(fts||wkTSel()).map(x=>TARGETS.find(t=>t.id===x)).filter(t=>t&&!siteHas(id,t)); // 고른 대상인데 이 장소 근거가 없는 것: 말없이 빼지 않고 알림
- const missT=FX.length?`<p class="sub" style="margin:0 0 8px;color:var(--bad)">고른 ${FX.map(t=>esc(t.name)).join('·')}${jo(FX[FX.length-1].name,'은','는')} 이 장소에서 잡았다는 후기가 없어요.${FT.length?'':' 아래는 이 장소에서 잡히는 대상 기준이에요.'}</p>`:'';
+ const FS=(fts||wkTSel()).map(x=>TARGETS.find(t=>t.id===x)).filter(Boolean);
+ const missT=FS.length>1&&fr?`<div style="margin:0 0 8px"><b>${fmtD(fr.n)} 고른 대상</b>${coverTxt(tCover(id,FS,fr),FS)}</div>`:FX.length?`<p class="sub" style="margin:0 0 8px;color:var(--bad)">고른 ${FX.map(t=>esc(t.name)).join('·')}${jo(FX[FX.length-1].name,'은','는')} 이 장소에서 잡았다는 후기가 없어요.${FT.length?'':' 아래는 이 장소에서 잡히는 대상 기준이에요.'}</p>`:'';
  const miss=missT+(fn!=null&&!fr0?`<p class="sub" style="margin:0 0 8px;color:var(--bad)">고른 날(${fmtD(fn)})에는 이 장소에 맞는 간조가 없어요. 아래는 가장 좋은 추천 날 기준이에요.</p>`:'');
  // 순서: 그날 이렇게 → 안전 → 주차·가는 길 → 어디까지 → 챙길 것 → 최근·후기 → 추천 날짜 → 자세한 정보 → 다녀온 뒤 현장 기록
  const safeH=`${s.warn?`<p style="color:var(--bad)">${esc(s.warn)}</p>`:''}`+(NIGHT[id]?`<p style="color:${NIGHT[id].law?'var(--bad)':'#b7791f'}"><b>${nightTag(id).t}</b> — ${esc(NIGHT[id].t)}</p>`:'')+(d.safety&&d.safety.length?ul(d.safety):'');
@@ -2454,7 +2472,7 @@ function natMap(){ // 전국 지도: 모든 장소를 앞으로 7일 최고 점�
    const rs=RESULT&&has?RESULT.rows.filter(x=>x.site.id===s.id&&x.n>=n0&&x.n<n0+7):[],b=rs.sort((a,b)=>sv(b)-sv(a))[0],sc=b?sv(b):0;
    const c=!has?'#dee2e6':sc>=80?'#2f9e44':sc>=60?'#e8a317':'#adb5bd';
    L.circleMarker([s.lat,s.lon],{radius:!has?4:sc>=80?9:7,color:'#fff',weight:has?2:1,fillColor:c,fillOpacity:has?.95:.7}).addTo(m)
-    .bindPopup(`<b>${esc(s.name)}</b><br><span style="color:#666">${esc(s.reg)}</span>${!has?`<br>${esc(TN)}${jo(TN,'을','를')} 잡았다는 후기가 없는 곳이에요`:b?`<br>${fmtD(b.n)} ${sc}점${Ts.length?` (${esc(TN)} 기준)`:''} · ${b.day>=0.5?'낮':'밤'} ${fmtT(b.b)}~${fmtT(b.e)}`:'<br>7일 안 좋은 날 없음'}<br><span class="link" data-s="${s.id}"${b?` data-n="${b.n}"`:''}${has?tsA:''}>자세히 보기</span>`)});
+    .bindPopup(`<b>${esc(s.name)}</b><br><span style="color:#666">${esc(s.reg)}</span>${!has?`<br>${esc(TN)}${jo(TN,'을','를')} 잡았다는 후기가 없는 곳이에요`:b?`<br>${fmtD(b.n)} ${sc}점${Ts.length?` (${esc(TN)} 기준)`:''} · ${b.day>=0.5?'낮':'밤'} ${fmtT(b.b)}~${fmtT(b.e)}`:'<br>7일 안 좋은 날 없음'}${has&&b?coverTxt(tCover(s.id,Ts,b),Ts):''}<br><span class="link" data-s="${s.id}"${b?` data-n="${b.n}"`:''}${has?tsA:''}>자세히 보기</span>`)});
   setTimeout(()=>{m.invalidateSize();m.fitBounds(L.latLngBounds(SITES.map(s=>[s.lat,s.lon])),{padding:[14,14],animate:false})},150)},60);
 }
 function natNear(){if(!navigator.geolocation||!window._nm)return;navigator.geolocation.getCurrentPosition(p=>{_nm.setView([p.coords.latitude,p.coords.longitude],9);L.circleMarker([p.coords.latitude,p.coords.longitude],{radius:6,color:'#fff',weight:2,fillColor:'#1c7ed6',fillOpacity:1}).addTo(_nm).bindTooltip('나',{permanent:true,direction:'top'})},()=>{},{timeout:10000,maximumAge:600000})}
