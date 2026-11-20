@@ -825,7 +825,7 @@ function wkTargetDay(n,Ts,dayRows){
   if(!rk.length){note.push(`${esc(T.name)} 근거 있는 장소 없음`);return}
   rk.forEach(x=>{const o=by[x.s.id]=by[x.s.id]||{s:x.s,best:null,ts:[]};o.ts.push({T,x});if(!o.best||x.sc>o.best.sc)o.best=x})});
  const RS=Object.fromEntries((dayRows||[]).map(r=>[r.site.id,r])); // 장소 점수(다른 화면과 같은 점수)
- const fitW=x=>x.mk&&x.mk.lv?'날씨 안 맞음':x.sc>=75?'잘 맞음':x.sc>=55?'보통':'약함';
+ const fitW=x=>x.mk&&x.mk.lv===2?'날씨 안 맞음':x.mk&&x.mk.lv?'조금 아쉬움':x.sc>=75?'잘 맞음':x.sc>=55?'보통':'약함';
  const listAll=Object.values(by).filter(o=>RS[o.s.id]),TS=o=>tScore(RS[o.s.id],o.ts.map(({T})=>T)),CV=o=>covN(o.s.id,Ts,RS[o.s.id]),list=listAll.filter(o=>TS(o)>=RECO_MIN).sort((a,b)=>CV(b)-CV(a)||TS(b)-TS(a)||b.best.sc-a.best.sc).slice(0,5);
  const allN=Ts.length>1?list.filter(o=>CV(o)===Ts.length).length:0;
  const notes=(note.length?`<p class="sub" style="margin:2px 0">${note.join(' · ')}</p>`:'')+(Ts.length>1&&list.length?`<p class="sub" style="margin:2px 0">${allN?`고른 ${Ts.length}개가 모두 되는 곳 ${allN}곳을 먼저 보여 드려요.`:`고른 ${Ts.length}개가 이날 모두 되는 곳은 없어요. 일부만 되는 곳이에요.`}</p>`:'');
@@ -953,7 +953,7 @@ function expectT(sid,r){if(!r)return [];const m=tMonth(r.n),night=r.day<0.5,d=DA
 function expectTxt(sid,r,k){const x=expectT(sid,r).slice(0,k||3);return x.length?x.map(o=>o.t.name).join('·'):''}
 const covN=(sid,Ts,r)=>Ts.length>1?tCover(sid,Ts,r).ok.length:0;
 function reviewBlock(id,FT){
- if(FT&&FT.length){const r0=REVIEW[id];if(!r0)return '';const r={...r0,best:(r0.best||[]).filter(b=>FT.includes(findTarget(b))),tbm:(r0.tbm||[]).filter(v=>FT.includes(findTarget(v.name))),recent:(r0.recent||[]).filter(x=>ftHit(x,FT)),review:''};
+ if(FT&&FT.length){const r0=REVIEW[id];if(!r0)return '';const r={...r0,best:(r0.best||[]).filter(b=>FT.includes(findTarget(b))),tbm:(r0.tbm||[]).filter(v=>FT.includes(findTarget(v.name))),recent:(r0.recent||[]).filter(x=>ftHit(x,FT)),review:'',_ft:!ftHit(r0.ratingWhy||'',FT)};
   const tmp=REVIEW[id];REVIEW[id]=r;let h;try{h=reviewBlock(id)}finally{REVIEW[id]=tmp}
   return h+(r.recent.length?'':`<p class="sub">${esc(ftNames(FT))} 최근 조황 글은 아직 없어요.</p>`)+`<details><summary class="sub">이 장소 전체 조황(다른 대상 포함) 보기</summary>${reviewBlock(id)}</details>`}
  const r=REVIEW[id];if(!r)return '';
@@ -961,7 +961,7 @@ function reviewBlock(id,FT){
  const cur=new Date(Date.now()+KST).getUTCMonth()+1;
  const rows=tg.map(t=>{const ms=tbmOf(id,t)||[];return `<tr><td><span class="link" data-t="${t.id}">${esc(t.name)}</span></td>${[...Array(12)].map((_,i)=>{const m=i+1,x=mStat(t.id,m)==='x';return `<td class="${x?'mx':ms.includes(m)?'mg':''}"${m===cur?' style="outline:2px solid var(--acc);outline-offset:-2px"':''}>${x?'금':ms.includes(m)?'●':''}</td>`}).join('')}</tr>`}).join('');
  const ev=(r.tbm||[]).flatMap(v=>(v.evidence||[]).map(e=>({n:v.name,e}))).slice(0,8);
- const cs=catchScore(id);return `${cs?`<p style="font-size:15px"><b>조과</b> <b style="color:#e8a317">${stars(cs)}</b> <span class="sub">최근 1년 실제 조과 후기 기준</span></p>`:''}${r.ratingWhy?`<p class="sub">평가: ${esc(r.ratingWhy)}</p>`:''}
+ const cs=catchScore(id);return `${cs?`<p style="font-size:15px"><b>조과</b> <b style="color:#e8a317">${stars(cs)}</b> <span class="sub">최근 1년 실제 조과 후기 기준</span></p>`:''}${r.ratingWhy&&!r._ft?`<p class="sub">평가: ${esc(r.ratingWhy)}</p>`:''}
   ${r.review?`<p>${esc(r.review)}</p>`:''}
   ${(r.best||[]).length?`<p><b>잘 나오는 대상</b> ${r.best.map(b=>{const t=findTarget(b);return t?`<span class="chip cg" data-t="${t.id}">${esc(b)}</span>`:`<span class="chip">${esc(b)}</span>`}).join(' ')}</p>`:''}
   ${rows?`<h4>이 장소 월별 대상 <span class="sub">● 실제 후기가 있는 달 · 금 금어기</span></h4><div class="tw"><table class="mt"><tr><th>대상</th>${[...Array(12)].map((_,i)=>`<th class="${i+1===cur?'mc':''}">${i+1}</th>`).join('')}</tr>${rows}</table></div>`:''}
@@ -1185,7 +1185,7 @@ function dayCard(s,r,FT,FS){FS=FS||FT;
  tg.forEach(t=>{const k=siteMonth(s.id,t,m);if(k==='x'||!fitT(t)||FT.includes(t))return;const c=cond(t.id,DATA[s.id]||{},r.b,r.e,s.id);(c&&c.lv?weak:good).push({t,k,c})});
  {const ev=expectT(s.id,r).slice(0,3).map(o=>o.t);for(let i=good.length-1;i>=0;i--)if(!ev.includes(good[i].t))good.splice(i,1);for(let i=weak.length-1;i>=0;i--)if(!ev.includes(weak[i].t))weak.splice(i,1);good.sort((a,b)=>ev.indexOf(a.t)-ev.indexOf(b.t));}
  const ordE=expectT(s.id,r).map(o=>o.t),chips=[...good.map(o=>({...o,w:0})),...weak.map(o=>({...o,w:1}))].sort((a,b)=>ordE.indexOf(a.t)-ordE.indexOf(b.t)).map(o=>o.w?`<span class="chip cd" data-t="${o.t.id}" title="${esc(o.c.why||'')}">${esc(o.t.name)}</span>`:`<span class="chip ${o.k==='g'?'cg':''}" data-t="${o.t.id}">${esc(o.t.name)}</span>`).join(''); // 첫 추천의 '예상'과 같은 순서
- const fitW=x=>!x?'이날 근거 없음':x.mk&&x.mk.lv?'날씨 안 맞음 — '+x.mk.t:x.sc>=75?'잘 맞음':x.sc>=55?'보통':'약함';
+ const fitW=x=>!x?'이날 근거 없음':x.mk&&x.mk.lv===2?'날씨 안 맞음 — '+x.mk.t:x.mk&&x.mk.lv?'조금 아쉬움 — '+x.mk.t:x.sc>=75?'잘 맞음':x.sc>=55?'보통':'약함';
  const pick=FT.map(T=>{const rk=rankTarget(n,m,T,[{s,r}]);const x=rk&&rk[0];return `<div style="margin:2px 0"><span class="chip cg" data-t="${T.id}">${esc(T.name)}</span> ${rk===null?'<span style="color:var(--bad)">금어기예요</span>':esc(MODE_T[catchMode(s.id,T.id)]+' · '+fitW(x)+' · '+tEvTxt(s.id,T))}</div>`}).join('');
  const warn=(r.tags||[]).filter(x=>x.c==='w').map(x=>x.t);
  const wx=w?`${w.sky} · ${w.tmin.toFixed(0)}~${w.tmax.toFixed(0)}°C · 바람 최대 ${w.ws.toFixed(0)}m/s · 비 ${w.pr.toFixed(0)}mm${w.wave!=null?` · 파고 ${w.wave.toFixed(1)}m`:''}`:'<span class="sub">아직 예보가 없어요. 가기 전날 다시 확인하세요.</span>';
@@ -1215,7 +1215,7 @@ function siteDetail(id,fn,fts){if(fn==null)fn=FOCUS.n;if(!fts)fts=FOCUS.ts;saveS
  h+=reachBlock(s,nx,FS.length&&!FT.length?[{id:'_none'}]:FT); // 고른 대상이 이 장소에 없으면 다른 대상 자리 안내를 하지 않음
  h+=gearBlock(id,nx,FT);
  h+=nowWx(id)+recentBox(id,FT)+`<p>${kidInfo(id).ok?`<span class="tag kid">아이와 함께 좋아요</span> <span class="sub">${esc(kidInfo(id).why.join(' · '))}</span><br>`:''}${tagH([newTag(s),{t:s.reg},payTag(id)||{t:s.kind},{t:'모래 '+'●'.repeat(s.sand)+'○'.repeat(3-s.sand),c:'c'},{t:'후기 근거 '+['','약함','보통','확실'][s.ev],c:'c'}])}</p>`+reviewBlock(id,FT)+(ftHit(s.memo,FT)?`<p class="sub">${esc(s.memo)}</p>`:'');
- if(nx.length)h+=`<h4>추천 날짜</h4><div class="dl">${nx.slice().sort((a,b)=>a.n-b.n).map(r=>`<dt>${fr&&r.n===fr.n?'<b>'+fmtD(r.n)+(fr0?' (고른 날)':' (위 기준)')+'</b>':fmtD(r.n)}</dt><dd>${mulName(lunarDay(r.n))} · ${lowLine(r)} · 해루질 ${fmtT(r.b)}~${fmtT(r.e)} · ${r.score}점 · ${reachDay(r)} ${dnTxt(r)} ${shareBtn(id,r.n)}</dd>`).join('')}</div>`;
+ if(nx.length)h+=`<h4>추천 날짜</h4><div class="dl">${nx.slice().sort((a,b)=>a.n-b.n).map(r=>`<dt>${fr&&r.n===fr.n?'<b>'+fmtD(r.n)+(fr0?' (고른 날)':' (위 기준)')+'</b>':fmtD(r.n)}</dt><dd>${mulName(lunarDay(r.n))} · ${lowLine(r)} · 해루질 ${fmtT(r.b)}~${fmtT(r.e)} · ${tScore(r,FT)}점 · ${reachDay(r)} ${dnTxt(r,FT.length?tEvB(id,FT):0)} ${shareBtn(id,r.n)}</dd>`).join('')}</div>`;
  {const sp=d.spots||[],hs=sp.filter(x=>ftHit(x,FT)),rs=sp.filter(x=>!ftHit(x,FT));h+=`<h4>잘 나오는 구역${FT.length?` <span class="sub">${esc(ftNames(FT))}</span>`:''}</h4>${FT.length&&!hs.length?`<p class="sub">${esc(ftNames(FT))} 잡는 구역 정보는 아직 없어요.</p>`:ul(hs)}${rs.length&&FT.length?`<details><summary class="sub">다른 대상 구역 ${rs.length}개 보기</summary>${ul(rs)}</details>`:''}`}
  h+=`<h4>지형</h4>${SITEF[id]?`<p>${SITEF[id].b?'<b>바닥</b> '+esc(SITEF[id].b):''}${SITEF[id].w?'<br><b>물속 구간</b> '+esc(SITEF[id].w):''}</p>`:''}${ul(d.terrain)}`;
  const tgA=d.targets||[],inFT=t=>!FT.length||FT.includes(findTarget(t.name)),tg=tgA.filter(inFT),tgR=tgA.filter(t=>!inFT(t));
@@ -1441,7 +1441,7 @@ function cond(tid,d,b,e,sid){ // 작업 6시간 전~철수까지 날씨로 이 �
   if(!sid||catchMode(sid,tid)==='water'){
    if(ws>=7||wave>=0.8)k(0.4,`물속에서 잡는 곳 — 바람 ${Math.round(ws)}m/s, 물 흐려 안 보임`);else if(ws>=5||wave>=0.5)k(0.75,`물속에서 잡는 곳 — 바람 ${Math.round(ws)}m/s, 물 흐릴 수 있음`);
    if(pr>=5)k(0.8,`비 ${Math.round(pr)}mm — 물 흐림`)}
-  const tn=(TARGETS.find(x=>x.id===tid)||{}).name||'';if(tmax<=5)k(0.6,`${Math.round(tmax)}°C — 추우면 ${tn} 활동이 줄어요`);else if(tmax<=10)k(0.85,`${Math.round(tmax)}°C — 쌀쌀해 ${tn} 활동이 적어요`);
+  const tn=(TARGETS.find(x=>x.id===tid)||{}).name||'';if(tmax<=0)k(0.6,`${Math.round(tmax)}°C — 아주 추워 ${tn} 활동이 줄어요`);else if(tmax<=5)k(0.85,`${Math.round(tmax)}°C — 추워서 ${tn} 활동이 조금 줄 수 있어요`);
  }
  if(tid==='manjo'&&tmax>=28)k(0.6,`${Math.round(tmax)}°C — 더우면 맛조개 잘 안 올라옴`);
  if(CLAM.test(tid)&&tmin<=-3)k(0.85,`${Math.round(tmin)}°C — 갯벌 얼면 캐기 힘듦`);
