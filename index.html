@@ -701,7 +701,7 @@ function weatherScore(wx,sea,a,b){
 }
 
 function evalSite(s,days0,nDays,opt){
- const EB=evBonus(s.id); // 최근 조과 근거: 한 달 안 후기·현장 기록 3건 이상 +4, 1건 이상 +2, 날짜 있는 조과 근거가 전혀 없으면 -3
+ const EB=evBonus(s.id),NOEV=!evInfo(s.id).y1; // 믿을 만한 정도(trustOf) -8~+6. 1년 안 잡은 후기가 하나도 없으면 최대 65점(추천 안 함)
  const p=CAL[s.id],rg=RANGE[s.id],d=DATA[s.id]||{};
  const t0=kDayStart(days0),t1=kDayStart(days0+nDays);
  let fLows=[],fEnd=0;
@@ -724,7 +724,7 @@ function evalSite(s,days0,nDays,opt){
   });
   if(!bD&&!bN)continue;
   const season=SEASON[mo-1];
-  const sc=(c,night)=>{if(!c||c.k<0)return null;const w=weatherScore(d.wx,d.sea,c.b,c.e);c.ez=easyAt(s.id,mo,night);let v=c.k+season*2/3+w.score+(c.ez.length?5:0)+EB;if(c.F<0.35)v=Math.min(v,60);if(w.murky)v=Math.min(v,55);if(w.danger)v=Math.min(v,25);c.w=w;return Math.round(Math.min(100,v))};
+  const sc=(c,night)=>{if(!c||c.k<0)return null;const w=weatherScore(d.wx,d.sea,c.b,c.e);c.ez=easyAt(s.id,mo,night);let v=c.k+season*2/3+w.score+(c.ez.length?5:0)+EB;if(c.F<0.35)v=Math.min(v,60);if(w.murky)v=Math.min(v,55);if(w.danger)v=Math.min(v,25);if(NOEV)v=Math.min(v,65);c.w=w;return Math.round(Math.min(100,v))};
   const ds=sc(bD,0),ns0=sc(bN,1),ns=opt.night?ns0:null; // 밤은 '밤 해루질도 보기'를 켰을 때만(초보·가족 기본은 낮)
   if(ds==null&&ns==null)continue;
   const nsWhy=nban?'금지':!opt.night&&ns0!=null?'꺼 둠':!bN?'':!bN.ok?'금지':!nf?'대상 없음':''; // 밤 점수가 없는 이유
@@ -773,8 +773,8 @@ function nextGood(after){ // 가장 가까운 좋은 날(80점 이상 먼저, �
  if(!RESULT)return null;const Ts=wkTSel().map(id=>TARGETS.find(x=>x.id===id)).filter(Boolean); // 고른 대상이 있으면 그 대상이 되는 곳·날만(2026-11-20 사용자: 낙지를 골랐는데 백미리가 나옴)
  let rs=RESULT.rows.filter(r=>after==null||r.n>after);
  if(Ts.length){const ok=r=>tCover(r.site.id,Ts,r).ok.length,all=rs.filter(r=>ok(r)===Ts.length),any=rs.filter(r=>ok(r)>0);rs=(all.some(r=>tScore(r,Ts)>=RECO_MIN)?all:any).map(r=>({...r,score:tScore(r,Ts)}))}
- // 믿을 만한 곳(잡은 후기 8건 이상·최근 한 달 2건 이상)을 먼저, 그런 곳이 사흘 안에 있으면 그날로(2026-11-20 사용자: 후기도 별로 없는 백미리가 왜 나오나)
- const tr=r=>(e=>e.total>=8||e.n30+e.f30>=2)(evInfo(r.site.id)),by=(a,b)=>a.n-b.n||tr(b)-tr(a)||b.score-a.score;
+ // 믿을 만한 곳(trustOf 0.5 이상)을 먼저, 그런 곳이 사흘 안에 있으면 그날로(2026-11-20 사용자: 후기도 별로 없는 백미리가 왜 나오나)
+ const tr=r=>trustOf(r.site.id)>=0.5,by=(a,b)=>a.n-b.n||tr(b)-tr(a)||b.score-a.score;
  const A=rs.filter(r=>r.score>=80).sort(by),T=A.filter(tr);
  return (T[0]&&(!A[0]||T[0].n<=A[0].n+3)?T[0]:A[0])||rs.filter(r=>r.score>=RECO_MIN).sort((a,b)=>tr(b)-tr(a)||b.score-a.score)[0]||null}
 function noGoodHtml(n,topScore){const g=nextGood(n);
@@ -1099,7 +1099,8 @@ function fieldRecent(id,days){ // 최근 n일 현장 기록(내 것+공유)
 function evInfo(id){
  const ds=evDates(id),today=new Date(Date.now()+KST).toISOString().slice(0,10),cut=new Date(Date.now()+KST-30*864e5).toISOString().slice(0,10);
  const n30=ds.filter(d=>d>=cut&&d<=today).length,f30=fieldRecent(id,30).length;
- return {n30,f30,last:ds[0]||'',total:ds.length};
+ const y1c=new Date(Date.now()+KST-365*864e5).toISOString().slice(0,10);
+ return {n30,f30,last:ds[0]||'',total:ds.length,y1:ds.filter(d=>d>=y1c&&d<=today).length};
 }
 const mdTxt=d=>{const y=d.slice(0,4),cy=new Date(Date.now()+KST).toISOString().slice(0,4);return d.length>=10?`${y!==cy?y+'년 ':''}${+d.slice(5,7)}월 ${+d.slice(8,10)}일`:`${y}년 ${+d.slice(5,7)}월`}; // 올해가 아니면 연도도
 function tEv(id,T){ // 고른 대상을 실제로 잡았다는 날짜 있는 근거(1년 안)
@@ -1122,7 +1123,10 @@ function tEvTxt(id,T){const e=tEv(id,T);return (e.n?`잡은 후기 ${e.n}건(최
 function newTag(s){ // 새로 들어온 곳: 넣은 날(s.added)부터 45일 동안 표시, 잡은 근거가 2건보다 적으면 '후기 적음'
  if(!s||!s.added)return null;const d=(Date.now()+KST-Date.parse(s.added))/864e5;if(d>45)return null;
  return {t:'새로 들어온 곳'+(evDates(s.id).length<2?' · 후기 적음':''),c:'new'}}
-function evBonus(id){const e=evInfo(id),n=e.n30+e.f30;return n>=3?4:n>=1?2:e.total?0:-3}
+// 믿을 만한 정도(2026-11-20 사용자: 알고리즘이 좋은 곳을 골라야 함): 1년 안 잡은 후기 수(10건이면 꽉 참) 60% + 최근 한 달 후기·현장 기록(3건이면 꽉 참) 40%
+function trustOf(id){const e=evInfo(id);return 0.6*Math.min(1,e.y1/10)+0.4*Math.min(1,(e.n30+e.f30)/3)}
+// 점수 가감 -8~+6: 후기가 없는 곳은 물때가 좋아도 위로 올라오지 않게
+function evBonus(id){return Math.round(-8+14*trustOf(id))}
 function evTag(id){
  const e=evInfo(id),n=e.n30+e.f30;
  return n?` <span class="tag" title="최근 한 달 조과 후기·현장 기록 수">최근 근거 ${n}건</span>`:` <span class="tag w" title="최근 한 달 조과 후기·현장 기록 없음">최근 후기 없음</span>`;
@@ -1195,7 +1199,7 @@ function dayCard(s,r,FT,FS){FS=FS||FT;const CLA=FT.length&&FT.every(T=>closedOn(
  const pick=FT.map(T=>{const rk=rankTarget(n,m,T,[{s,r}]);const x=rk&&rk[0];return `<div style="margin:2px 0"><span class="chip cg" data-t="${T.id}">${esc(T.name)}</span> ${rk===null?'<span style="color:var(--bad)">금어기예요</span>':esc(MODE_T[catchMode(s.id,T.id)]+' · '+(tEv(s.id,T).n?fitW(x):'잡은 후기가 없어 가늠하기 어려워요')+' · '+tEvTxt(s.id,T))}</div>`}).join('');
  const warn=(r.tags||[]).filter(x=>x.c==='w').map(x=>x.t);
  const wx=w?`${w.sky} · ${w.tmin.toFixed(0)}~${w.tmax.toFixed(0)}°C · 바람 최대 ${w.ws.toFixed(0)}m/s · 비 ${w.pr.toFixed(0)}mm${w.wave!=null?` · 파고 ${w.wave.toFixed(1)}m`:''}`:'<span class="sub">아직 예보가 없어요. 가기 전날 다시 확인하세요.</span>';
- return `<div class="daycard"><h4 style="margin:0 0 6px">${fmtD(n)} 이렇게 하세요 <span class="sub">${CLA?'금어기':(night?'밤':'낮')+' '+tScore(r,FT)+'점'}</span></h4>${FT.length&&FT.every(T=>closedOn(T.id,n,s.id))?`<p style="margin:0 0 6px;color:var(--bad)"><b>이날 ${FT.map(t=>esc(t.name)).join('·')}${jo(FT[FT.length-1].name,'은','는')} ${closedOn(FT[0].id,n,s.id)}예요. 잡으면 안 돼요.</b></p>`:tScore(r,FT)<RECO_MIN?`<p style="margin:0 0 6px;color:var(--bad)">이날은 점수가 낮아 추천하지 않아요(추천 기준 ${RECO_MIN}점). 아래 '더 좋은 날'을 보세요.</p>`:''}<div class="dl">
+ return `<div class="daycard"><h4 style="margin:0 0 6px">${fmtD(n)} 이렇게 하세요 <span class="sub">${CLA?'금어기':(night?'밤':'낮')+' '+tScore(r,FT)+'점'}</span></h4>${FT.length&&FT.every(T=>closedOn(T.id,n,s.id))?`<p style="margin:0 0 6px;color:var(--bad)"><b>이날 ${FT.map(t=>esc(t.name)).join('·')}${jo(FT[FT.length-1].name,'은','는')} ${closedOn(FT[0].id,n,s.id)}예요. 잡으면 안 돼요.</b></p>`:tScore(r,FT)<RECO_MIN?`<p style="margin:0 0 6px;color:var(--bad)">${evInfo(s.id).y1?`이날은 점수가 낮아 추천하지 않아요(추천 기준 ${RECO_MIN}점). 아래 '더 좋은 날'을 보세요.`:`최근 1년 안에 이곳에서 잡았다는 후기가 없어 추천하지 않아요(추천 기준 ${RECO_MIN}점).`}</p>`:''}<div class="dl">
   <dt>물때</dt><dd>${mulName(lunarDay(n))} · ${lowLine(r)} · ${reachDay(r)}</dd>
   <dt>해루질</dt><dd><b>${fmtT(r.b)}~${fmtT(r.e)}</b> · <b style="color:var(--bad)">${fmtT(r.e)}에는 나오기 시작하세요</b></dd>
   <dt>날씨</dt><dd>${wx}</dd>
