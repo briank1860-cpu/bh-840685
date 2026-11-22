@@ -85,6 +85,7 @@ ALIAS = {
     'dj_waemok': {'any': ['왜목']},
     'br_wonsando': {'any': ['원산도']},
     'br_yongdu': {'any': ['용두해수욕장', '용두해변']},
+    'br_doksan': {'any': ['독산해수욕장', '독산해변']},
     'ba_gosapo': {'any': ['고사포']},
     'jn_holtong': {'any': ['홀통']},
     'jn_jogeumnaru': {'any': ['조금나루']},
