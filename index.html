@@ -1119,7 +1119,7 @@ function tEvB(id,Ts){ // 대상 근거 점수: 2건 이상 +4, 1건 +2, 이름�
 }
 function tWx(r,Ts){ // 고른 대상이 그날 날씨에 맞는지: 가장 잘 맞는 대상 기준, 크게 안 맞으면 -15, 조금 아쉬우면 -5
  if(!r||!Ts||!Ts.length||r.b==null)return 0;let f=0;Ts.forEach(T=>{const c=cond(T.id,DATA[r.site.id]||{},r.b,r.e,r.site.id);f=Math.max(f,c?c.f:1)});return f<=0.5?-15:f<1?-5:0}
-function tScore(r,Ts){if(r&&Ts&&Ts.length&&Ts.every(T=>closedOn(T.id,r.n,r.site.id)))return 0;return r?Math.max(0,Math.min(100,r.score+tEvB(r.site.id,Ts)+tWx(r,Ts))):0}
+function tScore(r,Ts){if(r&&Ts&&Ts.length&&Ts.every(T=>closedOn(T.id,r.n,r.site.id)))return 0;if(!r)return 0;const w=tWx(r,Ts),v=Math.max(0,Math.min(100,r.score+tEvB(r.site.id,Ts)+w));return w<=-15?Math.min(v,65):v} // 고른 대상이 모두 그날 날씨에 크게 안 맞으면 추천 기준 아래로
 function tEvTxt(id,T){const e=tEv(id,T);return (e.n?`잡은 후기 ${e.n}건(최근 ${mdTxt(e.last)})`:'잡은 후기 없음')+(e.miss?` · ${mdTxt(e.miss)} 노렸지만 못 잡음`:'')}
 function newTag(s){ // 새로 들어온 곳: 넣은 날(s.added)부터 45일 동안 표시, 잡은 근거가 2건보다 적으면 '후기 적음'
  if(!s||!s.added)return null;const d=(Date.now()+KST-Date.parse(s.added))/864e5;if(d>45)return null;
