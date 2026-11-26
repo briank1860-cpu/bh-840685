@@ -263,7 +263,7 @@ body{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
  </div>
  <svg class="tide" viewBox="0 0 1200 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 30 C150 5 300 55 450 30 S750 5 900 30 S1100 55 1200 30 V60 H0Z"/></svg>
 </header>
-<nav class="jump" aria-label="바로 가기"><a href="#sec-wk">주말 베스트</a><a href="#sec-day">이 날 어때요</a><a href="#sec-top">점수 높은 날</a><a href="#sec-sites">갯벌</a><a href="#sec-guide">잡는 법·손질</a><a href="#sec-tg">갯벌 친구들</a><a href="#sec-cond">내 조건</a></nav>
+<nav class="jump" aria-label="바로 가기"><a href="#sec-day">이 날 어때요</a><a href="#sec-wk">주말 베스트</a><a href="#sec-top">점수 높은 날</a><a href="#sec-sites">갯벌</a><a href="#sec-guide">잡는 법·손질</a><a href="#sec-tg">갯벌 친구들</a><a href="#sec-cond">내 조건</a></nav>
 <main>
 
 <div id="startAsk"></div>
@@ -289,17 +289,17 @@ body{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
 <div id="status"></div>
 
 
-<h2 id="sec-wk">이번 주말 베스트 <span class="sub">금·토·일, 내 조건의 지역에서 가장 좋은 다섯 곳</span></h2>
-<div class="card"><div style="margin-bottom:8px"><div class="sub" style="margin-bottom:4px">잡고 싶은 걸 고르면(3개까지) 그게 잘 나오는 곳 순서로 바꿔 드려요</div><div id="wkT" class="chips"></div></div><div id="wkTabs" style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap"></div><p class="sub" style="margin:0 0 8px">간조는 물이 가장 많이 빠지는 때예요. ○물은 그날 물때 이름이고, 물이 많이 빠지는 날을 사리, 적게 빠지는 날을 조금이라고 해요.</p><div id="wkList"></div></div>
-
-<h2 id="sec-new">요즘 올라온 영상·후기 <span class="sub" id="latestSub"></span></h2>
-<div class="card" id="latestBox"></div>
-
 <h2 id="sec-day">이 날 어때요? <span class="sub">날짜만 고르면 물때·날씨·좋은 곳이 한눈에</span></h2>
 <div class="card dayctl"><input type="date" id="dayPick"><select id="dayT"><option value="">대상 전체</option></select><button id="dayGo">보기</button></div>
 
+<h2 id="sec-wk">이번 주말 베스트 <span class="sub">금·토·일, 내 조건의 지역에서 가장 좋은 다섯 곳</span></h2>
+<div class="card"><div style="margin-bottom:8px"><div class="sub" style="margin-bottom:4px">잡고 싶은 걸 고르면(3개까지) 그게 잘 나오는 곳 순서로 바꿔 드려요</div><div id="wkT" class="chips"></div></div><div id="wkTabs" style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap"></div><p class="sub" style="margin:0 0 8px">간조는 물이 가장 많이 빠지는 때예요. ○물은 그날 물때 이름이고, 물이 많이 빠지는 날을 사리, 적게 빠지는 날을 조금이라고 해요.</p><div id="wkList"></div></div>
+
 <h2 id="sec-top">점수 높은 날 <span class="sub" id="topSub" style="color:var(--acc)"></span> <span class="sub">물이 얼마나 빠지는지를 가장 크게, 다음으로 바람(물 맑기)을 봐요. 물이 적게 빠지거나 바람이 센 날은 점수를 낮춰요.</span></h2>
 <div class="card tw"><table id="top"></table></div>
+
+<h2 id="sec-new">요즘 올라온 영상·후기 <span class="sub" id="latestSub"></span></h2>
+<div class="card" id="latestBox"></div>
 
 <h2 id="sec-sites">갯벌 둘러보기 <span class="sub" id="siteCount">누르면 지도·포인트·후기·영상</span></h2>
 <div class="sctabs" id="scTabs"></div>
@@ -1487,7 +1487,7 @@ function targetRankHtml(n,m,rows){
  let h='';
  if(sel){const t=TARGETS.find(x=>x.id===sel);
   h+=`<h4>${esc(t.name)} 좋은 장소</h4>`+(ts.includes(t)?`<div class="dl">${line(t,6)}</div>`:`<p class="sub">고른 지역에 ${esc(t.name)}${jo(t.name,'이','가')} 나온다는 근거가 있는 장소가 없어요.</p>`);}
- h+=`<h4>대상별 좋은 장소 <span class="sub">상위 3곳</span></h4><div class="dl">${ts.filter(t=>t.id!==sel).map(t=>line(t,3)).join('')}</div>`;
+ if(!sel)h+=`<h4>대상별 좋은 장소 <span class="sub">상위 3곳</span></h4><div class="dl">${ts.map(t=>line(t,3)).join('')}</div>`;
  return h;
 }
 function renderTargets(){
@@ -1566,14 +1566,15 @@ function dayDetail(n){saveState({dlg:{t:'d',n}});
  const sites=SITES.filter(s=>CAL[s.id]);
  const rows=sites.map(s=>({s,r:RESULT.rows.find(x=>x.site.id===s.id&&x.n===n)||evalSite(s,n,1,opt)[0]})).filter(x=>x.r).sort((a,b)=>b.r.score-a.r.score||b.r.adj-a.r.adj);
  const st=sites.length?sunTimes(n,sites[0].lat,sites[0].lon):null;
- const good=TARGETS.filter(t=>mStat(t.id,m)==='g'),okT=TARGETS.filter(t=>mStat(t.id,m)==='o'),closed=TARGETS.filter(t=>mStat(t.id,m)==='x');
+ const selT=$('dayT')?$('dayT').value:'',inSel=t=>!selT||t.id===selT; // 대상을 골랐으면 그 대상만(다른 대상 목록 안 보임)
+ const good=TARGETS.filter(t=>inSel(t)&&mStat(t.id,m)==='g'),okT=TARGETS.filter(t=>inSel(t)&&mStat(t.id,m)==='o'),closed=TARGETS.filter(t=>inSel(t)&&mStat(t.id,m)==='x');
  const tchip=(t,cls)=>`<span class="chip ${cls||''}" data-t="${t.id}">${esc(t.name)}</span>`;
  let h=`<div class="dl"><dt>물때</dt><dd>${mulName(ld)} · ${mulGrade(ld)[0]} <span class="sub">(음력 ${ld}일)</span></dd>${st?`<dt>해</dt><dd>일출 ${fmtT(st.rise)} · 일몰 ${fmtT(st.set)}</dd>`:''}<dt>날씨 기준</dt><dd>${WX_AT?fmtT(WX_AT)+' 받은 실시간 예보 · <a href="https://www.weather.go.kr/w/special-report/overall.do" target="_blank" rel="noopener">기상특보</a>':'<span style="color:var(--bad)">날씨 못 받음 — 새로고침</span>'}</dd><dt>${m}월 제철</dt><dd><div class="chips">${good.map(t=>tchip(t)).join('')||'<span class="sub">없음</span>'}</div></dd>${okT.length?`<dt>${m}월 나옴</dt><dd><div class="chips">${okT.map(t=>tchip(t)).join('')}</div></dd>`:''}${closed.length?`<dt>금어기</dt><dd><div class="chips">${closed.map(t=>tchip(t,'cx')+`<span class="sub">${esc(MONTHS[t.id].xn)}</span>`).join(' ')}</div></dd>`:''}</div>`;
  h+=targetRankHtml(n,m,rows);
  h+=`<h4>장소별 (고른 지역 ${sites.length}곳, 점수순)</h4>`;
- h+=rows.map(({s,r})=>{
+ h+=rows.filter(({s})=>!selT||siteHas(s.id,TARGETS.find(t=>t.id===selT))).map(({s,r})=>{
   const w=dayWeather(s,n);
-  const tg=(DETAIL[s.id]?.targets||[]).map(x=>findTarget(x.name)).filter(Boolean).filter((t,i,a)=>a.indexOf(t)===i);
+  const tg=(DETAIL[s.id]?.targets||[]).map(x=>findTarget(x.name)).filter(Boolean).filter((t,i,a)=>a.indexOf(t)===i).filter(inSel);
   const cd=Object.fromEntries(tg.map(t=>[t.id,cond(t.id,DATA[s.id]||{},r.b,r.e,s.id)]));
   const fo=t=>siteMonth(s.id,t,m)==='x'?-1:(cd[t.id]?cd[t.id].f:1)*(siteMonth(s.id,t,m)==='g'?1.2:1);
   tg.sort((a,b)=>fo(b)-fo(a));
