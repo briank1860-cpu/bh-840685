@@ -706,7 +706,7 @@ function weatherScore(wx,sea,a,b){
 }
 
 function evalSite(s,days0,nDays,opt){
- const EB=evBonus(s.id),NOEV=!evInfo(s.id).y1; // 믿을 만한 정도(trustOf) -8~+6. 1년 안 잡은 후기가 하나도 없으면 최대 65점(추천 안 함)
+ const EB=evBonus(s.id),NOEV=!evInfo(s.id).y1,WMAIN=waterMain(s.id,new Date(kDayStart(days0)+KST).getUTCMonth()+1); // 물속에서 보고 잡는 대상이 주인 곳만 '물 흐림'으로 크게 깎음(갯벌 파기·줍기는 바람에 물이 흐려도 잡을 수 있음, 2026-11-26. 파기·줍기·돌 뒤집기가 주인 곳은 바람 감점도 덜: 물이 많이 빠지는 것 자체가 중요, 2026-11-26 사용자) // 믿을 만한 정도(trustOf) -8~+6. 1년 안 잡은 후기가 하나도 없으면 최대 65점(추천 안 함)
  const p=CAL[s.id],rg=RANGE[s.id],d=DATA[s.id]||{};
  const t0=kDayStart(days0),t1=kDayStart(days0+nDays);
  let fLows=[],fEnd=0;
@@ -729,7 +729,7 @@ function evalSite(s,days0,nDays,opt){
   });
   if(!bD&&!bN)continue;
   const season=SEASON[mo-1];
-  const sc=(c,night)=>{if(!c||c.k<0)return null;const w=weatherScore(d.wx,d.sea,c.b,c.e);c.ez=easyAt(s.id,mo,night);let v=c.k+season*2/3+w.score+(c.ez.length?5:0)+EB;if(c.F<0.35)v=Math.min(v,60);if(w.murky)v=Math.min(v,55);if(w.danger)v=Math.min(v,25);if(NOEV)v=Math.min(v,65);c.w=w;return Math.round(Math.min(100,v))};
+  const sc=(c,night)=>{if(!c||c.k<0)return null;const w=weatherScore(d.wx,d.sea,c.b,c.e);c.ez=easyAt(s.id,mo,night);let v=c.k+season*2/3+(WMAIN||w.danger?w.score:Math.max(w.score,(x=>x>=9?6:x>=7?12:15)(+(((w.tags||[]).find(t=>/^바람 \d/.test(t.t))||{}).t||'').replace(/\D/g,''))))+(c.ez.length?5:0)+EB;if(c.F<0.35)v=Math.min(v,60);if(w.murky&&WMAIN)v=Math.min(v,55);if(w.danger)v=Math.min(v,25);if(NOEV)v=Math.min(v,65);c.w=w;return Math.round(Math.min(100,v))};
   const ds=sc(bD,0),ns0=sc(bN,1),ns=opt.night?ns0:null; // 밤은 '밤 해루질도 보기'를 켰을 때만(초보·가족 기본은 낮)
   if(ds==null&&ns==null)continue;
   const nsWhy=nban?'금지':!opt.night&&ns0!=null?'꺼 둠':!bN?'':!bN.ok?'금지':!nf?'대상 없음':''; // 밤 점수가 없는 이유
@@ -738,7 +738,7 @@ function evalSite(s,days0,nDays,opt){
   const tags=[];
   if(best.day<0.5)tags.push({t:'야간',c:'w'});
   if(w.danger)tags.push({t:'위험',c:'w'});
-  tags.push(...w.tags);
+  tags.push(...(WMAIN?w.tags:w.tags.map(t=>t.t==='물 흐림 가능'?{t:'바람 강함(파기·줍기는 가능)',c:'c'}:t)));
   if(best.F>=0.75)tags.unshift({t:'물 많이 빠짐',c:''});else if(best.F<0.35)tags.unshift({t:'물 적게 빠짐',c:'w'});
   if(best.ez&&best.ez.length)tags.push({t:'초보 대상 '+best.ez.map(t=>t.name).join('·'),c:'c'});
   if(best.l.src==='calc')tags.push({t:'간조 추정',c:'c'});
@@ -782,8 +782,30 @@ function nextGood(after){ // 가장 가까운 좋은 날(80점 이상 먼저, �
  const tr=r=>trustOf(r.site.id)>=0.5,by=(a,b)=>a.n-b.n||tr(b)-tr(a)||b.score-a.score;
  const A=rs.filter(r=>r.score>=80).sort(by),T=A.filter(tr);
  return (T[0]&&(!A[0]||T[0].n<=A[0].n+3)?T[0]:A[0])||rs.filter(r=>r.score>=RECO_MIN).sort((a,b)=>tr(b)-tr(a)||b.score-a.score)[0]||null}
+// 점수가 깎이거나 추천하지 못하는 이유(2026-11-26 사용자: 이유가 대략 나오면 이해가 쉬움)
+function waterMain(sid,m){const tg=(DETAIL[sid]?.targets||[]).map(x=>findTarget(x.name)).filter(Boolean).filter((t,i,a)=>a.indexOf(t)===i).filter(t=>/^[go]$/.test(siteMonth(sid,t,m)));
+ return !tg.length||tg.filter(t=>catchMode(sid,t.id)==='water').length/tg.length>=0.5}
+function lowWhy(r,Ts){const tg=(r.tags||[]).map(t=>t.t),has=k=>tg.some(x=>x.includes(k)),ws=(tg.find(x=>/^바람 \d/.test(x))||'').replace('바람 ',''),p=[];Ts=Ts||[];
+ if(Ts.length&&Ts.every(T=>closedOn(T.id,r.n,r.site.id)))p.push('금어기예요');
+ if(has('뇌우'))p.push('천둥·번개 예보가 있어요');
+ if(has('안개'))p.push('짙은 안개 예보가 있어요');
+ if(has('위험'))p.push(`바람·돌풍이 세서 위험해요${ws?' (바람 '+ws+')':''}`);else if(has('물 흐림')&&waterMain(r.site.id,tMonth(r.n)))p.push(`바람·파도에 물이 흐려 잘 안 보여요${ws?' (바람 '+ws+')':''}`);
+ if(r.F<0.35)p.push('물이 적게 빠지는 날이에요');else if(r.F<0.5)p.push('물이 덜 빠지는 날이에요');
+ p.good=r.F>=0.75; // 좋은 점(물 많이 빠짐)은 따로 앞에 붙임
+ if(tg.some(x=>/^비 ([6-9]|\d\d)/.test(x)))p.push('비가 많이 와요');
+ if(has('밤 간조뿐'))p.push('밤에만 물이 빠지는데 밤 출입이 금지예요');
+ if(!evInfo(r.site.id).y1)p.push('최근 1년 안에 잡은 후기가 없어요');
+ if(Ts.length&&!p.includes('금어기예요')){const c=tCover(r.site.id,Ts,r);if(!c.ok.length)p.push(c.no.map(([T,w])=>T.name+': '+w).join(', '));else if(tWx(r,Ts)<=-15)p.push(`${Ts.map(t=>t.name).join('·')}${jo(Ts[Ts.length-1].name,'을','를')} 잡기엔 날씨가 안 맞아요`)}
+ return p}
+function dayWhyTxt(n){if(!RESULT)return '';const Ts=wkTSel().map(id=>TARGETS.find(x=>x.id===id)).filter(Boolean);
+ const rows=RESULT.rows.filter(r=>r.n===n&&(!Ts.length||Ts.some(T=>siteHas(r.site.id,T))));if(!rows.length)return '';
+ const cnt={},wind=[];rows.forEach(r=>{lowWhy(r,Ts).forEach(x=>{const k=x.replace(/ \(.*\)$/,'');cnt[k]=(cnt[k]||0)+1});const w=(r.tags||[]).map(t=>t.t).find(x=>/^바람 \d/.test(x));if(w)wind.push(+w.replace(/\D/g,''))});
+ const good=rows.filter(r=>r.F>=0.75).length>=rows.length*0.5;
+ const main=Object.entries(cnt).filter(([k,v])=>v>=rows.length*0.35).sort((a,b)=>b[1]-a[1]).map(([k])=>k).slice(0,2);if(!main.length)return '';
+ const wr=wind.length?` (바람 ${Math.min(...wind)}~${Math.max(...wind)}m/s)`:'';
+ return `<br><span class="sub">${good?'물은 많이 빠지지만, 대부분 ':'이유: 대부분 '}${main.map(k=>/바람/.test(k)?k+wr:k).join(' · ')}</span>`}
 function noGoodHtml(n,topScore){const g=nextGood(n);
- return `<p class="nogood">이날은 추천할 만한 곳이 없어요${topScore?` (가장 높은 곳 ${topScore}점)`:''}.${g?` 가장 가까운 좋은 날은 <span class="link" data-s="${g.site.id}" data-n="${g.n}"${wkTSel().length?` data-ts="${wkTSel().join(',')}"`:''}><b>${fmtD(g.n)} ${esc(g.site.name)}</b></span> ${g.score}점이에요 <span class="sub">(${mulName(lunarDay(g.n))}${g.F>=0.75?' · 물 많이 빠짐':''} · ${(e=>e.n30+e.f30?'최근 한 달 후기 '+(e.n30+e.f30)+'건':'최근 한 달 후기 없음')(evInfo(g.site.id))})</span>.`:wkTSel().length?` 계산 기간 안에는 고른 대상(${esc(wkTSel().map(id=>TARGETS.find(t=>t.id===id).name).join('·'))})으로 추천할 만한 날이 없어요.`:''}</p>`}
+ return `<p class="nogood">이날은 추천할 만한 곳이 없어요${topScore?` (가장 높은 곳 ${topScore}점)`:''}.${dayWhyTxt(n)}${g?'<br>':''}${g?` 가장 가까운 좋은 날은 <span class="link" data-s="${g.site.id}" data-n="${g.n}"${wkTSel().length?` data-ts="${wkTSel().join(',')}"`:''}><b>${fmtD(g.n)} ${esc(g.site.name)}</b></span> ${g.score}점이에요 <span class="sub">(${mulName(lunarDay(g.n))}${g.F>=0.75?' · 물 많이 빠짐':''} · ${(e=>e.n30+e.f30?'최근 한 달 후기 '+(e.n30+e.f30)+'건':'최근 한 달 후기 없음')(evInfo(g.site.id))})</span>.`:wkTSel().length?` 계산 기간 안에는 고른 대상(${esc(wkTSel().map(id=>TARGETS.find(t=>t.id===id).name).join('·'))})으로 추천할 만한 날이 없어요.`:''}</p>`}
 let wkIdx=0;
 // 머리 화면: 이번 주말 가장 점수 높은 한 곳
 function heroPick(w,byDay){const el=$('heroPick');if(!el)return;
@@ -1123,7 +1145,7 @@ function tEvB(id,Ts){ // 대상 근거 점수: 2건 이상 +4, 1건 +2, 이름�
 }
 function tWx(r,Ts){ // 고른 대상이 그날 날씨에 맞는지: 가장 잘 맞는 대상 기준, 크게 안 맞으면 -15, 조금 아쉬우면 -5
  if(!r||!Ts||!Ts.length||r.b==null)return 0;let f=0;Ts.forEach(T=>{const c=cond(T.id,DATA[r.site.id]||{},r.b,r.e,r.site.id);f=Math.max(f,c?c.f:1)});return f<=0.5?-15:f<1?-5:0}
-function tScore(r,Ts){if(r&&Ts&&Ts.length&&Ts.every(T=>closedOn(T.id,r.n,r.site.id)))return 0;if(!r)return 0;const w=tWx(r,Ts),v=Math.max(0,Math.min(100,r.score+tEvB(r.site.id,Ts)+w));return w<=-15?Math.min(v,65):v} // 고른 대상이 모두 그날 날씨에 크게 안 맞으면 추천 기준 아래로
+function tScore(r,Ts){if(r&&Ts&&Ts.length&&Ts.every(T=>closedOn(T.id,r.n,r.site.id)))return 0;if(!r)return 0;const w=tWx(r,Ts),v=Math.max(0,Math.min(100,r.score+tEvB(r.site.id,Ts)+w));return w<=-15||!tCover(r.site.id,Ts,r).ok.length?Math.min(v,65):v} // 고른 대상이 모두 그날 날씨에 크게 안 맞으면 추천 기준 아래로
 function tEvTxt(id,T){const e=tEv(id,T);return (e.n?`잡은 후기 ${e.n}건(최근 ${mdTxt(e.last)})`:'잡은 후기 없음')+(e.miss?` · ${mdTxt(e.miss)} 노렸지만 못 잡음`:'')}
 function newTag(s){ // 새로 들어온 곳: 넣은 날(s.added)부터 45일 동안 표시, 잡은 근거가 2건보다 적으면 '후기 적음'
  if(!s||!s.added)return null;const d=(Date.now()+KST-Date.parse(s.added))/864e5;if(d>45)return null;
@@ -1204,7 +1226,7 @@ function dayCard(s,r,FT,FS){FS=FS||FT;const CLA=FT.length&&FT.every(T=>closedOn(
  const pick=FT.map(T=>{const rk=rankTarget(n,m,T,[{s,r}]);const x=rk&&rk[0];return `<div style="margin:2px 0"><span class="chip cg" data-t="${T.id}">${esc(T.name)}</span> ${rk===null?'<span style="color:var(--bad)">금어기예요</span>':esc(MODE_T[catchMode(s.id,T.id)]+' · '+(tEv(s.id,T).n?fitW(x):'잡은 후기가 없어 가늠하기 어려워요')+' · '+tEvTxt(s.id,T))}</div>`}).join('');
  const warn=(r.tags||[]).filter(x=>x.c==='w').map(x=>x.t);
  const wx=w?`${w.sky} · ${w.tmin.toFixed(0)}~${w.tmax.toFixed(0)}°C · 바람 최대 ${w.ws.toFixed(0)}m/s · 비 ${w.pr.toFixed(0)}mm${w.wave!=null?` · 파고 ${w.wave.toFixed(1)}m`:''}`:'<span class="sub">아직 예보가 없어요. 가기 전날 다시 확인하세요.</span>';
- return `<div class="daycard"><h4 style="margin:0 0 6px">${fmtD(n)} 이렇게 하세요 <span class="sub">${CLA?'금어기':(night?'밤':'낮')+' '+tScore(r,FT)+'점'}</span></h4>${FT.length&&FT.every(T=>closedOn(T.id,n,s.id))?`<p style="margin:0 0 6px;color:var(--bad)"><b>이날 ${FT.map(t=>esc(t.name)).join('·')}${jo(FT[FT.length-1].name,'은','는')} ${closedOn(FT[0].id,n,s.id)}예요. 잡으면 안 돼요.</b></p>`:tScore(r,FT)<RECO_MIN?`<p style="margin:0 0 6px;color:var(--bad)">${evInfo(s.id).y1?`이날은 점수가 낮아 추천하지 않아요(추천 기준 ${RECO_MIN}점). 아래 '더 좋은 날'을 보세요.`:`최근 1년 안에 이곳에서 잡았다는 후기가 없어 추천하지 않아요(추천 기준 ${RECO_MIN}점).`}</p>`:''}<div class="dl">
+ return `<div class="daycard"><h4 style="margin:0 0 6px">${fmtD(n)} 이렇게 하세요 <span class="sub">${CLA?'금어기':(night?'밤':'낮')+' '+tScore(r,FT)+'점'}</span></h4>${FT.length&&FT.every(T=>closedOn(T.id,n,s.id))?`<p style="margin:0 0 6px;color:var(--bad)"><b>이날 ${FT.map(t=>esc(t.name)).join('·')}${jo(FT[FT.length-1].name,'은','는')} ${closedOn(FT[0].id,n,s.id)}예요. 잡으면 안 돼요.</b></p>`:tScore(r,FT)<RECO_MIN?`<p style="margin:0 0 6px;color:var(--bad)">${evInfo(s.id).y1?`이날은 점수가 낮아 추천하지 않아요(추천 기준 ${RECO_MIN}점)${(w=>w.length?'. '+(w.good?'물은 많이 빠져 좋지만, ':'이유: ')+w.join(' · '):'')(lowWhy(r,FT))}. 아래 '더 좋은 날'을 보세요.`:`최근 1년 안에 이곳에서 잡았다는 후기가 없어 추천하지 않아요(추천 기준 ${RECO_MIN}점).`}</p>`:''}<div class="dl">
   <dt>물때</dt><dd>${mulName(lunarDay(n))} · ${lowLine(r)} · ${reachDay(r)}</dd>
   <dt>해루질</dt><dd><b>${fmtT(r.b)}~${fmtT(r.e)}</b> · <b style="color:var(--bad)">${fmtT(r.e)}에는 나오기 시작하세요</b></dd>
   <dt>날씨</dt><dd>${wx}</dd>
@@ -1570,6 +1592,7 @@ function dayDetail(n){saveState({dlg:{t:'d',n}});
  const good=TARGETS.filter(t=>inSel(t)&&mStat(t.id,m)==='g'),okT=TARGETS.filter(t=>inSel(t)&&mStat(t.id,m)==='o'),closed=TARGETS.filter(t=>inSel(t)&&mStat(t.id,m)==='x');
  const tchip=(t,cls)=>`<span class="chip ${cls||''}" data-t="${t.id}">${esc(t.name)}</span>`;
  let h=`<div class="dl"><dt>물때</dt><dd>${mulName(ld)} · ${mulGrade(ld)[0]} <span class="sub">(음력 ${ld}일)</span></dd>${st?`<dt>해</dt><dd>일출 ${fmtT(st.rise)} · 일몰 ${fmtT(st.set)}</dd>`:''}<dt>날씨 기준</dt><dd>${WX_AT?fmtT(WX_AT)+' 받은 실시간 예보 · <a href="https://www.weather.go.kr/w/special-report/overall.do" target="_blank" rel="noopener">기상특보</a>':'<span style="color:var(--bad)">날씨 못 받음 — 새로고침</span>'}</dd><dt>${m}월 제철</dt><dd><div class="chips">${good.map(t=>tchip(t)).join('')||'<span class="sub">없음</span>'}</div></dd>${okT.length?`<dt>${m}월 나옴</dt><dd><div class="chips">${okT.map(t=>tchip(t)).join('')}</div></dd>`:''}${closed.length?`<dt>금어기</dt><dd><div class="chips">${closed.map(t=>tchip(t,'cx')+`<span class="sub">${esc(MONTHS[t.id].xn)}</span>`).join(' ')}</div></dd>`:''}</div>`;
+ if(!rows.some(x=>x.r.score>=RECO_MIN))h+=`<p class="nogood">이날은 추천할 만한 곳이 없어요.${dayWhyTxt(n)}</p>`;
  h+=targetRankHtml(n,m,rows);
  h+=`<h4>장소별 (고른 지역 ${sites.length}곳, 점수순)</h4>`;
  h+=rows.filter(({s})=>!selT||siteHas(s.id,TARGETS.find(t=>t.id===selT))).map(({s,r})=>{
