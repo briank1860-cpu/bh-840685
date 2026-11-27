@@ -10,7 +10,9 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 HERE = os.path.dirname(__file__)
 HTML = os.path.join(HERE, '..', 'index.html')
-KEEP, MAX_DAYS = 8, 730  # 최근 2년
+KEEP, MAX_DAYS = 15, 730  # 장소마다 최근 2년 최신 15개
+NEW_KEEP, NEW_DAYS = 150, 120  # 장소 모르는 해루질 영상: 최근 4달 최신 150개(첫 화면·어종 화면용 VNEW)
+TQ = ['해루질', '갯벌 체험', '조개 캐기', '박하지 해루질', '돌게 해루질', '꽃게 해루질', '소라 해루질', '골뱅이 해루질', '낙지 해루질', '주꾸미 해루질', '맛조개', '백합 캐기', '동죽 캐기', '바지락 캐기', '해삼 해루질', '문어 해루질', '키조개 해루질', '고둥 해루질', '굴 따기 해루질', '뿔소라 해루질', '새조개 해루질']
 WORD = re.compile(r'해루질|갯벌|조개|박하지|돌게|꽃게|소라|골뱅이|낙지|주꾸미|쭈꾸미|맛조개|백합|동죽|바지락|가무락|모시조개|체험')
 
 # 장소별 이름표: any = 이 중 하나가 제목·설명에 있어야 함, need = 흔한 말이라 같이 있어야 하는 말(지역명), not = 있으면 다른 곳(예: '당진해루질' 안의 '진해루')
@@ -269,6 +271,8 @@ def main():
     h = open(HTML, encoding='utf-8').read()
     m = re.search(r'^const VIDEOS=(\{.*\});[^\n]*$', h, re.M)
     V = json.loads(m.group(1)) if m else {}
+    mn = re.search(r'^const VNEW=(\[.*\]);[^\n]*$', h, re.M)
+    NEW = {x['v']: x for x in (json.loads(mn.group(1)) if mn else [])}
     rows = []  # (when, title, url, desc)
     if '--tsv' in args:
         for line in open(args[args.index('--tsv') + 1], encoding='utf-8'):
@@ -283,6 +287,12 @@ def main():
                     rows.append(r)
             except Exception as e:
                 print('# 실패', sid, e)
+            time.sleep(0.4)
+        for q in TQ:  # 어종·일반 검색(장소 없이 올라오는 영상)
+            try:
+                rows += search.youtube(q)
+            except Exception as e:
+                print('# 실패', q, e)
             time.sleep(0.4)
         for name, cid in CHANNELS.items():
             try:
@@ -317,6 +327,8 @@ def main():
             ch_opened += 1; ms = full_desc_sites(vid); time.sleep(0.3)
         if chan and ms and not WORD.search(title) and not desc_haru(vid):
             ms = []  # 해루질 채널이라도 제목·설명에 잡는 이야기가 없으면(바다수영·여행 등) 붙이지 않음
+        if not ms and WORD.search(title) and (today - d).days <= NEW_DAYS and vid not in NEW:  # 장소는 몰라도 제목에 잡는 이야기가 있으면 전국 최신 영상으로
+            NEW[vid] = {'v': vid, 't': title[:90], 'd': d.isoformat(), 's': 1 if '/shorts/' in url else 0, **({'a': 1} if is_approx(when) else {})}
         for sid in ms:
             lst = V.setdefault(sid, [])
             if any(x['v'] == vid for x in lst):
@@ -340,14 +352,22 @@ def main():
                         key=lambda x: x['d'], reverse=True)[:KEEP]
         if not V[sid]:
             del V[sid]
+    placed = {x['v'] for l in V.values() for x in l}
+    NL = sorted([x for x in NEW.values() if x['v'] not in placed and not skip_title(x['t'], x['v']) and WORD.search(x['t'])
+                 and not (re.search(r'먹방|mukbang|레시피|요리|손질', x['t'], re.I) and not re.search(r'해루질|잡', x['t']))
+                 and (today - datetime.date.fromisoformat(x['d'])).days <= NEW_DAYS], key=lambda x: x['d'], reverse=True)[:NEW_KEEP]
+    dn = 'const VNEW=' + json.dumps(NL, ensure_ascii=False, separators=(',', ':')).replace('</', r'<\/') + '; // 장소 모르는 최근 해루질 영상(tools/videos.py가 갱신)'
     dump = 'const VIDEOS=' + json.dumps(V, ensure_ascii=False, separators=(',', ':')).replace('</', r'<\/') + '; // 장소별 해루질 유튜브(tools/videos.py가 갱신)'
     if m:
         h = h[:m.start()] + dump + h[m.end():]
     else:
         i = h.index('const SPOTS=')
         h = h[:i] + dump + '\n' + h[i:]
+    mn = re.search(r'^const VNEW=(\[.*\]);[^\n]*$', h, re.M)
+    h = h[:mn.start()] + dn + h[mn.end():] if mn else h.replace('const VIDEOS=', dn + '\nconst VIDEOS=', 1)
     open(HTML, 'w', encoding='utf-8', newline='').write(h)
     save_desc_cache()
+    print('장소 모르는 최근 영상', len(NL))
     after = {(k, x['v']) for k, l in V.items() for x in l}
     print('실제로 새로 보이는 영상', len(after - before), '/ 빠진 영상', len(before - after), '(검색에서 붙은 수', added, ') / 영상 있는 장소', len(V), '/ 전체', len(after))
     for sid in ALIAS:
