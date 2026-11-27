@@ -1509,7 +1509,7 @@ function targetRankHtml(n,m,rows){
   if(rk0===null){if(NO){NO.push([t,'금어기예요']);return ''}return `<dt><span class="chip cx" data-t="${t.id}">${esc(t.name)}</span></dt><dd class="sub">${esc(MONTHS[t.id]?.xn||'금어기')}</dd>`}
   if(!rkA.length)return '';
   // 굵은 테두리(제철 강조)는 그날 추천할 곳이 있을 때만(2026-11-27 사용자: 추천 없는데 왜 강조하냐)
-  const chipT=`<dt><span class="chip ${rk.length&&mStat(t.id,m)==='g'?'cg':''}" data-t="${t.id}">${esc(t.name)}</span></dt>`;
+  const chipT=`<dt><span class="chip ${rk.length&&mStat(t.id,m)==='g'?'cg':''}" data-t="${t.id}">${esc(t.name)}</span>${rk.length&&mStat(t.id,m)==='g'?' <span class="tag c">제철</span>':''}</dt>`;
   if(!rk.length){const b=rkA[0],r0=RS[b.s.id],w=lowWhy(r0,[t]);
    if(!w.length)w.push(tEvB(b.s.id,[t])<0?`잡은 후기가 적어 점수가 낮아요(가장 나은 곳 ${TS(b)}점)`:`가장 나은 곳도 ${TS(b)}점이라 추천 기준(${RECO_MIN}점) 아래예요`);
    if(NO){NO.push([t,w[0].replace(t.name+': ','').replace(/ \(바람 [^)]*\)/,'')]);return ''} // 묶음 화면은 가장 큰 이유 하나만
@@ -1521,8 +1521,8 @@ function targetRankHtml(n,m,rows){
  if(!sel){NO=[];const good=ts.map(t=>line(t,3)).join('');
   h+=good?`<h4>이날 잡기 좋은 대상과 장소 <span class="sub">대상마다 상위 3곳</span></h4><div class="dl">${good}</div>`:`<h4>이날 잡기 좋은 대상</h4><p>이날은 추천할 만한 대상이 없어요.</p>`;
   if(NO.length){const g={};NO.forEach(([t,w])=>(g[w]=g[w]||[]).push(t));
-   h+=`<h4 style="margin-top:12px">이날 어려운 대상 <span class="sub">${NO.length}개 · 이유별</span></h4><ul style="margin:4px 0 0;padding-left:18px">${Object.entries(g).map(([w,l])=>`<li><b>${l.map(t=>`<span class="link" data-t="${t.id}">${esc(t.name)}</span>`).join('·')}</b> <span class="sub">— ${esc(w)}</span></li>`).join('')}</ul>`}
-  return h+(good?`<p class="sub" style="margin-top:6px">점수는 장소 화면과 같아요.${/chip cg/.test(good)?' 진한 테두리 = 이달 제철이에요.':''}</p>`:'')}
+   h+=`<h4 style="margin-top:12px">이날 어려운 대상 <span class="sub">${NO.length}개 · 이유별</span></h4><ul style="margin:4px 0 0;padding-left:18px">${Object.entries(g).map(([w,l])=>`<li><b>${l.map(t=>`<span class="link" data-t="${t.id}">${esc(t.name)}</span>${mStat(t.id,m)==='g'?'<span class="sub">(제철)</span>':''}`).join('·')}</b> <span class="sub">— ${esc(w)}</span></li>`).join('')}</ul>`}
+  return h+(good?`<p class="sub" style="margin-top:6px">점수는 장소 화면과 같아요.${/제철/.test(h)?' 제철 = 이달 많이 나오는 어종이에요.':''}</p>`:'')}
  return h+`<p class="sub" style="margin-top:4px">점수는 장소 화면과 같아요(그 대상 근거·그날 날씨 포함).</p>`;
 }
 function renderTargets(){
