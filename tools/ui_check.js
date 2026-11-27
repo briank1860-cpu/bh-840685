@@ -31,8 +31,27 @@ export function chkSite(sid){
    if(others.length)P('다른 대상 섞임',others.join(','))}
  }
  return out}
+// '이 날 어때요'·대상별 좋은 장소 목록의 점수가 그 장소 화면(같은 날·같은 대상) 점수와 같은지, 추천 기준 아래가 '좋은 장소'로 나오지 않는지
+export function chkDay(){
+ const out=[],ns=[...new Set(RESULT.rows.map(r=>r.n))].sort((a,b)=>a-b).slice(0,8);
+ for(const n of ns)for(const T of [null,...TARGETS]){
+  if($('dayT'))$('dayT').value=T?T.id:'';dayDetail(n);
+  const links=[...document.querySelectorAll('#dlg .dl [data-s][data-ts]')];
+  for(const a of links.slice(0,6)){const m=(a.parentElement.innerText.match(/(\d+)점/)||[])[1];if(!m)continue;
+   const ts=a.dataset.ts.split(','),r=siteRows(a.dataset.s).find(x=>x.n===n);if(!r)continue;
+   const sc=tScore(r,ts.map(id=>TARGETS.find(t=>t.id===id)));
+   if(+m!==sc)out.push([fmtD(n)+'|'+a.dataset.s+'|'+ts,'날짜 화면·장소 화면 점수 다름',m+'/'+sc]);
+   if(+m<RECO_MIN)out.push([fmtD(n)+'|'+a.dataset.s+'|'+ts,'추천 기준 아래가 좋은 장소로',m])}
+  // 같은 화면 아래 '장소별' 카드 점수도 같은지
+  for(const c of [...document.querySelectorAll('#dlg .card')].slice(0,5)){const a=c.querySelector('[data-s]');if(!a)continue;
+   const m=((c.firstElementChild&&c.firstElementChild.lastElementChild||{}).innerText||'').match(/^\s*(\d+)/);if(!m)continue;
+   const r=siteRows(a.dataset.s).find(x=>x.n===n);if(!r)continue;const sc=tScore(r,T?[T]:[]);
+   if(+m[1]!==sc)out.push([fmtD(n)+'|'+a.dataset.s+'|'+(T?T.id:'-'),'날짜 화면 장소별 점수 다름',m[1]+'/'+sc])}
+ }
+ if($('dayT'))$('dayT').value='';return out}
 export async function run(){
  const dm=drawMap;drawMap=function(){};const bad=[];
+ try{bad.push(...chkDay())}catch(e){bad.push(['dayDetail','오류',String(e).slice(0,120)])}
  try{for(const sid of [...new Set(RESULT.rows.map(r=>r.site.id))]){try{bad.push(...chkSite(sid))}catch(e){bad.push([sid,'오류',String(e).slice(0,120)])}await new Promise(r=>setTimeout(r,0))}}
  finally{drawMap=dm;lsSet('bh_wkT','');FOCUS.ts=null;try{$('dlg').close()}catch(e){}}
  const count={},ex={};bad.forEach(b=>{count[b[1]]=(count[b[1]]||0)+1;(ex[b[1]]=ex[b[1]]||[]).length<5&&ex[b[1]].push(b[0]+' '+b[2])});
