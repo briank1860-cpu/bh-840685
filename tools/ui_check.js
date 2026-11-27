@@ -42,6 +42,9 @@ export function chkDay(){
    const sc=tScore(r,ts.map(id=>TARGETS.find(t=>t.id===id)));
    if(+m!==sc)out.push([fmtD(n)+'|'+a.dataset.s+'|'+ts,'날짜 화면·장소 화면 점수 다름',m+'/'+sc]);
    if(+m<RECO_MIN)out.push([fmtD(n)+'|'+a.dataset.s+'|'+ts,'추천 기준 아래가 좋은 장소로',m])}
+  // 추천할 곳이 없다는 줄: 강조 표시(굵은 테두리)가 없고 이유가 붙어 있어야
+  document.querySelectorAll('#dlg dt').forEach(dt=>{const dd=dt.nextElementSibling,tx=dd?dd.innerText:'';if(!/추천할 만한 곳이 없어요/.test(tx))return;
+   if(dt.querySelector('.cg'))out.push([fmtD(n)+'|'+dt.innerText,'추천 없는데 강조','']);if(!/ — ./.test(tx))out.push([fmtD(n)+'|'+dt.innerText,'추천 없는데 이유 없음',''])});
   // 같은 화면 아래 '장소별' 카드 점수도 같은지
   for(const c of [...document.querySelectorAll('#dlg .card')].slice(0,5)){const a=c.querySelector('[data-s]');if(!a)continue;
    const m=((c.firstElementChild&&c.firstElementChild.lastElementChild||{}).innerText||'').match(/^\s*(\d+)/);if(!m)continue;

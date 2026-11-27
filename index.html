@@ -1145,7 +1145,7 @@ function tEvB(id,Ts){ // 대상 근거 점수: 2건 이상 +4, 1건 +2, 이름�
 }
 function tWx(r,Ts){ // 고른 대상이 그날 날씨에 맞는지: 가장 잘 맞는 대상 기준, 크게 안 맞으면 -15, 조금 아쉬우면 -5
  if(!r||!Ts||!Ts.length||r.b==null)return 0;let f=0;Ts.forEach(T=>{const c=cond(T.id,DATA[r.site.id]||{},r.b,r.e,r.site.id);f=Math.max(f,c?c.f:1)});return f<=0.5?-15:f<1?-5:0}
-function tScore(r,Ts){if(r&&Ts&&Ts.length&&Ts.every(T=>closedOn(T.id,r.n,r.site.id)))return 0;if(!r)return 0;const w=tWx(r,Ts),v=Math.max(0,Math.min(100,r.score+tEvB(r.site.id,Ts)+w));return w<=-15||!tCover(r.site.id,Ts,r).ok.length?Math.min(v,65):v} // 고른 대상이 모두 그날 날씨에 크게 안 맞으면 추천 기준 아래로
+function tScore(r,Ts){if(r&&Ts&&Ts.length&&Ts.every(T=>closedOn(T.id,r.n,r.site.id)))return 0;if(!r)return 0;const w=tWx(r,Ts),v=Math.max(0,Math.min(100,r.score+tEvB(r.site.id,Ts)+w));return Ts&&Ts.length&&(w<=-15||!tCover(r.site.id,Ts,r).ok.length)?Math.min(v,65):v} // 고른 대상이 모두 그날 날씨에 크게 안 맞으면 추천 기준 아래로
 function tEvTxt(id,T){const e=tEv(id,T);return (e.n?`잡은 후기 ${e.n}건(최근 ${mdTxt(e.last)})`:'잡은 후기 없음')+(e.miss?` · ${mdTxt(e.miss)} 노렸지만 못 잡음`:'')}
 function newTag(s){ // 새로 들어온 곳: 넣은 날(s.added)부터 45일 동안 표시, 잡은 근거가 2건보다 적으면 '후기 적음'
  if(!s||!s.added)return null;const d=(Date.now()+KST-Date.parse(s.added))/864e5;if(d>45)return null;
@@ -1504,17 +1504,26 @@ function targetRankHtml(n,m,rows){
  const ts=TARGETS.filter(t=>rows.some(({s})=>siteHas(s.id,t)));
  const RS=Object.fromEntries(rows.map(({s,r})=>[s.id,r])); // 장소 점수로 통일
  // 장소 화면과 같은 점수(tScore: 대상 근거·그날 날씨·금어기·낮밤)로 줄 세우고, 70점 넘는 곳만 '좋은 장소'로(2026-11-27 사용자: 꽃게 1위로 보고 들어갔더니 추천 안 한다고 나옴)
+ let NO=null; // 대상 안 고른 화면: 추천 없는 대상은 이유별로 묶어 아래 한 덩어리로(2026-11-27 사용자: '없어요'만 줄줄이 나와 무슨 화면인지 모르겠다)
  const line=(t,k)=>{const rk0=rankTarget(n,m,t,rows),TS=x=>tScore(RS[x.s.id],[t]),rkA=rk0&&rk0.filter(x=>RS[x.s.id]).sort((a,b)=>TS(b)-TS(a)||b.sc-a.sc),rk=rkA&&rkA.filter(x=>TS(x)>=RECO_MIN);
-  if(rk0===null)return `<dt><span class="chip cx" data-t="${t.id}">${esc(t.name)}</span></dt><dd class="sub">${esc(MONTHS[t.id]?.xn||'금어기')}</dd>`;
+  if(rk0===null){if(NO){NO.push([t,'금어기예요']);return ''}return `<dt><span class="chip cx" data-t="${t.id}">${esc(t.name)}</span></dt><dd class="sub">${esc(MONTHS[t.id]?.xn||'금어기')}</dd>`}
   if(!rkA.length)return '';
-  const chipT=`<dt><span class="chip ${mStat(t.id,m)==='g'?'cg':''}" data-t="${t.id}">${esc(t.name)}</span></dt>`;
-  if(!rk.length){const b=rkA[0],w=lowWhy(RS[b.s.id],[t]);return chipT+`<dd class="sub">이날은 추천할 만한 곳이 없어요${w.length?' — '+(w.good?'물은 많이 빠지지만 ':'')+w.join(' · '):''}</dd>`}
+  // 굵은 테두리(제철 강조)는 그날 추천할 곳이 있을 때만(2026-11-27 사용자: 추천 없는데 왜 강조하냐)
+  const chipT=`<dt><span class="chip ${rk.length&&mStat(t.id,m)==='g'?'cg':''}" data-t="${t.id}">${esc(t.name)}</span></dt>`;
+  if(!rk.length){const b=rkA[0],r0=RS[b.s.id],w=lowWhy(r0,[t]);
+   if(!w.length)w.push(tEvB(b.s.id,[t])<0?`잡은 후기가 적어 점수가 낮아요(가장 나은 곳 ${TS(b)}점)`:`가장 나은 곳도 ${TS(b)}점이라 추천 기준(${RECO_MIN}점) 아래예요`);
+   if(NO){NO.push([t,w[0].replace(t.name+': ','').replace(/ \(바람 [^)]*\)/,'')]);return ''} // 묶음 화면은 가장 큰 이유 하나만
+   return chipT+`<dd class="sub">이날은 추천할 만한 곳이 없어요 — ${(w.good?'물은 많이 빠지지만 ':'')+w.join(' · ')}</dd>`}
   return chipT+`<dd>${rk.slice(0,k).map((x,i)=>`<div>${i+1}. <span class="link" data-s="${x.s.id}" data-n="${n}" data-ts="${t.id}">${esc(x.s.name)}</span> <b>${TS(x)}점</b> ${dnTxt(RS[x.s.id],tEvB(x.s.id,[t])+tWx(RS[x.s.id],[t]))} <span class="sub">간조 ${fmtT(x.l.t)} · 해루질 ${fmtT(x.l.b)}~${fmtT(x.l.e)}${x.l.day<0.5?' · 야간':''}${x.w.danger?' · 위험':''}</span>${x.mk&&x.mk.lv?` <span class="tag ${x.mk.lv===2?'w':'c'}">${x.mk.t}</span>`:''}</div>`).join('')}</dd>`};
  let h='';
  if(sel){const t=TARGETS.find(x=>x.id===sel);
   h+=`<h4>${esc(t.name)} 좋은 장소</h4>`+(ts.includes(t)?`<div class="dl">${line(t,6)}</div>`:`<p class="sub">고른 지역에 ${esc(t.name)}${jo(t.name,'이','가')} 나온다는 근거가 있는 장소가 없어요.</p>`);}
- if(!sel)h+=`<h4>대상별 좋은 장소 <span class="sub">상위 3곳</span></h4><div class="dl">${ts.map(t=>line(t,3)).join('')}</div>`;
- return h+`<p class="sub" style="margin-top:4px">점수는 장소 화면과 같아요(그 대상 근거·그날 날씨 포함). 진한 테두리 대상 = 이달 많이 나오는 때(제철)예요.</p>`;
+ if(!sel){NO=[];const good=ts.map(t=>line(t,3)).join('');
+  h+=good?`<h4>이날 잡기 좋은 대상과 장소 <span class="sub">대상마다 상위 3곳</span></h4><div class="dl">${good}</div>`:`<h4>이날 잡기 좋은 대상</h4><p>이날은 추천할 만한 대상이 없어요.</p>`;
+  if(NO.length){const g={};NO.forEach(([t,w])=>(g[w]=g[w]||[]).push(t));
+   h+=`<h4 style="margin-top:12px">이날 어려운 대상 <span class="sub">${NO.length}개 · 이유별</span></h4><ul style="margin:4px 0 0;padding-left:18px">${Object.entries(g).map(([w,l])=>`<li><b>${l.map(t=>`<span class="link" data-t="${t.id}">${esc(t.name)}</span>`).join('·')}</b> <span class="sub">— ${esc(w)}</span></li>`).join('')}</ul>`}
+  return h+(good?`<p class="sub" style="margin-top:6px">점수는 장소 화면과 같아요.${/chip cg/.test(good)?' 진한 테두리 = 이달 제철이에요.':''}</p>`:'')}
+ return h+`<p class="sub" style="margin-top:4px">점수는 장소 화면과 같아요(그 대상 근거·그날 날씨 포함).</p>`;
 }
 function renderTargets(){
  $('targets').innerHTML=TARGETS.map(t=>`<button class="chip" data-t="${esc(t.id)}">${PHOTO[t.id]?`<img loading="lazy" alt="" src="img/${t.id}.jpg">`:'<span class="noph"></span>'}${esc(t.name)}<small>${esc(t.season||'')}</small></button>`).join('')
